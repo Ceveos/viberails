@@ -1,0 +1,30 @@
+{
+  "name": "viberails",
+  "version": "0.0.1",
+  "description": "Guardrails vibe-coded apps. Ship fast without the tech debt.",
+  "main": "index.js",
+  "bin": {
+    "viberails": "index.js"
+  },
+  "keywords": [
+    "vibe-coding",
+    "guardrails",
+    "scaffolding",
+    "monorepo",
+    "turborepo",
+    "cli",
+    "code-quality",
+    "developer-tools",
+    "nextjs",
+    "react-native",
+    "boilerplate",
+    "ai-coding",
+    "letscook"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ceveos/viberails.git"
+  },
+  "homepage": "https://viberails.sh"
+}
