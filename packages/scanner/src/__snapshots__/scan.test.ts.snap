@@ -1,0 +1,133 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
+{
+  "conventions": {
+    "componentNaming": {
+      "confidence": "low",
+      "consistency": 0,
+      "sampleSize": 5,
+      "value": "camelCase",
+    },
+    "fileNaming": {
+      "confidence": "medium",
+      "consistency": 75,
+      "sampleSize": 8,
+      "value": "kebab-case",
+    },
+    "hookNaming": {
+      "confidence": "high",
+      "consistency": 100,
+      "sampleSize": 3,
+      "value": "use-*",
+    },
+    "importAlias": {
+      "confidence": "high",
+      "consistency": 100,
+      "sampleSize": 1,
+      "value": "@/*",
+    },
+  },
+  "root": "<PROJECT_ROOT>",
+  "stack": {
+    "framework": {
+      "name": "nextjs",
+      "version": "15",
+    },
+    "language": {
+      "name": "typescript",
+      "version": "5",
+    },
+    "libraries": [],
+    "packageManager": {
+      "name": "npm",
+    },
+    "styling": {
+      "name": "tailwindcss",
+      "version": "4",
+    },
+    "testRunner": {
+      "name": "vitest",
+      "version": "3",
+    },
+  },
+  "statistics": {
+    "averageFileLines": 2,
+    "filesByExtension": {
+      ".ts": 9,
+      ".tsx": 7,
+    },
+    "largestFiles": [
+      {
+        "lines": 3,
+        "path": "src/hooks/use-form.ts",
+      },
+      {
+        "lines": 2,
+        "path": "__tests__/app.test.ts",
+      },
+      {
+        "lines": 2,
+        "path": "__tests__/hooks.test.ts",
+      },
+      {
+        "lines": 2,
+        "path": "__tests__/utils.test.ts",
+      },
+      {
+        "lines": 2,
+        "path": "src/app/layout.tsx",
+      },
+    ],
+    "totalFiles": 16,
+    "totalLines": 33,
+  },
+  "structure": {
+    "directories": [
+      {
+        "confidence": "high",
+        "fileCount": 3,
+        "path": "__tests__",
+        "role": "tests",
+      },
+      {
+        "confidence": "high",
+        "fileCount": 2,
+        "path": "src/app",
+        "role": "pages",
+      },
+      {
+        "confidence": "high",
+        "fileCount": 5,
+        "path": "src/components",
+        "role": "components",
+      },
+      {
+        "confidence": "high",
+        "fileCount": 3,
+        "path": "src/hooks",
+        "role": "hooks",
+      },
+      {
+        "confidence": "high",
+        "fileCount": 2,
+        "path": "src/lib",
+        "role": "utils",
+      },
+      {
+        "confidence": "high",
+        "fileCount": 1,
+        "path": "src/app/api",
+        "role": "api",
+      },
+    ],
+    "srcDir": "src",
+    "testPattern": {
+      "confidence": "high",
+      "consistency": 100,
+      "sampleSize": 3,
+      "value": "*.test.ts",
+    },
+  },
+}
+`;
