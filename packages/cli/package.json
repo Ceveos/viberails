@@ -1,0 +1,39 @@
+{
+  "name": "viberails",
+  "version": "0.1.0",
+  "description": "CLI tool for scanning JS/TS projects and generating AI context",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "viberails": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@viberails/config": "workspace:*",
+    "@viberails/context": "workspace:*",
+    "@viberails/scanner": "workspace:*",
+    "@viberails/types": "workspace:*",
+    "commander": "^14.0.3"
+  }
+}
