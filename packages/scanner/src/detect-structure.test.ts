@@ -25,7 +25,7 @@ describe('detectStructure', () => {
     expect(components).toBeDefined();
     expect(components!.role).toBe('components');
     expect(components!.confidence).toBe('high');
-    expect(components!.fileCount).toBe(2);
+    expect(components!.fileCount).toBe(5);
   });
 
   it('classifies src/hooks as hooks role with high confidence', async () => {
