@@ -1,0 +1,160 @@
+import type { Confidence } from './confidence.js';
+
+/**
+ * The top-level configuration shape for `viberails.config.json`.
+ * Generated from scan results and optionally edited by the user.
+ */
+export interface ViberailsConfig {
+  /** JSON Schema URL for editor validation. */
+  $schema?: string;
+
+  /** Config format version. Always `1` for V1.0. */
+  version: number;
+
+  /** Project name, typically from package.json. */
+  name: string;
+
+  /** Whether conventions are warned about or enforced as errors. */
+  enforcement: 'warn' | 'enforce';
+
+  /** Detected or configured technology stack. */
+  stack: ConfigStack;
+
+  /** Detected or configured directory structure. */
+  structure: ConfigStructure;
+
+  /** Detected or configured coding conventions. */
+  conventions: ConfigConventions;
+
+  /** Rule thresholds and toggles for enforcement. */
+  rules: ConfigRules;
+
+  /** Glob patterns for files and directories to ignore. */
+  ignore: string[];
+}
+
+/**
+ * Technology stack configuration. Each field is a string identifier,
+ * optionally with a version suffix (e.g. `"nextjs@15"`, `"typescript"`).
+ */
+export interface ConfigStack {
+  /** Primary framework identifier (e.g. `"nextjs@15"`, `"remix@2"`). */
+  framework?: string;
+
+  /** Primary language (e.g. `"typescript"`, `"javascript"`). */
+  language: string;
+
+  /** Styling solution (e.g. `"tailwindcss@4"`, `"css-modules"`). */
+  styling?: string;
+
+  /** Backend framework (e.g. `"express@5"`, `"fastify"`). */
+  backend?: string;
+
+  /** Package manager (e.g. `"pnpm"`, `"npm"`, `"yarn"`). */
+  packageManager: string;
+
+  /** Linter (e.g. `"eslint@9"`, `"biome"`). */
+  linter?: string;
+
+  /** Test runner (e.g. `"vitest"`, `"jest"`). */
+  testRunner?: string;
+}
+
+/**
+ * Directory structure configuration. Each field is a path relative
+ * to the project root.
+ */
+export interface ConfigStructure {
+  /** Source directory (e.g. `"src"`), or undefined for flat structure. */
+  srcDir?: string;
+
+  /** Pages or routes directory (e.g. `"src/app"`, `"pages"`). */
+  pages?: string;
+
+  /** Components directory (e.g. `"src/components"`). */
+  components?: string;
+
+  /** Hooks directory (e.g. `"src/hooks"`). */
+  hooks?: string;
+
+  /** Utilities directory (e.g. `"src/utils"`, `"src/lib"`). */
+  utils?: string;
+
+  /** Type definitions directory (e.g. `"src/types"`). */
+  types?: string;
+
+  /** Tests directory (e.g. `"tests"`, `"__tests__"`). */
+  tests?: string;
+
+  /** Test file naming pattern (e.g. `"*.test.ts"`, `"*.spec.ts"`). */
+  testPattern?: string;
+}
+
+/**
+ * A convention value that may carry scanner metadata.
+ * When generated from a scan, includes confidence and consistency info.
+ * When manually set, is just a plain string.
+ */
+export type ConventionValue =
+  | string
+  | {
+      /** The convention value. */
+      value: string;
+      /** Scanner confidence level. Prefixed with `_` to signal metadata. */
+      _confidence: Confidence;
+      /** Scanner consistency percentage. Prefixed with `_` to signal metadata. */
+      _consistency: number;
+    };
+
+/**
+ * Coding convention configuration. Each field can be a plain string
+ * (confirmed by user) or an object with scanner metadata (auto-detected).
+ */
+export interface ConfigConventions {
+  /** File naming convention (e.g. `"kebab-case"`, `"camelCase"`). */
+  fileNaming?: ConventionValue;
+
+  /** Component naming convention (e.g. `"PascalCase"`). */
+  componentNaming?: ConventionValue;
+
+  /** Hook naming convention (e.g. `"useXxx"`). */
+  hookNaming?: ConventionValue;
+
+  /** Import alias pattern (e.g. `"@/*"`, `"~/*"`). */
+  importAlias?: ConventionValue;
+}
+
+/**
+ * Rule thresholds and toggles for convention enforcement.
+ */
+export interface ConfigRules {
+  /**
+   * Maximum number of lines allowed per file.
+   * @default 300
+   */
+  maxFileLines: number;
+
+  /**
+   * Maximum number of lines allowed per function.
+   * @default 50
+   */
+  maxFunctionLines: number;
+
+  /**
+   * Whether to require test files for source modules.
+   * @default true
+   */
+  requireTests: boolean;
+
+  /**
+   * Whether to enforce detected file naming conventions.
+   * @default true
+   */
+  enforceNaming: boolean;
+
+  /**
+   * Whether to enforce module boundary rules.
+   * @default false (V1.1+ feature)
+   */
+  enforceBoundaries: boolean;
+}
