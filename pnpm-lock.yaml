@@ -35,6 +35,9 @@ importers:
       '@viberails/context':
         specifier: workspace:*
         version: link:../context
+      '@viberails/graph':
+        specifier: workspace:*
+        version: link:../graph
       '@viberails/scanner':
         specifier: workspace:*
         version: link:../scanner

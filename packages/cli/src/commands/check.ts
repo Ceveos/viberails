@@ -5,6 +5,7 @@ import { loadConfig } from '@viberails/config';
 import type { CheckViolation, ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
+import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 
@@ -111,6 +112,44 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   if (config.rules.requireTests && !options.staged && !options.files) {
     const testViolations = checkMissingTests(projectRoot, config, severity);
     violations.push(...testViolations);
+  }
+
+  // Check 4: Boundary violations
+  if (config.rules.enforceBoundaries && config.boundaries && config.boundaries.length > 0) {
+    const startTime = Date.now();
+    const { buildImportGraph, checkBoundaries } = await import('@viberails/graph');
+
+    const packages = config.workspace
+      ? resolveWorkspacePackages(projectRoot, config.workspace)
+      : undefined;
+
+    const graph = await buildImportGraph(projectRoot, {
+      packages,
+      ignore: config.ignore,
+    });
+
+    const boundaryViolations = checkBoundaries(graph, config.boundaries);
+
+    // In staged/files mode, only report violations in those files
+    const filterSet =
+      options.staged || options.files
+        ? new Set(filesToCheck.map((f) => path.resolve(projectRoot, f)))
+        : null;
+
+    for (const bv of boundaryViolations) {
+      if (filterSet && !filterSet.has(bv.file)) continue;
+
+      const relFile = path.relative(projectRoot, bv.file);
+      violations.push({
+        file: relFile,
+        rule: 'boundary-violation',
+        message: `Imports "${bv.specifier}" violating boundary: ${bv.rule.from} → ${bv.rule.to}${bv.rule.reason ? ` (${bv.rule.reason})` : ''}`,
+        severity,
+      });
+    }
+
+    const elapsed = Date.now() - startTime;
+    console.log(chalk.dim(`  Boundary check: ${graph.nodes.length} files in ${elapsed}ms`));
   }
 
   // Output results

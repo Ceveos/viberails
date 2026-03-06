@@ -33,6 +33,7 @@
   "dependencies": {
     "@viberails/config": "workspace:*",
     "@viberails/context": "workspace:*",
+    "@viberails/graph": "workspace:*",
     "@viberails/scanner": "workspace:*",
     "@viberails/types": "workspace:*",
     "chalk": "^5.6.2",

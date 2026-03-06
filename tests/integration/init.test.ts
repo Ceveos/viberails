@@ -63,6 +63,37 @@ describe('init command', () => {
     expect(afterConfig).toBe(originalConfig);
   });
 
+  it('detects workspace and infers boundaries for monorepo in --yes mode', async () => {
+    // Use monorepo-basic fixture instead of nextjs-15
+    const monoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-mono-init-'));
+    const fixtureSrc = path.resolve(__dirname, '../fixtures/monorepo-basic');
+    fs.cpSync(fixtureSrc, monoDir, { recursive: true });
+
+    try {
+      await initCommand({ yes: true }, monoDir);
+
+      const configPath = path.join(monoDir, 'viberails.config.json');
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
+      expect(config.workspace).toBeDefined();
+      expect(config.workspace.isMonorepo).toBe(true);
+      expect(config.workspace.packages).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining('core'),
+          expect.stringContaining('web'),
+          expect.stringContaining('api'),
+        ]),
+      );
+
+      // In --yes mode, boundaries should be auto-inferred
+      expect(config.boundaries).toBeDefined();
+      expect(config.boundaries.length).toBeGreaterThan(0);
+      expect(config.rules.enforceBoundaries).toBe(true);
+    } finally {
+      fs.rmSync(monoDir, { recursive: true, force: true });
+    }
+  });
+
   it('only includes high-confidence conventions in --yes mode', async () => {
     await initCommand({ yes: true }, tmpDir);
 

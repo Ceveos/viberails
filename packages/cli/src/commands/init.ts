@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import { displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { confirm } from '../utils/prompt.js';
+import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 
 const CONFIG_FILE = 'viberails.config.json';
@@ -91,6 +92,28 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
   if (options.yes) {
     config.conventions = filterHighConfidence(config.conventions);
   }
+
+  // 7b. Infer boundary rules for workspace projects
+  if (config.workspace && config.workspace.packages.length > 0) {
+    let shouldInfer = options.yes;
+    if (!options.yes) {
+      shouldInfer = await confirm('Infer boundary rules from import patterns?');
+    }
+
+    if (shouldInfer) {
+      console.log(chalk.dim('Building import graph...'));
+      const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
+      const packages = resolveWorkspacePackages(projectRoot, config.workspace);
+      const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
+      const inferred = inferBoundaries(graph);
+      if (inferred.length > 0) {
+        config.boundaries = inferred;
+        config.rules.enforceBoundaries = true;
+        console.log(`  ${chalk.green('✓')} Inferred ${inferred.length} boundary rules`);
+      }
+    }
+  }
+
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
   // 8. Generate context and scan-result.json

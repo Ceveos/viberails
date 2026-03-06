@@ -80,8 +80,38 @@ export function generateContext(config: ViberailsConfig): string {
     sections.push('_(No rules configured. Edit `viberails.config.json` to add rules.)_');
   }
 
+  const boundaryLines = formatBoundaryRules(config);
+  if (boundaryLines.length > 0) {
+    sections.push('');
+    sections.push(boundaryLines.join('\n'));
+  }
+
   sections.push('');
   sections.push('Run `viberails check` before committing to catch violations early.\n');
 
   return sections.join('\n');
+}
+
+/**
+ * Build the boundary rules section as markdown lines.
+ * Only includes deny rules (allow: false).
+ */
+function formatBoundaryRules(config: ViberailsConfig): string[] {
+  if (!config.rules.enforceBoundaries || !config.boundaries || config.boundaries.length === 0) {
+    return [];
+  }
+
+  const denyRules = config.boundaries.filter((r) => !r.allow);
+  if (denyRules.length === 0) return [];
+
+  const lines: string[] = [];
+  lines.push('## Boundary rules\n');
+  lines.push('These import boundaries are enforced:\n');
+
+  for (const rule of denyRules) {
+    const reason = rule.reason ? ` (${rule.reason})` : '';
+    lines.push(`- \`${rule.from}\` must NOT import from \`${rule.to}\`${reason}`);
+  }
+
+  return lines;
 }
