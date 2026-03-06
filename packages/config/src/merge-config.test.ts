@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
+import { describe, expect, it } from 'vitest';
 import { mergeConfig } from './merge-config.js';
 
 function createScanResult(): ScanResult {

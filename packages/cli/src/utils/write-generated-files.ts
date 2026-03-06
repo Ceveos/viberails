@@ -32,7 +32,7 @@ export function writeGeneratedFiles(
   // Write scan-result.json for drift detection
   fs.writeFileSync(
     path.join(contextDir, SCAN_RESULT_FILE),
-    JSON.stringify(scanResult, null, 2) + '\n',
+    `${JSON.stringify(scanResult, null, 2)}\n`,
   );
 
   // Generate and write .cursorrules

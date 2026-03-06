@@ -5,10 +5,7 @@ import type { ViberailsConfig } from '@viberails/types';
  * Validate that a parsed object has the required ViberailsConfig fields.
  * Throws a descriptive error if any required field is missing.
  */
-function validateConfig(
-  parsed: Record<string, unknown>,
-  configPath: string,
-): void {
+function validateConfig(parsed: Record<string, unknown>, configPath: string): void {
   const required = ['version', 'name', 'stack', 'rules'] as const;
   const missing = required.filter((field) => parsed[field] === undefined);
 
@@ -37,9 +34,7 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === 'ENOENT') {
-      throw new Error(
-        `Config file not found: ${configPath}. Run "npx viberails" to generate one.`,
-      );
+      throw new Error(`Config file not found: ${configPath}. Run "npx viberails" to generate one.`);
     }
     throw new Error(`Failed to read config file at ${configPath}: ${(err as Error).message}`);
   }
@@ -48,9 +43,7 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
   try {
     parsed = JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    throw new Error(
-      `Invalid JSON in config file at ${configPath}. Check for syntax errors.`,
-    );
+    throw new Error(`Invalid JSON in config file at ${configPath}. Check for syntax errors.`);
   }
 
   validateConfig(parsed, configPath);
@@ -67,9 +60,7 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
  * @param configPath - Absolute or relative path to viberails.config.json
  * @returns The parsed ViberailsConfig, or null if loading fails
  */
-export async function loadConfigSafe(
-  configPath: string,
-): Promise<ViberailsConfig | null> {
+export async function loadConfigSafe(configPath: string): Promise<ViberailsConfig | null> {
   try {
     return await loadConfig(configPath);
   } catch {

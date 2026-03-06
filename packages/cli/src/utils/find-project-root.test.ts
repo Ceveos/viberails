@@ -1,7 +1,7 @@
-import { mkdir, writeFile, rm, mkdtemp } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { findProjectRoot } from './find-project-root.js';
 
 describe('findProjectRoot', () => {

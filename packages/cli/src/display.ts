@@ -1,11 +1,6 @@
-import chalk from 'chalk';
 import type { DetectedConvention, ScanResult, StackItem } from '@viberails/types';
-import {
-  FRAMEWORK_NAMES,
-  LIBRARY_NAMES,
-  ROLE_DESCRIPTIONS,
-  STYLING_NAMES,
-} from '@viberails/types';
+import { FRAMEWORK_NAMES, LIBRARY_NAMES, ROLE_DESCRIPTIONS, STYLING_NAMES } from '@viberails/types';
+import chalk from 'chalk';
 
 /** Labels for convention keys. */
 const CONVENTION_LABELS: Record<string, string> = {
@@ -42,7 +37,7 @@ function confidenceLabel(convention: DetectedConvention): string {
 export function displayScanResults(scanResult: ScanResult): void {
   const { stack, conventions } = scanResult;
 
-  console.log('\n' + chalk.bold('Detected:'));
+  console.log(`\n${chalk.bold('Detected:')}`);
 
   if (stack.framework) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.framework, FRAMEWORK_NAMES)}`);
@@ -72,7 +67,7 @@ export function displayScanResults(scanResult: ScanResult): void {
   // Structure
   const meaningfulDirs = scanResult.structure.directories.filter((d) => d.role !== 'unknown');
   if (meaningfulDirs.length > 0) {
-    console.log('\n' + chalk.bold('Structure:'));
+    console.log(`\n${chalk.bold('Structure:')}`);
     for (const dir of meaningfulDirs) {
       const label = ROLE_DESCRIPTIONS[dir.role] ?? dir.role;
       const files = dir.fileCount === 1 ? '1 file' : `${dir.fileCount} files`;
@@ -82,7 +77,7 @@ export function displayScanResults(scanResult: ScanResult): void {
 
   const conventionEntries = Object.entries(conventions);
   if (conventionEntries.length > 0) {
-    console.log('\n' + chalk.bold('Conventions:'));
+    console.log(`\n${chalk.bold('Conventions:')}`);
     for (const [key, convention] of conventionEntries) {
       if (convention.confidence === 'low') continue;
       const label = CONVENTION_LABELS[key] ?? key;

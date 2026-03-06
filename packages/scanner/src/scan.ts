@@ -10,9 +10,7 @@ import { walkDirectory } from './utils/walk-directory.js';
 /**
  * Options for the scan function.
  */
-export interface ScanOptions {
-  // Reserved for future use (e.g. specific scanners to skip, paths to ignore)
-}
+export type ScanOptions = {};
 
 /**
  * Scans a project directory and returns a comprehensive analysis of its
@@ -26,7 +24,7 @@ export interface ScanOptions {
  * @returns Complete scan result for the project.
  * @throws If the project path does not exist or is not a directory.
  */
-export async function scan(projectPath: string, options?: ScanOptions): Promise<ScanResult> {
+export async function scan(projectPath: string, _options?: ScanOptions): Promise<ScanResult> {
   const root = resolve(projectPath);
 
   // Validate that the path exists and is a directory

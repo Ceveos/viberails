@@ -62,9 +62,7 @@ describe('scan', () => {
   });
 
   it('throws for non-existent project path', async () => {
-    await expect(scan('/non/existent/path')).rejects.toThrow(
-      'Project path does not exist',
-    );
+    await expect(scan('/non/existent/path')).rejects.toThrow('Project path does not exist');
   });
 
   it('matches snapshot for nextjs-15 fixture', async () => {

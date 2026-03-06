@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
-import { extname, join, relative } from 'node:path';
+import { extname, join } from 'node:path';
 import type { CodebaseStatistics, FileStatistic } from '@viberails/types';
 import type { WalkedDirectory } from './utils/walk-directory.js';
 import { SOURCE_EXTENSIONS, walkDirectory } from './utils/walk-directory.js';
@@ -64,7 +64,7 @@ export async function computeStatistics(
   projectPath: string,
   dirs?: WalkedDirectory[],
 ): Promise<CodebaseStatistics> {
-  const directories = dirs ?? await walkDirectory(projectPath);
+  const directories = dirs ?? (await walkDirectory(projectPath));
   const rootFiles = await getRootSourceFiles(projectPath);
 
   // Collect all file paths and extensions

@@ -1,8 +1,8 @@
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, afterAll, beforeAll } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { detectStack, extractMajorVersion } from './detect-stack.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -72,10 +72,7 @@ describe('detectStack', () => {
 
     beforeAll(async () => {
       tempDir = await mkdtemp(join(tmpdir(), 'viberails-test-'));
-      await writeFile(
-        join(tempDir, 'package.json'),
-        JSON.stringify({ name: 'test' }),
-      );
+      await writeFile(join(tempDir, 'package.json'), JSON.stringify({ name: 'test' }));
       await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
     });
 

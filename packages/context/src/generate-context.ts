@@ -1,18 +1,12 @@
 import type {
   ConfigConventions,
   ConfigRules,
-  ConfigStack,
   ConventionValue,
   DirectoryInfo,
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
-import {
-  FRAMEWORK_NAMES,
-  LIBRARY_NAMES,
-  ROLE_DESCRIPTIONS,
-  STYLING_NAMES,
-} from '@viberails/types';
+import { FRAMEWORK_NAMES, LIBRARY_NAMES, ROLE_DESCRIPTIONS, STYLING_NAMES } from '@viberails/types';
 
 /**
  * Format a stack identifier to a human-readable display name.
@@ -30,7 +24,10 @@ function displayName(identifier: string): { name: string; version?: string } {
   }
   return {
     name:
-      FRAMEWORK_NAMES[identifier] ?? STYLING_NAMES[identifier] ?? LIBRARY_NAMES[identifier] ?? identifier,
+      FRAMEWORK_NAMES[identifier] ??
+      STYLING_NAMES[identifier] ??
+      LIBRARY_NAMES[identifier] ??
+      identifier,
   };
 }
 
@@ -45,10 +42,7 @@ function formatWithVersion(identifier: string): string {
 /**
  * Build a natural language description of the project's technology stack.
  */
-function formatStackDescription(
-  config: ViberailsConfig,
-  scanResult: ScanResult,
-): string {
+function formatStackDescription(config: ViberailsConfig, scanResult: ScanResult): string {
   const { stack } = config;
   const parts: string[] = [];
 
@@ -61,9 +55,7 @@ function formatStackDescription(
     let routerNote = '';
     if (
       displayName(stack.framework).name === 'Next.js' &&
-      scanResult.structure.directories.some(
-        (d) => d.role === 'pages' && d.path.includes('app'),
-      )
+      scanResult.structure.directories.some((d) => d.role === 'pages' && d.path.includes('app'))
     ) {
       routerNote = ' using the App Router';
     }
@@ -85,16 +77,13 @@ function formatStackDescription(
 
   // Backend
   if (stack.backend) {
-    parts.push(
-      `The backend uses ${formatWithVersion(stack.backend)}.`,
-    );
+    parts.push(`The backend uses ${formatWithVersion(stack.backend)}.`);
   }
 
   // Notable libraries
   if (scanResult.stack.libraries.length > 0) {
     const libNames = scanResult.stack.libraries.map((lib) => {
-      const display =
-        LIBRARY_NAMES[lib.name] ?? FRAMEWORK_NAMES[lib.name] ?? lib.name;
+      const display = LIBRARY_NAMES[lib.name] ?? FRAMEWORK_NAMES[lib.name] ?? lib.name;
       return lib.version ? `${display} ${lib.version}` : display;
     });
     parts.push(`Notable libraries: ${libNames.join(', ')}.`);
@@ -123,10 +112,7 @@ function formatDirectoryTable(directories: DirectoryInfo[]): string {
   const meaningful = directories.filter((d) => d.role !== 'unknown');
   if (meaningful.length === 0) return '';
 
-  const lines: string[] = [
-    '| Directory | Purpose | Files |',
-    '|-----------|---------|-------|',
-  ];
+  const lines: string[] = ['| Directory | Purpose | Files |', '|-----------|---------|-------|'];
 
   for (const dir of meaningful) {
     const desc = ROLE_DESCRIPTIONS[dir.role] ?? dir.role;
@@ -181,9 +167,7 @@ function formatConventions(config: ViberailsConfig): string {
   }
 
   if (structure.testPattern) {
-    lines.push(
-      `- Tests follow the \`${structure.testPattern}\` pattern.`,
-    );
+    lines.push(`- Tests follow the \`${structure.testPattern}\` pattern.`);
   }
 
   return lines.join('\n');
@@ -203,9 +187,7 @@ function formatRules(rules: ConfigRules): string {
   );
 
   if (rules.requireTests) {
-    lines.push(
-      '- All public functions should have corresponding tests.',
-    );
+    lines.push('- All public functions should have corresponding tests.');
   }
 
   if (rules.enforceNaming) {
@@ -223,9 +205,7 @@ function formatCodebaseNotes(scanResult: ScanResult, rules: ConfigRules): string
   const { statistics, structure } = scanResult;
 
   // Large files
-  const oversized = statistics.largestFiles.filter(
-    (f) => f.lines > rules.maxFileLines,
-  );
+  const oversized = statistics.largestFiles.filter((f) => f.lines > rules.maxFileLines);
   if (oversized.length > 0) {
     lines.push('**Refactoring candidates** (files exceeding the line limit):');
     for (const f of oversized) {
@@ -234,9 +214,7 @@ function formatCodebaseNotes(scanResult: ScanResult, rules: ConfigRules): string
   }
 
   // Large directories
-  const largeDirs = structure.directories.filter(
-    (d) => d.role !== 'unknown' && d.fileCount >= 30,
-  );
+  const largeDirs = structure.directories.filter((d) => d.role !== 'unknown' && d.fileCount >= 30);
   if (largeDirs.length > 0) {
     for (const d of largeDirs) {
       lines.push(
@@ -264,10 +242,7 @@ function formatCodebaseNotes(scanResult: ScanResult, rules: ConfigRules): string
  * @param scanResult - The raw scan result for statistics and structure details
  * @returns Markdown string suitable for AI context files
  */
-export function generateContext(
-  config: ViberailsConfig,
-  scanResult: ScanResult,
-): string {
+export function generateContext(config: ViberailsConfig, scanResult: ScanResult): string {
   const sections: string[] = [];
 
   // Title

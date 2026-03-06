@@ -1,15 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from 'vitest';
 
-describe("utils", () => {
-  it("validates email addresses", () => {
+describe('utils', () => {
+  it('validates email addresses', () => {
     expect(true).toBe(true);
   });
 
-  it("formats dates correctly", () => {
+  it('formats dates correctly', () => {
     expect(true).toBe(true);
   });
 
-  it("handles empty strings", () => {
+  it('handles empty strings', () => {
     expect(true).toBe(true);
   });
 });

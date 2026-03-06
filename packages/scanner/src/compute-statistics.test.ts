@@ -34,9 +34,7 @@ describe('computeStatistics', () => {
 
     // Verify descending sort
     for (let i = 1; i < stats.largestFiles.length; i++) {
-      expect(stats.largestFiles[i - 1].lines).toBeGreaterThanOrEqual(
-        stats.largestFiles[i].lines,
-      );
+      expect(stats.largestFiles[i - 1].lines).toBeGreaterThanOrEqual(stats.largestFiles[i].lines);
     }
 
     // Each entry has path and lines

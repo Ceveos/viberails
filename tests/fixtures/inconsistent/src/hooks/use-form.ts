@@ -1,2 +1,4 @@
-import { useState } from "react";
-export function useForm() { return useState({}); }
+import { useState } from 'react';
+export function useForm() {
+  return useState({});
+}

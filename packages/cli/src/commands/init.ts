@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import chalk from 'chalk';
 import { generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { ConfigConventions, ConventionValue } from '@viberails/types';
+import chalk from 'chalk';
 import { displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { confirm } from '../utils/prompt.js';
@@ -34,10 +34,7 @@ function filterHighConfidence(conventions: ConfigConventions): ConfigConventions
  * @param options - CLI options
  * @param cwd - Working directory override (for testing)
  */
-export async function initCommand(
-  options: { yes?: boolean },
-  cwd?: string,
-): Promise<void> {
+export async function initCommand(options: { yes?: boolean }, cwd?: string): Promise<void> {
   const startDir = cwd ?? process.cwd();
 
   // 1. Find project root
@@ -45,8 +42,8 @@ export async function initCommand(
   if (!projectRoot) {
     throw new Error(
       'No package.json found in this directory or any parent.\n\n' +
-      'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
-      '  npx viberails',
+        'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
+        '  npx viberails',
     );
   }
 
@@ -54,8 +51,11 @@ export async function initCommand(
   const configPath = path.join(projectRoot, CONFIG_FILE);
   if (fs.existsSync(configPath)) {
     console.log(
-      chalk.yellow('!') + ' viberails is already initialized in this project.\n' +
-      '  Run ' + chalk.cyan('viberails sync') + ' to update the generated files.',
+      chalk.yellow('!') +
+        ' viberails is already initialized in this project.\n' +
+        '  Run ' +
+        chalk.cyan('viberails sync') +
+        ' to update the generated files.',
     );
     return;
   }
@@ -70,8 +70,11 @@ export async function initCommand(
   // 5. Sparse project notice
   if (scanResult.statistics.totalFiles === 0) {
     console.log(
-      chalk.yellow('!') + ' No source files detected. viberails will generate context with minimal content.\n' +
-      '  Run ' + chalk.cyan('viberails sync') + ' after adding source files.\n',
+      chalk.yellow('!') +
+        ' No source files detected. viberails will generate context with minimal content.\n' +
+        '  Run ' +
+        chalk.cyan('viberails sync') +
+        ' after adding source files.\n',
     );
   }
 
@@ -89,7 +92,7 @@ export async function initCommand(
   if (options.yes) {
     config.conventions = filterHighConfidence(config.conventions);
   }
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
   // 8. Generate context, cursorrules, and scan-result.json
   writeGeneratedFiles(projectRoot, config, scanResult);
@@ -99,29 +102,26 @@ export async function initCommand(
   if (fs.existsSync(claudeMdPath)) {
     const existing = fs.readFileSync(claudeMdPath, 'utf-8');
     if (!existing.includes(CONTEXT_REFERENCE)) {
-      fs.writeFileSync(claudeMdPath, existing.trimEnd() + '\n\n' + CONTEXT_REFERENCE + '\n');
+      fs.writeFileSync(claudeMdPath, `${existing.trimEnd()}\n\n${CONTEXT_REFERENCE}\n`);
     }
   } else {
-    fs.writeFileSync(
-      claudeMdPath,
-      `# ${config.name}\n\n${CONTEXT_REFERENCE}\n`,
-    );
+    fs.writeFileSync(claudeMdPath, `# ${config.name}\n\n${CONTEXT_REFERENCE}\n`);
   }
 
   // 10. Update .gitignore
   updateGitignore(projectRoot);
 
   // 11. Print summary
-  console.log('\n' + chalk.bold('Created:'));
+  console.log(`\n${chalk.bold('Created:')}`);
   console.log(`  ${chalk.green('✓')} ${CONFIG_FILE}`);
   console.log(`  ${chalk.green('✓')} .viberails/context.md`);
   console.log(`  ${chalk.green('✓')} .viberails/scan-result.json`);
   console.log(`  ${chalk.green('✓')} .cursorrules`);
   console.log(`  ${chalk.green('✓')} CLAUDE.md`);
-  console.log('\n' + chalk.bold('Next steps:'));
-  console.log('  1. Review ' + chalk.cyan('viberails.config.json') + ' and adjust as needed');
+  console.log(`\n${chalk.bold('Next steps:')}`);
+  console.log(`  1. Review ${chalk.cyan('viberails.config.json')} and adjust as needed`);
   console.log('  2. Commit the generated files');
-  console.log('  3. Run ' + chalk.cyan('viberails sync') + ' after making project changes');
+  console.log(`  3. Run ${chalk.cyan('viberails sync')} after making project changes`);
 }
 
 /**
@@ -144,7 +144,7 @@ function updateGitignore(projectRoot: string): void {
   }
 
   if (entriesToAdd.length > 0) {
-    const block = '\n# viberails\n' + entriesToAdd.join('\n') + '\n';
-    fs.writeFileSync(gitignorePath, content.trimEnd() + '\n' + block);
+    const block = `\n# viberails\n${entriesToAdd.join('\n')}\n`;
+    fs.writeFileSync(gitignorePath, `${content.trimEnd()}\n${block}`);
   }
 }

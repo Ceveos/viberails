@@ -15,8 +15,4 @@ export const DEFAULT_RULES: ConfigRules = {
 /**
  * Default glob patterns for files and directories to ignore.
  */
-export const DEFAULT_IGNORE: string[] = [
-  '**/*.d.ts',
-  'dist/**',
-  'node_modules/**',
-];
+export const DEFAULT_IGNORE: string[] = ['**/*.d.ts', 'dist/**', 'node_modules/**'];

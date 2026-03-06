@@ -120,9 +120,7 @@ export async function detectStack(projectPath: string): Promise<DetectedStack> {
 // Individual detectors
 // ---------------------------------------------------------------------------
 
-function detectFramework(
-  allDeps: Record<string, string>,
-): StackItem | undefined {
+function detectFramework(allDeps: Record<string, string>): StackItem | undefined {
   for (const mapping of FRAMEWORK_MAPPINGS) {
     if (!(mapping.dep in allDeps)) continue;
     if (mapping.excludeDep && mapping.excludeDep in allDeps) continue;
@@ -141,7 +139,7 @@ async function detectLanguage(
   if ('typescript' in allDeps) {
     return {
       name: 'typescript',
-      version: extractMajorVersion(allDeps['typescript']),
+      version: extractMajorVersion(allDeps.typescript),
     };
   }
   if (await fileExists(join(projectPath, 'tsconfig.json'))) {
@@ -176,7 +174,7 @@ async function detectPackageManager(projectPath: string): Promise<StackItem> {
 
 function detectLinter(allDeps: Record<string, string>): StackItem | undefined {
   if ('eslint' in allDeps) {
-    return { name: 'eslint', version: extractMajorVersion(allDeps['eslint']) };
+    return { name: 'eslint', version: extractMajorVersion(allDeps.eslint) };
   }
   if ('@biomejs/biome' in allDeps) {
     return {
@@ -187,14 +185,12 @@ function detectLinter(allDeps: Record<string, string>): StackItem | undefined {
   return undefined;
 }
 
-function detectTestRunner(
-  allDeps: Record<string, string>,
-): StackItem | undefined {
+function detectTestRunner(allDeps: Record<string, string>): StackItem | undefined {
   if ('vitest' in allDeps) {
-    return { name: 'vitest', version: extractMajorVersion(allDeps['vitest']) };
+    return { name: 'vitest', version: extractMajorVersion(allDeps.vitest) };
   }
   if ('jest' in allDeps) {
-    return { name: 'jest', version: extractMajorVersion(allDeps['jest']) };
+    return { name: 'jest', version: extractMajorVersion(allDeps.jest) };
   }
   return undefined;
 }

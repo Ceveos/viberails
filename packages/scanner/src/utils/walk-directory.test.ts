@@ -1,7 +1,7 @@
-import { mkdir, symlink, writeFile, rm, mkdtemp } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { walkDirectory } from './walk-directory.js';
 
 describe('walkDirectory', () => {
@@ -33,14 +33,14 @@ describe('walkDirectory', () => {
     const result = await walkDirectory(dir);
     const srcDir = result.find((d) => d.relativePath === 'src');
     expect(srcDir).toBeDefined();
-    expect(srcDir!.sourceFileCount).toBe(5);
-    expect(srcDir!.sourceFileNames).toContain('app.ts');
-    expect(srcDir!.sourceFileNames).toContain('component.tsx');
-    expect(srcDir!.sourceFileNames).toContain('main.js');
-    expect(srcDir!.sourceFileNames).toContain('config.mjs');
-    expect(srcDir!.sourceFileNames).toContain('utils.cjs');
-    expect(srcDir!.sourceFileNames).not.toContain('style.css');
-    expect(srcDir!.sourceFileNames).not.toContain('readme.md');
+    expect(srcDir?.sourceFileCount).toBe(5);
+    expect(srcDir?.sourceFileNames).toContain('app.ts');
+    expect(srcDir?.sourceFileNames).toContain('component.tsx');
+    expect(srcDir?.sourceFileNames).toContain('main.js');
+    expect(srcDir?.sourceFileNames).toContain('config.mjs');
+    expect(srcDir?.sourceFileNames).toContain('utils.cjs');
+    expect(srcDir?.sourceFileNames).not.toContain('style.css');
+    expect(srcDir?.sourceFileNames).not.toContain('readme.md');
   });
 
   it('skips ignored directories', async () => {
@@ -120,8 +120,8 @@ describe('walkDirectory', () => {
     const result = await walkDirectory(dir);
     const aDir = result.find((d) => d.relativePath === 'a');
     const bDir = result.find((d) => d.relativePath === 'a/b');
-    expect(aDir!.depth).toBe(1);
-    expect(bDir!.depth).toBe(2);
+    expect(aDir?.depth).toBe(1);
+    expect(bDir?.depth).toBe(2);
   });
 
   it('returns correct absolute paths', async () => {
@@ -130,7 +130,7 @@ describe('walkDirectory', () => {
 
     const result = await walkDirectory(dir);
     const srcDir = result.find((d) => d.relativePath === 'src');
-    expect(srcDir!.absolutePath).toBe(join(dir, 'src'));
+    expect(srcDir?.absolutePath).toBe(join(dir, 'src'));
   });
 
   it('includes directories with no source files', async () => {
@@ -141,8 +141,8 @@ describe('walkDirectory', () => {
     const result = await walkDirectory(dir);
     const emptyDir = result.find((d) => d.relativePath === 'empty-dir');
     expect(emptyDir).toBeDefined();
-    expect(emptyDir!.sourceFileCount).toBe(0);
-    expect(emptyDir!.sourceFileNames).toEqual([]);
+    expect(emptyDir?.sourceFileCount).toBe(0);
+    expect(emptyDir?.sourceFileNames).toEqual([]);
   });
 
   it('returns empty array for non-existent directory', async () => {
@@ -158,9 +158,9 @@ describe('walkDirectory', () => {
 
     const result = await walkDirectory(dir);
     const srcDir = result.find((d) => d.relativePath === 'src');
-    expect(srcDir!.sourceFileCount).toBe(3);
-    expect(srcDir!.sourceFileNames).toContain('App.vue');
-    expect(srcDir!.sourceFileNames).toContain('Counter.svelte');
-    expect(srcDir!.sourceFileNames).toContain('Page.astro');
+    expect(srcDir?.sourceFileCount).toBe(3);
+    expect(srcDir?.sourceFileNames).toContain('App.vue');
+    expect(srcDir?.sourceFileNames).toContain('Counter.svelte');
+    expect(srcDir?.sourceFileNames).toContain('Page.astro');
   });
 });

@@ -1,5 +1,5 @@
-import { Command } from 'commander';
 import chalk from 'chalk';
+import { Command } from 'commander';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
 
@@ -7,10 +7,7 @@ export const VERSION = '0.1.0';
 
 const program = new Command();
 
-program
-  .name('viberails')
-  .description('Guardrails for vibe coding')
-  .version(VERSION);
+program.name('viberails').description('Guardrails for vibe coding').version(VERSION);
 
 program
   .command('init', { isDefault: true })
@@ -21,7 +18,7 @@ program
       await initCommand(options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(chalk.red('Error:') + ' ' + message);
+      console.error(`${chalk.red('Error:')} ${message}`);
       process.exit(1);
     }
   });
@@ -34,7 +31,7 @@ program
       await syncCommand();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(chalk.red('Error:') + ' ' + message);
+      console.error(`${chalk.red('Error:')} ${message}`);
       process.exit(1);
     }
   });

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import type { ScanResult } from '@viberails/types';
-import { generateConfig } from './generate-config.js';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_RULES } from './defaults.js';
+import { generateConfig } from './generate-config.js';
 
 function createNextjs15ScanResult(): ScanResult {
   return {
@@ -37,9 +37,7 @@ function createNextjs15ScanResult(): ScanResult {
       totalFiles: 109,
       totalLines: 14500,
       averageFileLines: 133,
-      largestFiles: [
-        { path: 'src/components/data-table.tsx', lines: 487 },
-      ],
+      largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
       filesByExtension: { '.ts': 42, '.tsx': 55, '.css': 12 },
     },
   };

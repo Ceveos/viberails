@@ -23,62 +23,62 @@ describe('detectStructure', () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     const components = result.directories.find((d) => d.path === 'src/components');
     expect(components).toBeDefined();
-    expect(components!.role).toBe('components');
-    expect(components!.confidence).toBe('high');
-    expect(components!.fileCount).toBe(5);
+    expect(components?.role).toBe('components');
+    expect(components?.confidence).toBe('high');
+    expect(components?.fileCount).toBe(5);
   });
 
   it('classifies src/hooks as hooks role with high confidence', async () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     const hooks = result.directories.find((d) => d.path === 'src/hooks');
     expect(hooks).toBeDefined();
-    expect(hooks!.role).toBe('hooks');
-    expect(hooks!.confidence).toBe('high');
+    expect(hooks?.role).toBe('hooks');
+    expect(hooks?.confidence).toBe('high');
   });
 
   it('classifies src/lib as utils role', async () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     const lib = result.directories.find((d) => d.path === 'src/lib');
     expect(lib).toBeDefined();
-    expect(lib!.role).toBe('utils');
-    expect(lib!.confidence).toBe('high');
+    expect(lib?.role).toBe('utils');
+    expect(lib?.confidence).toBe('high');
   });
 
   it('classifies __tests__ as tests role', async () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     const tests = result.directories.find((d) => d.path === '__tests__');
     expect(tests).toBeDefined();
-    expect(tests!.role).toBe('tests');
-    expect(tests!.confidence).toBe('high');
+    expect(tests?.role).toBe('tests');
+    expect(tests?.confidence).toBe('high');
   });
 
   it('classifies src/app/api as api role', async () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     const api = result.directories.find((d) => d.path === 'src/app/api');
     expect(api).toBeDefined();
-    expect(api!.role).toBe('api');
+    expect(api?.role).toBe('api');
   });
 
   it('detects test pattern from test files', async () => {
     const result = await detectStructure(join(fixturesDir, 'nextjs-15'));
     expect(result.testPattern).toBeDefined();
-    expect(result.testPattern!.value).toBe('*.test.ts');
-    expect(result.testPattern!.sampleSize).toBeGreaterThanOrEqual(3);
+    expect(result.testPattern?.value).toBe('*.test.ts');
+    expect(result.testPattern?.sampleSize).toBeGreaterThanOrEqual(3);
   });
 
   it('classifies flat structure directories correctly', async () => {
     const result = await detectStructure(join(fixturesDir, 'flat-structure'));
     const components = result.directories.find((d) => d.path === 'components');
     expect(components).toBeDefined();
-    expect(components!.role).toBe('components');
+    expect(components?.role).toBe('components');
 
     const hooks = result.directories.find((d) => d.path === 'hooks');
     expect(hooks).toBeDefined();
-    expect(hooks!.role).toBe('hooks');
+    expect(hooks?.role).toBe('hooks');
 
     const lib = result.directories.find((d) => d.path === 'lib');
     expect(lib).toBeDefined();
-    expect(lib!.role).toBe('utils');
+    expect(lib?.role).toBe('utils');
   });
 
   it('handles empty project gracefully', async () => {

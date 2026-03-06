@@ -17,7 +17,10 @@ const ROLE_PATTERNS: RolePattern[] = [
   { role: 'pages', pathPatterns: ['src/app', 'src/pages', 'app', 'pages'] },
   { role: 'components', pathPatterns: ['src/components', 'components'] },
   { role: 'hooks', pathPatterns: ['src/hooks', 'hooks'] },
-  { role: 'utils', pathPatterns: ['src/lib', 'src/utils', 'src/helpers', 'lib', 'utils', 'helpers'] },
+  {
+    role: 'utils',
+    pathPatterns: ['src/lib', 'src/utils', 'src/helpers', 'lib', 'utils', 'helpers'],
+  },
   { role: 'types', pathPatterns: ['src/types', 'types', 'src/@types', '@types'] },
   { role: 'tests', pathPatterns: ['__tests__', 'tests', 'test', 'src/__tests__', 'src/tests'] },
   { role: 'styles', pathPatterns: ['src/styles', 'styles', 'src/css', 'css'] },
@@ -94,9 +97,7 @@ function inferFromContent(dir: WalkedDirectory): ClassifiedDirectory | null {
   }
 
   // Check for test files
-  const testFiles = sourceFileNames.filter(
-    (f) => f.includes('.test.') || f.includes('.spec.'),
-  );
+  const testFiles = sourceFileNames.filter((f) => f.includes('.test.') || f.includes('.spec.'));
   if (testFiles.length > 0 && testFiles.length / sourceFileCount >= 0.5) {
     return {
       path: dir.relativePath,

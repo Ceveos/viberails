@@ -17,9 +17,7 @@ export interface PackageJson {
  * @param projectPath - Absolute path to the project root directory.
  * @returns Parsed package.json contents, or `null` if the file doesn't exist or is invalid JSON.
  */
-export async function readPackageJson(
-  projectPath: string,
-): Promise<PackageJson | null> {
+export async function readPackageJson(projectPath: string): Promise<PackageJson | null> {
   try {
     const raw = await readFile(join(projectPath, 'package.json'), 'utf-8');
     return JSON.parse(raw) as PackageJson;

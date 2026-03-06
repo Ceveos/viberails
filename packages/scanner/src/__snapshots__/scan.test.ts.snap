@@ -84,7 +84,7 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       },
     ],
     "totalFiles": 18,
-    "totalLines": 734,
+    "totalLines": 733,
   },
   "structure": {
     "directories": [

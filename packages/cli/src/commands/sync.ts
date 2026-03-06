@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import chalk from 'chalk';
 import { loadConfig, mergeConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
+import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 
@@ -21,8 +21,8 @@ export async function syncCommand(cwd?: string): Promise<void> {
   if (!projectRoot) {
     throw new Error(
       'No package.json found in this directory or any parent.\n\n' +
-      'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
-      '  npx viberails',
+        'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
+        '  npx viberails',
     );
   }
 
@@ -36,12 +36,12 @@ export async function syncCommand(cwd?: string): Promise<void> {
 
   // 4. Merge config
   const merged = mergeConfig(existing, scanResult);
-  fs.writeFileSync(configPath, JSON.stringify(merged, null, 2) + '\n');
+  fs.writeFileSync(configPath, `${JSON.stringify(merged, null, 2)}\n`);
 
   // 5. Regenerate context, cursorrules, and scan-result.json
   writeGeneratedFiles(projectRoot, merged, scanResult);
 
-  console.log('\n' + chalk.bold('Synced:'));
+  console.log(`\n${chalk.bold('Synced:')}`);
   console.log(`  ${chalk.green('✓')} ${CONFIG_FILE} — updated`);
   console.log(`  ${chalk.green('✓')} .viberails/context.md — regenerated`);
   console.log(`  ${chalk.green('✓')} .viberails/scan-result.json — updated`);

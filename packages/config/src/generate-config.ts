@@ -78,9 +78,7 @@ function mapStructure(scanResult: ScanResult): ConfigStructure {
  * Convert a DetectedConvention to a ConventionValue with metadata.
  * Returns undefined for low-confidence conventions (they are omitted).
  */
-function mapConvention(
-  convention: DetectedConvention,
-): ConventionValue | undefined {
+function mapConvention(convention: DetectedConvention): ConventionValue | undefined {
   if (convention.confidence === 'low') {
     return undefined;
   }

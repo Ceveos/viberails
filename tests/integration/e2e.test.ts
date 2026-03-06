@@ -110,10 +110,7 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
   });
 
   it('syncs after adding a new component file', async () => {
-    const contextBefore = fs.readFileSync(
-      path.join(tmpDir, '.viberails', 'context.md'),
-      'utf-8',
-    );
+    const contextBefore = fs.readFileSync(path.join(tmpDir, '.viberails', 'context.md'), 'utf-8');
     const configBefore = readConfig();
 
     // Extract file count from context before sync
@@ -123,7 +120,7 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
     // Add a new component
     fs.writeFileSync(
       path.join(tmpDir, 'src', 'components', 'modal-dialog.tsx'),
-      [
+      `${[
         'import React from "react";',
         '',
         'interface ModalDialogProps {',
@@ -146,16 +143,13 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
         '    </div>',
         '  );',
         '}',
-      ].join('\n') + '\n',
+      ].join('\n')}\n`,
     );
 
     await syncCommand(tmpDir);
 
     // Context regenerated with updated file count
-    const contextAfter = fs.readFileSync(
-      path.join(tmpDir, '.viberails', 'context.md'),
-      'utf-8',
-    );
+    const contextAfter = fs.readFileSync(path.join(tmpDir, '.viberails', 'context.md'), 'utf-8');
     const countMatchAfter = contextAfter.match(/has (\d+) files/);
     const fileCountAfter = countMatchAfter ? parseInt(countMatchAfter[1], 10) : 0;
     expect(fileCountAfter).toBeGreaterThan(fileCountBefore);

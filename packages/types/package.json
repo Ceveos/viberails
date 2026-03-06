@@ -22,6 +22,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "lint": "biome check src/",
     "clean": "rm -rf dist"
   }
 }

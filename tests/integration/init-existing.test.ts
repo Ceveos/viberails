@@ -19,7 +19,8 @@ describe('init command with existing CLAUDE.md', () => {
 
   it('preserves existing CLAUDE.md content and appends import directive', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
-    const customContent = '# My Project\n\nCustom instructions for AI.\n\n## Rules\n\n- Be concise\n- Use TypeScript';
+    const customContent =
+      '# My Project\n\nCustom instructions for AI.\n\n## Rules\n\n- Be concise\n- Use TypeScript';
     fs.writeFileSync(claudeMdPath, customContent);
 
     await initCommand({ yes: true }, tmpDir);

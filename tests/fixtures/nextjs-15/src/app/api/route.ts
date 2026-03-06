@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
 interface HealthResponse {
   status: string;
@@ -8,9 +8,9 @@ interface HealthResponse {
 
 export async function GET(): Promise<NextResponse<HealthResponse>> {
   return NextResponse.json({
-    status: "ok",
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    version: "1.0.0",
+    version: '1.0.0',
   });
 }
 

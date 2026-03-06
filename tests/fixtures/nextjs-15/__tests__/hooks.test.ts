@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from 'vitest';
 
-describe("hooks", () => {
-  it("initializes auth state", () => {
+describe('hooks', () => {
+  it('initializes auth state', () => {
     expect(true).toBe(true);
   });
 
-  it("toggles theme", () => {
+  it('toggles theme', () => {
     expect(true).toBe(true);
   });
 });

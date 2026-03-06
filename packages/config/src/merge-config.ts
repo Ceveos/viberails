@@ -26,10 +26,7 @@ function mergeStack(existing: ConfigStack, fresh: ConfigStack): ConfigStack {
 /**
  * Merge structure: keep existing values, fill in undefined fields from fresh scan.
  */
-function mergeStructure(
-  existing: ConfigStructure,
-  fresh: ConfigStructure,
-): ConfigStructure {
+function mergeStructure(existing: ConfigStructure, fresh: ConfigStructure): ConfigStructure {
   return {
     srcDir: existing.srcDir ?? fresh.srcDir,
     pages: existing.pages ?? fresh.pages,
@@ -46,10 +43,7 @@ function mergeStructure(
  * Check if a convention key exists in the existing config
  * (either as a string or as an object with a value).
  */
-function hasConvention(
-  conventions: ConfigConventions,
-  key: keyof ConfigConventions,
-): boolean {
+function hasConvention(conventions: ConfigConventions, key: keyof ConfigConventions): boolean {
   return conventions[key] !== undefined;
 }
 
@@ -102,10 +96,7 @@ function mergeConventions(
  * @param scanResult - Fresh scan results from re-scanning the project
  * @returns A merged config that preserves existing values and adds new detections
  */
-export function mergeConfig(
-  existing: ViberailsConfig,
-  scanResult: ScanResult,
-): ViberailsConfig {
+export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): ViberailsConfig {
   const fresh = generateConfig(scanResult);
 
   return {

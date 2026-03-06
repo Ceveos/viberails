@@ -1,8 +1,8 @@
 import type { DetectedConvention, DetectedStructure } from '@viberails/types';
 import { confidenceFromConsistency } from '@viberails/types';
+import { classifyDirectory } from './utils/classify-directory.js';
 import type { WalkedDirectory } from './utils/walk-directory.js';
 import { walkDirectory } from './utils/walk-directory.js';
-import { classifyDirectory } from './utils/classify-directory.js';
 
 /**
  * Detects the directory structure and organization of a project.
@@ -23,15 +23,11 @@ export async function detectStructure(
   }
 
   // Detect srcDir
-  const hasSrcDir = dirs.some(
-    (d) => d.relativePath === 'src' || d.relativePath.startsWith('src/'),
-  );
+  const hasSrcDir = dirs.some((d) => d.relativePath === 'src' || d.relativePath.startsWith('src/'));
   const srcDir = hasSrcDir ? 'src' : undefined;
 
   // Classify directories
-  const directories = dirs
-    .map((d) => classifyDirectory(d))
-    .filter((d) => d !== null);
+  const directories = dirs.map((d) => classifyDirectory(d)).filter((d) => d !== null);
 
   // Detect test pattern
   const testPattern = detectTestPattern(dirs);
@@ -51,9 +47,7 @@ function detectTestPattern(
   dirs: Array<{ sourceFileNames: string[] }>,
 ): DetectedConvention<string> | undefined {
   const allFiles = dirs.flatMap((d) => d.sourceFileNames);
-  const testFiles = allFiles.filter(
-    (f) => f.includes('.test.') || f.includes('.spec.'),
-  );
+  const testFiles = allFiles.filter((f) => f.includes('.test.') || f.includes('.spec.'));
 
   if (testFiles.length < 3) return undefined;
 

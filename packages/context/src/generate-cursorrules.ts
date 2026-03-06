@@ -8,10 +8,7 @@
  * @param userCursorrules - Optional existing .cursorrules content from the user
  * @returns The combined .cursorrules content
  */
-export function generateCursorrules(
-  context: string,
-  userCursorrules?: string,
-): string {
+export function generateCursorrules(context: string, userCursorrules?: string): string {
   if (userCursorrules) {
     return `${userCursorrules}\n\n${context}`;
   }

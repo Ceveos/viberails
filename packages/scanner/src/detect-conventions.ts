@@ -29,17 +29,17 @@ export async function detectConventions(
   const result: Record<string, DetectedConvention> = {};
 
   const fileNaming = detectFileNaming(dirs);
-  if (fileNaming) result['fileNaming'] = fileNaming;
+  if (fileNaming) result.fileNaming = fileNaming;
 
   const componentNaming = detectComponentNaming(dirs, structure);
-  if (componentNaming) result['componentNaming'] = componentNaming;
+  if (componentNaming) result.componentNaming = componentNaming;
 
   const hookNaming = detectHookNaming(dirs, structure);
-  if (hookNaming) result['hookNaming'] = hookNaming;
+  if (hookNaming) result.hookNaming = hookNaming;
 
   // importAlias is binary (present or not) — bypasses sampleSize threshold
   const importAlias = await detectImportAlias(projectPath);
-  if (importAlias) result['importAlias'] = importAlias;
+  if (importAlias) result.importAlias = importAlias;
 
   return result;
 }
@@ -55,9 +55,7 @@ function stripExtension(filename: string): string {
  * with 3+ source files. Only returns conventions with consistency >= 70%
  * (medium or high confidence).
  */
-function detectFileNaming(
-  dirs: WalkedDirectory[],
-): DetectedConvention | undefined {
+function detectFileNaming(dirs: WalkedDirectory[]): DetectedConvention | undefined {
   const conventionCounts = new Map<string, number>();
   let total = 0;
 
@@ -105,9 +103,7 @@ function detectComponentNaming(
   structure: DetectedStructure,
 ): DetectedConvention | undefined {
   const componentPaths = new Set(
-    structure.directories
-      .filter((d) => d.role === 'components')
-      .map((d) => d.path),
+    structure.directories.filter((d) => d.role === 'components').map((d) => d.path),
   );
 
   const tsxFiles: string[] = [];
@@ -141,9 +137,7 @@ function detectHookNaming(
   structure: DetectedStructure,
 ): DetectedConvention | undefined {
   const hookPaths = new Set(
-    structure.directories
-      .filter((d) => d.role === 'hooks')
-      .map((d) => d.path),
+    structure.directories.filter((d) => d.role === 'hooks').map((d) => d.path),
   );
 
   const hookFiles: string[] = [];
@@ -195,9 +189,7 @@ interface TsConfigSubset {
  * Detects import alias patterns from tsconfig.json paths configuration.
  * Returns undefined if tsconfig.json is missing or has no paths.
  */
-async function detectImportAlias(
-  projectPath: string,
-): Promise<DetectedConvention | undefined> {
+async function detectImportAlias(projectPath: string): Promise<DetectedConvention | undefined> {
   try {
     const raw = await readFile(join(projectPath, 'tsconfig.json'), 'utf-8');
     const tsconfig = JSON.parse(raw) as TsConfigSubset;

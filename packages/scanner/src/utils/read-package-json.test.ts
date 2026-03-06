@@ -1,7 +1,7 @@
-import { mkdir, writeFile, rm, mkdtemp } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { readPackageJson } from './read-package-json.js';
 
 describe('readPackageJson', () => {
@@ -16,19 +16,22 @@ describe('readPackageJson', () => {
   });
 
   it('returns parsed package.json for valid file', async () => {
-    await writeFile(join(dir, 'package.json'), JSON.stringify({
-      name: 'test-project',
-      version: '1.0.0',
-      dependencies: { react: '^18.0.0' },
-      devDependencies: { vitest: '^1.0.0' },
-    }));
+    await writeFile(
+      join(dir, 'package.json'),
+      JSON.stringify({
+        name: 'test-project',
+        version: '1.0.0',
+        dependencies: { react: '^18.0.0' },
+        devDependencies: { vitest: '^1.0.0' },
+      }),
+    );
 
     const result = await readPackageJson(dir);
     expect(result).not.toBeNull();
-    expect(result!.name).toBe('test-project');
-    expect(result!.version).toBe('1.0.0');
-    expect(result!.dependencies).toEqual({ react: '^18.0.0' });
-    expect(result!.devDependencies).toEqual({ vitest: '^1.0.0' });
+    expect(result?.name).toBe('test-project');
+    expect(result?.version).toBe('1.0.0');
+    expect(result?.dependencies).toEqual({ react: '^18.0.0' });
+    expect(result?.devDependencies).toEqual({ vitest: '^1.0.0' });
   });
 
   it('returns null for missing package.json', async () => {
@@ -48,7 +51,7 @@ describe('readPackageJson', () => {
 
     const result = await readPackageJson(dir);
     expect(result).not.toBeNull();
-    expect(result!.name).toBeUndefined();
-    expect(result!.dependencies).toBeUndefined();
+    expect(result?.name).toBeUndefined();
+    expect(result?.dependencies).toBeUndefined();
   });
 });

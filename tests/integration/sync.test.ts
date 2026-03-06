@@ -25,8 +25,8 @@ describe('sync command', () => {
     // Capture initial state
     const configPath = path.join(tmpDir, 'viberails.config.json');
     const contextPath = path.join(tmpDir, '.viberails', 'context.md');
-    const initialConfig = fs.readFileSync(configPath, 'utf-8');
-    const initialContext = fs.readFileSync(contextPath, 'utf-8');
+    const _initialConfig = fs.readFileSync(configPath, 'utf-8');
+    const _initialContext = fs.readFileSync(contextPath, 'utf-8');
 
     // Add a new source file to the project
     const newFilePath = path.join(tmpDir, 'src', 'lib', 'new-helper.ts');
@@ -56,7 +56,7 @@ describe('sync command', () => {
     // Simulate user editing the config
     config.rules.maxFileLines = 500;
     config.enforcement = 'enforce';
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
     // Run sync
     await syncCommand(tmpDir);

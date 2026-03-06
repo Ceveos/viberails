@@ -2,9 +2,9 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { DetectedStructure } from '@viberails/types';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { detectConventions } from './detect-conventions.js';
-import type { DetectedStructure } from '@viberails/types';
 import { detectStructure } from './detect-structure.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -17,9 +17,9 @@ describe('detectConventions', () => {
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['fileNaming']).toBeDefined();
-      expect(conventions['fileNaming'].value).toBe('kebab-case');
-      expect(conventions['fileNaming'].confidence).toBe('high');
+      expect(conventions.fileNaming).toBeDefined();
+      expect(conventions.fileNaming.value).toBe('kebab-case');
+      expect(conventions.fileNaming.confidence).toBe('high');
     });
 
     it('detects kebab-case with medium confidence for mixed-conventions fixture', async () => {
@@ -27,10 +27,10 @@ describe('detectConventions', () => {
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['fileNaming']).toBeDefined();
-      expect(conventions['fileNaming'].value).toBe('kebab-case');
-      expect(conventions['fileNaming'].confidence).toBe('medium');
-      expect(conventions['fileNaming'].consistency).toBe(75);
+      expect(conventions.fileNaming).toBeDefined();
+      expect(conventions.fileNaming.value).toBe('kebab-case');
+      expect(conventions.fileNaming.confidence).toBe('medium');
+      expect(conventions.fileNaming.consistency).toBe(75);
     });
 
     it('omits fileNaming when conventions are inconsistent', async () => {
@@ -38,7 +38,7 @@ describe('detectConventions', () => {
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['fileNaming']).toBeUndefined();
+      expect(conventions.fileNaming).toBeUndefined();
     });
   });
 
@@ -63,11 +63,11 @@ describe('detectConventions', () => {
       const structure = await detectStructure(tempDir);
       const conventions = await detectConventions(tempDir, structure);
 
-      expect(conventions['fileNaming']).toBeDefined();
-      expect(conventions['fileNaming'].value).toBe('kebab-case');
-      expect(conventions['fileNaming'].confidence).toBe('high');
-      expect(conventions['fileNaming'].consistency).toBe(100);
-      expect(conventions['fileNaming'].sampleSize).toBe(5);
+      expect(conventions.fileNaming).toBeDefined();
+      expect(conventions.fileNaming.value).toBe('kebab-case');
+      expect(conventions.fileNaming.confidence).toBe('high');
+      expect(conventions.fileNaming.consistency).toBe(100);
+      expect(conventions.fileNaming.sampleSize).toBe(5);
     });
   });
 
@@ -91,10 +91,10 @@ describe('detectConventions', () => {
       const structure = await detectStructure(tempDir);
       const conventions = await detectConventions(tempDir, structure);
 
-      expect(conventions['componentNaming']).toBeDefined();
-      expect(conventions['componentNaming'].value).toBe('PascalCase');
-      expect(conventions['componentNaming'].confidence).toBe('high');
-      expect(conventions['componentNaming'].consistency).toBe(100);
+      expect(conventions.componentNaming).toBeDefined();
+      expect(conventions.componentNaming.value).toBe('PascalCase');
+      expect(conventions.componentNaming.confidence).toBe('high');
+      expect(conventions.componentNaming.consistency).toBe(100);
     });
   });
 
@@ -117,7 +117,7 @@ describe('detectConventions', () => {
       const structure = await detectStructure(tempDir);
       const conventions = await detectConventions(tempDir, structure);
 
-      expect(conventions['componentNaming']).toBeUndefined();
+      expect(conventions.componentNaming).toBeUndefined();
     });
   });
 
@@ -127,10 +127,10 @@ describe('detectConventions', () => {
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['hookNaming']).toBeDefined();
-      expect(conventions['hookNaming'].value).toBe('use-*');
-      expect(conventions['hookNaming'].confidence).toBe('high');
-      expect(conventions['hookNaming'].consistency).toBe(100);
+      expect(conventions.hookNaming).toBeDefined();
+      expect(conventions.hookNaming.value).toBe('use-*');
+      expect(conventions.hookNaming.confidence).toBe('high');
+      expect(conventions.hookNaming.consistency).toBe(100);
     });
 
     describe('camelCase hooks', () => {
@@ -153,9 +153,9 @@ describe('detectConventions', () => {
         const structure = await detectStructure(tempDir);
         const conventions = await detectConventions(tempDir, structure);
 
-        expect(conventions['hookNaming']).toBeDefined();
-        expect(conventions['hookNaming'].value).toBe('useXxx');
-        expect(conventions['hookNaming'].confidence).toBe('high');
+        expect(conventions.hookNaming).toBeDefined();
+        expect(conventions.hookNaming.value).toBe('useXxx');
+        expect(conventions.hookNaming.confidence).toBe('high');
       });
     });
 
@@ -178,7 +178,7 @@ describe('detectConventions', () => {
         const structure = await detectStructure(tempDir);
         const conventions = await detectConventions(tempDir, structure);
 
-        expect(conventions['hookNaming']).toBeUndefined();
+        expect(conventions.hookNaming).toBeUndefined();
       });
     });
   });
@@ -189,9 +189,9 @@ describe('detectConventions', () => {
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['importAlias']).toBeDefined();
-      expect(conventions['importAlias'].value).toBe('@/*');
-      expect(conventions['importAlias'].confidence).toBe('high');
+      expect(conventions.importAlias).toBeDefined();
+      expect(conventions.importAlias.value).toBe('@/*');
+      expect(conventions.importAlias.confidence).toBe('high');
     });
 
     describe('tsconfig with no paths', () => {
@@ -210,7 +210,7 @@ describe('detectConventions', () => {
         const structure: DetectedStructure = { directories: [] };
         const conventions = await detectConventions(tempDir, structure);
 
-        expect(conventions['importAlias']).toBeUndefined();
+        expect(conventions.importAlias).toBeUndefined();
       });
     });
 
@@ -219,7 +219,7 @@ describe('detectConventions', () => {
       const structure: DetectedStructure = { directories: [] };
       const conventions = await detectConventions(fixturePath, structure);
 
-      expect(conventions['importAlias']).toBeUndefined();
+      expect(conventions.importAlias).toBeUndefined();
     });
   });
 

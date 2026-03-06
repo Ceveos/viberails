@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
+import { describe, expect, it } from 'vitest';
 import { generateContext } from './generate-context.js';
 
 function createNextjs15ScanResult(): ScanResult {
@@ -71,9 +71,7 @@ function createNextjs15ScanResult(): ScanResult {
       totalFiles: 109,
       totalLines: 14500,
       averageFileLines: 133,
-      largestFiles: [
-        { path: 'src/components/data-table.tsx', lines: 487 },
-      ],
+      largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
       filesByExtension: { '.ts': 42, '.tsx': 55, '.css': 12 },
     },
   };
@@ -138,47 +136,32 @@ describe('generateContext', () => {
   });
 
   it('contains Next.js 15 in architecture section', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('Next.js 15');
   });
 
   it('detects App Router from src/app directory', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('App Router');
   });
 
   it('contains convention directives for kebab-case', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('kebab-case');
     expect(output).toMatch(/Files use \*\*kebab-case\*\*/);
   });
 
   it('uses observation language for medium-confidence conventions', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toMatch(/Most files appear to use \*\*useXxx\*\*/);
   });
 
   it('contains quality standards from rules', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('300 lines');
     expect(output).toContain('50 lines');
@@ -186,10 +169,7 @@ describe('generateContext', () => {
   });
 
   it('flags large files as refactoring candidates', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('data-table.tsx');
     expect(output).toContain('487 lines');
@@ -197,10 +177,7 @@ describe('generateContext', () => {
   });
 
   it('flags large directories for subdirectory organization', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('src/components');
     expect(output).toContain('47 files');
@@ -208,10 +185,7 @@ describe('generateContext', () => {
   });
 
   it('mentions notable libraries', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('Zod');
     expect(output).toContain('React Query');
@@ -268,19 +242,13 @@ describe('generateContext', () => {
   });
 
   it('includes test pattern in conventions', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('*.test.ts');
   });
 
   it('includes import alias in conventions', () => {
-    const output = generateContext(
-      createNextjs15Config(),
-      createNextjs15ScanResult(),
-    );
+    const output = generateContext(createNextjs15Config(), createNextjs15ScanResult());
 
     expect(output).toContain('`@/*`');
   });

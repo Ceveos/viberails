@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import Ajv from 'ajv';
-import { configSchema } from './schema.js';
-import { generateConfig } from './generate-config.js';
 import type { ScanResult } from '@viberails/types';
+import Ajv from 'ajv';
+import { describe, expect, it } from 'vitest';
+import { generateConfig } from './generate-config.js';
+import { configSchema } from './schema.js';
 
 function makeMinimalScanResult(): ScanResult {
   return {
@@ -53,7 +53,12 @@ function makeFullScanResult(): ScanResult {
     conventions: {
       fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
       componentNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 30, consistency: 94 },
-      hookNaming: { value: 'camelCase:usePrefix', confidence: 'medium', sampleSize: 8, consistency: 78 },
+      hookNaming: {
+        value: 'camelCase:usePrefix',
+        confidence: 'medium',
+        sampleSize: 8,
+        consistency: 78,
+      },
       importAlias: { value: '@/*', confidence: 'high', sampleSize: 1, consistency: 100 },
     },
     statistics: {
@@ -108,18 +113,20 @@ describe('configSchema validation', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
 
-    expect(validate({
-      version: 2,
-      name: 'test',
-      stack: { language: 'typescript', packageManager: 'npm' },
-      rules: {
-        maxFileLines: 300,
-        maxFunctionLines: 50,
-        requireTests: true,
-        enforceNaming: true,
-        enforceBoundaries: false,
-      },
-    })).toBe(false);
+    expect(
+      validate({
+        version: 2,
+        name: 'test',
+        stack: { language: 'typescript', packageManager: 'npm' },
+        rules: {
+          maxFileLines: 300,
+          maxFunctionLines: 50,
+          requireTests: true,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    ).toBe(false);
   });
 
   it('rejects config with additional properties', () => {

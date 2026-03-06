@@ -8,8 +8,7 @@ export const configSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   $id: 'https://viberails.sh/schema/v1.json',
   title: 'viberails configuration',
-  description:
-    'Configuration file for viberails — guardrails for vibe coding.',
+  description: 'Configuration file for viberails — guardrails for vibe coding.',
   type: 'object',
   required: ['version', 'name', 'stack', 'rules'],
   properties: {
@@ -30,8 +29,7 @@ export const configSchema = {
       type: 'string',
       enum: ['warn', 'enforce'],
       default: 'warn',
-      description:
-        'Whether conventions are warned about or enforced as errors.',
+      description: 'Whether conventions are warned about or enforced as errors.',
     },
     stack: {
       type: 'object',
@@ -39,8 +37,7 @@ export const configSchema = {
       properties: {
         framework: {
           type: 'string',
-          description:
-            'Primary framework identifier (e.g. "nextjs@15", "remix@2").',
+          description: 'Primary framework identifier (e.g. "nextjs@15", "remix@2").',
         },
         language: {
           type: 'string',
@@ -48,13 +45,11 @@ export const configSchema = {
         },
         styling: {
           type: 'string',
-          description:
-            'Styling solution (e.g. "tailwindcss@4", "css-modules").',
+          description: 'Styling solution (e.g. "tailwindcss@4", "css-modules").',
         },
         backend: {
           type: 'string',
-          description:
-            'Backend framework (e.g. "express@5", "fastify").',
+          description: 'Backend framework (e.g. "express@5", "fastify").',
         },
         packageManager: {
           type: 'string',
@@ -77,8 +72,7 @@ export const configSchema = {
       properties: {
         srcDir: {
           type: 'string',
-          description:
-            'Source directory (e.g. "src"), or omit for flat structure.',
+          description: 'Source directory (e.g. "src"), or omit for flat structure.',
         },
         pages: {
           type: 'string',
@@ -94,8 +88,7 @@ export const configSchema = {
         },
         utils: {
           type: 'string',
-          description:
-            'Utilities directory (e.g. "src/utils", "src/lib").',
+          description: 'Utilities directory (e.g. "src/utils", "src/lib").',
         },
         types: {
           type: 'string',
@@ -107,8 +100,7 @@ export const configSchema = {
         },
         testPattern: {
           type: 'string',
-          description:
-            'Test file naming pattern (e.g. "*.test.ts", "*.spec.ts").',
+          description: 'Test file naming pattern (e.g. "*.test.ts", "*.spec.ts").',
         },
       },
       additionalProperties: false,
@@ -153,8 +145,7 @@ export const configSchema = {
         enforceNaming: {
           type: 'boolean',
           default: true,
-          description:
-            'Whether to enforce detected file naming conventions.',
+          description: 'Whether to enforce detected file naming conventions.',
         },
         enforceBoundaries: {
           type: 'boolean',
@@ -199,8 +190,7 @@ export const configSchema = {
             },
             _detected: {
               type: 'boolean',
-              description:
-                'Set by mergeConfig when a convention is newly detected during sync.',
+              description: 'Set by mergeConfig when a convention is newly detected during sync.',
             },
           },
           additionalProperties: false,
