@@ -1,0 +1,8 @@
+{
+  "name": "@mv/ui",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@mv/shared": "*"
+  }
+}
