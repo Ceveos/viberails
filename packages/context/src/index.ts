@@ -1,1 +1,2 @@
-export const VERSION = '0.1.0';
+export { generateContext } from './generate-context.js';
+export { generateCursorrules } from './generate-cursorrules.js';
