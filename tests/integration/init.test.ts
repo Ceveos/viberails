@@ -40,7 +40,7 @@ describe('init command', () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
     expect(fs.existsSync(claudeMdPath)).toBe(true);
     const claudeMd = fs.readFileSync(claudeMdPath, 'utf-8');
-    expect(claudeMd).toContain('@import .viberails/context.md');
+    expect(claudeMd).toContain('@.viberails/context.md');
 
     // .cursorrules
     const cursorrullesPath = path.join(tmpDir, '.cursorrules');

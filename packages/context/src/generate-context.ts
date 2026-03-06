@@ -7,45 +7,12 @@ import type {
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
-
-/** Display names for framework identifiers. */
-const FRAMEWORK_NAMES: Record<string, string> = {
-  nextjs: 'Next.js',
-  remix: 'Remix',
-  nuxt: 'Nuxt',
-  sveltekit: 'SvelteKit',
-  astro: 'Astro',
-  vite: 'Vite',
-  gatsby: 'Gatsby',
-  express: 'Express',
-  fastify: 'Fastify',
-};
-
-/** Display names for library identifiers. */
-const LIBRARY_NAMES: Record<string, string> = {
-  'react-query': 'React Query',
-  'tanstack-query': 'TanStack Query',
-  tailwindcss: 'Tailwind CSS',
-  'css-modules': 'CSS Modules',
-  'styled-components': 'styled-components',
-  zod: 'Zod',
-  trpc: 'tRPC',
-  prisma: 'Prisma',
-  drizzle: 'Drizzle',
-};
-
-/** Display names for directory roles. */
-const ROLE_DESCRIPTIONS: Record<string, string> = {
-  pages: 'Pages / Routes',
-  components: 'Components',
-  hooks: 'Hooks',
-  utils: 'Utilities',
-  types: 'Type definitions',
-  tests: 'Tests',
-  styles: 'Styles',
-  api: 'API routes',
-  config: 'Configuration',
-};
+import {
+  FRAMEWORK_NAMES,
+  LIBRARY_NAMES,
+  ROLE_DESCRIPTIONS,
+  STYLING_NAMES,
+} from '@viberails/types';
 
 /**
  * Format a stack identifier to a human-readable display name.
@@ -57,13 +24,13 @@ function displayName(identifier: string): { name: string; version?: string } {
     const rawName = identifier.slice(0, atIndex);
     const version = identifier.slice(atIndex + 1);
     return {
-      name: FRAMEWORK_NAMES[rawName] ?? LIBRARY_NAMES[rawName] ?? rawName,
+      name: FRAMEWORK_NAMES[rawName] ?? STYLING_NAMES[rawName] ?? LIBRARY_NAMES[rawName] ?? rawName,
       version,
     };
   }
   return {
     name:
-      FRAMEWORK_NAMES[identifier] ?? LIBRARY_NAMES[identifier] ?? identifier,
+      FRAMEWORK_NAMES[identifier] ?? STYLING_NAMES[identifier] ?? LIBRARY_NAMES[identifier] ?? identifier,
   };
 }
 

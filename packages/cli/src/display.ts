@@ -1,25 +1,11 @@
 import chalk from 'chalk';
 import type { DetectedConvention, ScanResult, StackItem } from '@viberails/types';
-
-/** Display names for framework identifiers. */
-const FRAMEWORK_NAMES: Record<string, string> = {
-  nextjs: 'Next.js',
-  remix: 'Remix',
-  nuxt: 'Nuxt',
-  sveltekit: 'SvelteKit',
-  astro: 'Astro',
-  vite: 'Vite',
-  gatsby: 'Gatsby',
-  express: 'Express',
-  fastify: 'Fastify',
-};
-
-/** Display names for styling libraries. */
-const STYLING_NAMES: Record<string, string> = {
-  tailwindcss: 'Tailwind CSS',
-  'css-modules': 'CSS Modules',
-  'styled-components': 'styled-components',
-};
+import {
+  FRAMEWORK_NAMES,
+  LIBRARY_NAMES,
+  ROLE_DESCRIPTIONS,
+  STYLING_NAMES,
+} from '@viberails/types';
 
 /** Labels for convention keys. */
 const CONVENTION_LABELS: Record<string, string> = {
@@ -76,6 +62,22 @@ export function displayScanResults(scanResult: ScanResult): void {
   }
   if (stack.packageManager) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.packageManager)}`);
+  }
+  if (stack.libraries.length > 0) {
+    for (const lib of stack.libraries) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(lib, LIBRARY_NAMES)}`);
+    }
+  }
+
+  // Structure
+  const meaningfulDirs = scanResult.structure.directories.filter((d) => d.role !== 'unknown');
+  if (meaningfulDirs.length > 0) {
+    console.log('\n' + chalk.bold('Structure:'));
+    for (const dir of meaningfulDirs) {
+      const label = ROLE_DESCRIPTIONS[dir.role] ?? dir.role;
+      const files = dir.fileCount === 1 ? '1 file' : `${dir.fileCount} files`;
+      console.log(`  ${chalk.green('✓')} ${dir.path} — ${label} (${files})`);
+    }
   }
 
   const conventionEntries = Object.entries(conventions);

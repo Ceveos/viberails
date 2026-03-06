@@ -1,12 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join, relative } from 'node:path';
 import type { CodebaseStatistics, FileStatistic } from '@viberails/types';
-import { walkDirectory } from './utils/walk-directory.js';
-
-/** Source file extensions to include in statistics. */
-const SOURCE_EXTENSIONS = new Set([
-  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.vue', '.svelte', '.astro',
-]);
+import type { WalkedDirectory } from './utils/walk-directory.js';
+import { SOURCE_EXTENSIONS, walkDirectory } from './utils/walk-directory.js';
 
 /**
  * Counts lines in a file by reading its contents.
@@ -18,11 +14,12 @@ async function countLines(filePath: string): Promise<number> {
   try {
     const content = await readFile(filePath, 'utf-8');
     if (content.length === 0) return 0;
-    // Count newlines; a file with no trailing newline still has 1 line
-    let count = 1;
+    let count = 0;
     for (let i = 0; i < content.length; i++) {
       if (content.charCodeAt(i) === 10) count++;
     }
+    // A file with no trailing newline has one more line than newline count
+    if (content.charCodeAt(content.length - 1) !== 10) count++;
     return count;
   } catch {
     return 0;
@@ -56,14 +53,18 @@ async function getRootSourceFiles(projectPath: string): Promise<string[]> {
 /**
  * Computes quantitative statistics about a project's source files.
  *
- * Walks the project directory tree, reads each source file, and produces
- * aggregate metrics including file counts, line counts, and extension breakdown.
+ * Reads each source file and produces aggregate metrics including
+ * file counts, line counts, and extension breakdown.
  *
  * @param projectPath - Absolute path to the project root.
+ * @param dirs - Pre-walked directory list. If not provided, walks the directory tree.
  * @returns Statistics about the codebase.
  */
-export async function computeStatistics(projectPath: string): Promise<CodebaseStatistics> {
-  const directories = await walkDirectory(projectPath);
+export async function computeStatistics(
+  projectPath: string,
+  dirs?: WalkedDirectory[],
+): Promise<CodebaseStatistics> {
+  const directories = dirs ?? await walkDirectory(projectPath);
   const rootFiles = await getRootSourceFiles(projectPath);
 
   // Collect all file paths and extensions

@@ -36,5 +36,8 @@
     "@viberails/types": "workspace:*",
     "chalk": "^5.4.1",
     "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5"
   }
 }

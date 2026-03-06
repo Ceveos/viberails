@@ -13,14 +13,18 @@ import { walkDirectory } from './utils/walk-directory.js';
  * @param projectPath - Absolute path to the project root directory.
  * @param structure - Previously detected directory structure, used to identify
  *   directories by role.
+ * @param dirs - Pre-walked directory list. If not provided, walks the directory tree.
  * @returns A record of detected conventions keyed by convention name.
  *   Only statistical conventions with sampleSize >= 3 are included.
  */
 export async function detectConventions(
   projectPath: string,
   structure: DetectedStructure,
+  dirs?: WalkedDirectory[],
 ): Promise<Record<string, DetectedConvention>> {
-  const dirs = await walkDirectory(projectPath, 4);
+  if (!dirs) {
+    dirs = await walkDirectory(projectPath, 4);
+  }
 
   const result: Record<string, DetectedConvention> = {};
 
@@ -146,7 +150,10 @@ function detectHookNaming(
   for (const dir of dirs) {
     if (!hookPaths.has(dir.relativePath)) continue;
     for (const f of dir.sourceFileNames) {
-      hookFiles.push(f);
+      const bare = stripExtension(f);
+      if (bare.startsWith('use-') || /^use[A-Z]/.test(bare)) {
+        hookFiles.push(f);
+      }
     }
   }
 

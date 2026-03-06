@@ -90,7 +90,7 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
     const claudePath = path.join(tmpDir, 'CLAUDE.md');
     expect(fs.existsSync(claudePath)).toBe(true);
     const content = fs.readFileSync(claudePath, 'utf-8');
-    expect(content).toContain('@import .viberails/context.md');
+    expect(content).toContain('@.viberails/context.md');
   });
 
   it('creates .cursorrules', () => {

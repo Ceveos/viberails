@@ -1,21 +1,26 @@
 import type { DetectedConvention, DetectedStructure } from '@viberails/types';
 import { confidenceFromConsistency } from '@viberails/types';
+import type { WalkedDirectory } from './utils/walk-directory.js';
 import { walkDirectory } from './utils/walk-directory.js';
 import { classifyDirectory } from './utils/classify-directory.js';
 
 /**
  * Detects the directory structure and organization of a project.
  *
- * Walks the directory tree (max depth 4), classifies directories by role,
- * detects whether a src/ directory is in use, and identifies test file patterns.
+ * Classifies directories by role, detects whether a src/ directory is in use,
+ * and identifies test file patterns.
  *
  * @param projectPath - Absolute path to the project root directory.
+ * @param dirs - Pre-walked directory list. If not provided, walks the directory tree.
  * @returns The detected directory structure.
  */
 export async function detectStructure(
   projectPath: string,
+  dirs?: WalkedDirectory[],
 ): Promise<DetectedStructure> {
-  const dirs = await walkDirectory(projectPath, 4);
+  if (!dirs) {
+    dirs = await walkDirectory(projectPath, 4);
+  }
 
   // Detect srcDir
   const hasSrcDir = dirs.some(

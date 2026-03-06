@@ -56,35 +56,35 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
     },
   },
   "statistics": {
-    "averageFileLines": 42,
+    "averageFileLines": 41,
     "filesByExtension": {
       ".ts": 11,
       ".tsx": 7,
     },
     "largestFiles": [
       {
-        "lines": 303,
+        "lines": 302,
         "path": "src/components/data-table.tsx",
       },
       {
-        "lines": 48,
+        "lines": 47,
         "path": "src/components/nav-bar.tsx",
       },
       {
-        "lines": 43,
+        "lines": 42,
         "path": "src/hooks/use-auth.ts",
       },
       {
-        "lines": 40,
+        "lines": 39,
         "path": "src/components/base-button.tsx",
       },
       {
-        "lines": 37,
+        "lines": 36,
         "path": "src/hooks/use-form.ts",
       },
     ],
     "totalFiles": 18,
-    "totalLines": 752,
+    "totalLines": 734,
   },
   "structure": {
     "directories": [

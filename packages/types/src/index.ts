@@ -22,3 +22,10 @@ export type {
   ConventionValue,
   ConfigRules,
 } from './config.js';
+
+export {
+  FRAMEWORK_NAMES,
+  STYLING_NAMES,
+  LIBRARY_NAMES,
+  ROLE_DESCRIPTIONS,
+} from './display-names.js';

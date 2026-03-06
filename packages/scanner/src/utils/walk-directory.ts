@@ -17,7 +17,7 @@ const IGNORED_DIRS = new Set([
 ]);
 
 /** Source file extensions to count. */
-const SOURCE_EXTENSIONS = new Set([
+export const SOURCE_EXTENSIONS = new Set([
   '.ts',
   '.tsx',
   '.js',

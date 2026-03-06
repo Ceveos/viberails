@@ -8,3 +8,5 @@ export { detectConventions } from './detect-conventions.js';
 export { computeStatistics } from './compute-statistics.js';
 export type { PackageJson } from './utils/read-package-json.js';
 export { readPackageJson } from './utils/read-package-json.js';
+export type { WalkedDirectory } from './utils/walk-directory.js';
+export { walkDirectory } from './utils/walk-directory.js';

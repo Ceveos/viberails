@@ -2,17 +2,15 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
 import { generateConfig } from '@viberails/config';
-import { generateContext, generateCursorrules } from '@viberails/context';
 import { scan } from '@viberails/scanner';
 import type { ConfigConventions, ConventionValue } from '@viberails/types';
 import { displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { confirm } from '../utils/prompt.js';
+import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 
 const CONFIG_FILE = 'viberails.config.json';
-const CONTEXT_DIR = '.viberails';
-const CONTEXT_FILE = 'context.md';
-const IMPORT_DIRECTIVE = '@import .viberails/context.md';
+const CONTEXT_REFERENCE = '@.viberails/context.md';
 
 /**
  * Filter a ConfigConventions object to only include high-confidence entries.
@@ -45,12 +43,11 @@ export async function initCommand(
   // 1. Find project root
   const projectRoot = findProjectRoot(startDir);
   if (!projectRoot) {
-    console.error(
-      chalk.red('Error:') + ' No package.json found in this directory or any parent.\n\n' +
+    throw new Error(
+      'No package.json found in this directory or any parent.\n\n' +
       'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
-      chalk.cyan('  npx viberails'),
+      '  npx viberails',
     );
-    process.exit(1);
   }
 
   // 2. Check for existing config
@@ -94,43 +91,31 @@ export async function initCommand(
   }
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 
-  // 8. Generate context
-  const context = generateContext(config, scanResult);
-  const contextDir = path.join(projectRoot, CONTEXT_DIR);
-  if (!fs.existsSync(contextDir)) {
-    fs.mkdirSync(contextDir, { recursive: true });
-  }
-  fs.writeFileSync(path.join(contextDir, CONTEXT_FILE), context);
+  // 8. Generate context, cursorrules, and scan-result.json
+  writeGeneratedFiles(projectRoot, config, scanResult);
 
   // 9. Scaffold CLAUDE.md
   const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
   if (fs.existsSync(claudeMdPath)) {
     const existing = fs.readFileSync(claudeMdPath, 'utf-8');
-    if (!existing.includes(IMPORT_DIRECTIVE)) {
-      fs.writeFileSync(claudeMdPath, existing.trimEnd() + '\n\n' + IMPORT_DIRECTIVE + '\n');
+    if (!existing.includes(CONTEXT_REFERENCE)) {
+      fs.writeFileSync(claudeMdPath, existing.trimEnd() + '\n\n' + CONTEXT_REFERENCE + '\n');
     }
   } else {
     fs.writeFileSync(
       claudeMdPath,
-      `# ${config.name}\n\n${IMPORT_DIRECTIVE}\n`,
+      `# ${config.name}\n\n${CONTEXT_REFERENCE}\n`,
     );
   }
 
-  // 10. Generate .cursorrules
-  const cursorrullesLocalPath = path.join(projectRoot, '.cursorrules.local');
-  const userCursorrules = fs.existsSync(cursorrullesLocalPath)
-    ? fs.readFileSync(cursorrullesLocalPath, 'utf-8')
-    : undefined;
-  const cursorrules = generateCursorrules(context, userCursorrules);
-  fs.writeFileSync(path.join(projectRoot, '.cursorrules'), cursorrules);
-
-  // 11. Update .gitignore
+  // 10. Update .gitignore
   updateGitignore(projectRoot);
 
-  // 12. Print summary
+  // 11. Print summary
   console.log('\n' + chalk.bold('Created:'));
   console.log(`  ${chalk.green('✓')} ${CONFIG_FILE}`);
-  console.log(`  ${chalk.green('✓')} ${CONTEXT_DIR}/${CONTEXT_FILE}`);
+  console.log(`  ${chalk.green('✓')} .viberails/context.md`);
+  console.log(`  ${chalk.green('✓')} .viberails/scan-result.json`);
   console.log(`  ${chalk.green('✓')} .cursorrules`);
   console.log(`  ${chalk.green('✓')} CLAUDE.md`);
   console.log('\n' + chalk.bold('Next steps:'));

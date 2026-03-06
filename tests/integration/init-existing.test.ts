@@ -30,18 +30,18 @@ describe('init command with existing CLAUDE.md', () => {
     expect(result).toContain('- Be concise');
     expect(result).toContain('- Use TypeScript');
     // Import directive should be appended
-    expect(result).toContain('@import .viberails/context.md');
+    expect(result).toContain('@.viberails/context.md');
   });
 
   it('does not duplicate import directive if already present', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
-    const contentWithImport = '# My Project\n\n@import .viberails/context.md\n';
+    const contentWithImport = '# My Project\n\n@.viberails/context.md\n';
     fs.writeFileSync(claudeMdPath, contentWithImport);
 
     await initCommand({ yes: true }, tmpDir);
 
     const result = fs.readFileSync(claudeMdPath, 'utf-8');
-    const importCount = (result.match(/@import .viberails\/context.md/g) ?? []).length;
+    const importCount = (result.match(/@\.viberails\/context\.md/g) ?? []).length;
     expect(importCount).toBe(1);
   });
 });

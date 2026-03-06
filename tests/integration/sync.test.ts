@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { initCommand } from '../../packages/cli/src/commands/init.js';
 import { syncCommand } from '../../packages/cli/src/commands/sync.js';
 
@@ -72,15 +72,8 @@ describe('sync command', () => {
     const fixtureSrc = path.resolve(__dirname, '../fixtures/nextjs-15');
     fs.cpSync(fixtureSrc, noConfigDir, { recursive: true });
 
-    // Mock process.exit to prevent actual exit
-    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('process.exit called');
-    });
+    await expect(syncCommand(noConfigDir)).rejects.toThrow();
 
-    await expect(syncCommand(noConfigDir)).rejects.toThrow('process.exit called');
-    expect(mockExit).toHaveBeenCalledWith(1);
-
-    mockExit.mockRestore();
     fs.rmSync(noConfigDir, { recursive: true, force: true });
   });
 });
