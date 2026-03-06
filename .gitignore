@@ -4,3 +4,7 @@ dist
 coverage
 *.tsbuildinfo
 .turbo
+
+# viberails
+.viberails/
+.cursorrules

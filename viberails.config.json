@@ -1,0 +1,30 @@
+{
+  "$schema": "https://viberails.sh/schema/v1.json",
+  "version": 1,
+  "name": "viberails",
+  "enforcement": "warn",
+  "stack": {
+    "language": "typescript@5",
+    "packageManager": "pnpm",
+    "linter": "biome@2",
+    "testRunner": "vitest@4"
+  },
+  "structure": {
+    "tests": "tests",
+    "hooks": "tests/fixtures/flat-structure/hooks",
+    "testPattern": "*.test.ts"
+  },
+  "conventions": {},
+  "rules": {
+    "maxFileLines": 300,
+    "maxFunctionLines": 50,
+    "requireTests": true,
+    "enforceNaming": true,
+    "enforceBoundaries": false
+  },
+  "ignore": [
+    "**/*.d.ts",
+    "dist/**",
+    "node_modules/**"
+  ]
+}

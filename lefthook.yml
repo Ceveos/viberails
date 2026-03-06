@@ -2,9 +2,9 @@ pre-commit:
   parallel: true
   commands:
     format:
-      glob: "*.{ts,tsx,js,json}"
+      glob: "{packages,tests}/**/*.{ts,tsx,js,json}"
       run: npx biome format --write {staged_files}
       stage_fixed: true
     lint:
-      glob: "*.{ts,tsx,js}"
+      glob: "{packages,tests}/**/*.{ts,tsx,js}"
       run: npx biome lint {staged_files}

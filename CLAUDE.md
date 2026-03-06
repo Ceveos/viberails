@@ -270,3 +270,5 @@ The generated `.viberails/context.md` is the primary output. It must be:
 - Scope by package: `feat(scanner): add convention detection`
 - Every commit should leave the project in a buildable, testable state
 - Tests pass before every commit — no broken test commits
+
+@.viberails/context.md
