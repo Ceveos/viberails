@@ -104,6 +104,8 @@ export type ConventionValue =
       _confidence: Confidence;
       /** Scanner consistency percentage. Prefixed with `_` to signal metadata. */
       _consistency: number;
+      /** Set by mergeConfig when a convention is newly detected during sync. */
+      _detected?: boolean;
     };
 
 /**
