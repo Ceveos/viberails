@@ -51,8 +51,9 @@ describe('resolveWorkspacePackages', () => {
       isMonorepo: true,
     });
 
-    const web = result.find((p) => p.name === '@test/web')!;
-    expect(web.internalDeps).toEqual(['@test/core']);
+    const web = result.find((p) => p.name === '@test/web');
+    expect(web).toBeDefined();
+    expect(web?.internalDeps).toEqual(['@test/core']);
     // react should be filtered out
     expect(web.internalDeps).not.toContain('react');
   });

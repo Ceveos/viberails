@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { boundariesCommand } from './commands/boundaries.js';
 import { checkCommand } from './commands/check.js';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
@@ -46,6 +47,21 @@ program
     try {
       const exitCode = await checkCommand(options);
       process.exit(exitCode);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`${chalk.red('Error:')} ${message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('boundaries')
+  .description('Display, infer, or inspect import boundary rules')
+  .option('--infer', 'Infer boundary rules from current import patterns')
+  .option('--graph', 'Display import graph summary')
+  .action(async (options: { infer?: boolean; graph?: boolean }) => {
+    try {
+      await boundariesCommand(options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`${chalk.red('Error:')} ${message}`);
