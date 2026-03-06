@@ -4,6 +4,7 @@ export { computeStatistics } from './compute-statistics.js';
 export { detectConventions } from './detect-conventions.js';
 export { detectStack, extractMajorVersion } from './detect-stack.js';
 export { detectStructure } from './detect-structure.js';
+export { detectWorkspace } from './detect-workspace.js';
 export type { ScanOptions } from './scan.js';
 export { scan } from './scan.js';
 export type { PackageJson } from './utils/read-package-json.js';

@@ -5,6 +5,7 @@ import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
 import { detectStack } from './detect-stack.js';
 import { detectStructure } from './detect-structure.js';
+import { detectWorkspace } from './detect-workspace.js';
 import type { WalkedDirectory } from './utils/walk-directory.js';
 import { walkDirectory } from './utils/walk-directory.js';
 
@@ -72,11 +73,15 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
   // detectConventions depends on structure result
   const conventions = await detectConventions(root, structure, dirs);
 
+  // Detect workspace configuration (monorepo support)
+  const workspace = await detectWorkspace(root);
+
   return {
     root,
     stack,
     structure,
     conventions,
     statistics,
+    workspace,
   };
 }

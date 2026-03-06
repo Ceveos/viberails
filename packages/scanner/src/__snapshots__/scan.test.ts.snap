@@ -133,5 +133,6 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       "value": "*.test.ts",
     },
   },
+  "workspace": undefined,
 }
 `;
