@@ -31,6 +31,7 @@ const NAMING_PATTERNS: Record<string, RegExp> = {
 export interface CheckOptions {
   files?: string[];
   staged?: boolean;
+  noBoundaries?: boolean;
 }
 
 /**
@@ -115,7 +116,12 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   // Check 4: Boundary violations
-  if (config.rules.enforceBoundaries && config.boundaries && config.boundaries.length > 0) {
+  if (
+    config.rules.enforceBoundaries &&
+    config.boundaries &&
+    config.boundaries.length > 0 &&
+    !options.noBoundaries
+  ) {
     const startTime = Date.now();
     const { buildImportGraph, checkBoundaries } = await import('@viberails/graph');
 

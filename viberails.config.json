@@ -19,11 +19,44 @@
     "maxFunctionLines": 50,
     "requireTests": true,
     "enforceNaming": true,
-    "enforceBoundaries": false
+    "enforceBoundaries": true
   },
   "ignore": [
     "**/*.d.ts",
     "dist/**",
     "node_modules/**"
+  ],
+  "workspace": {
+    "packages": [
+      "packages/types",
+      "packages/scanner",
+      "packages/config",
+      "packages/context",
+      "packages/graph",
+      "packages/cli"
+    ],
+    "isMonorepo": true
+  },
+  "boundaries": [
+    { "from": "@viberails/types", "to": "@viberails/scanner", "allow": false, "reason": "@viberails/types should not depend on @viberails/scanner" },
+    { "from": "@viberails/types", "to": "@viberails/config", "allow": false, "reason": "@viberails/types should not depend on @viberails/config" },
+    { "from": "@viberails/types", "to": "@viberails/context", "allow": false, "reason": "@viberails/types should not depend on @viberails/context" },
+    { "from": "@viberails/types", "to": "@viberails/graph", "allow": false, "reason": "@viberails/types should not depend on @viberails/graph" },
+    { "from": "@viberails/types", "to": "viberails", "allow": false, "reason": "@viberails/types should not depend on viberails" },
+    { "from": "@viberails/scanner", "to": "@viberails/config", "allow": false, "reason": "@viberails/scanner should not depend on @viberails/config" },
+    { "from": "@viberails/scanner", "to": "@viberails/context", "allow": false, "reason": "@viberails/scanner should not depend on @viberails/context" },
+    { "from": "@viberails/scanner", "to": "@viberails/graph", "allow": false, "reason": "@viberails/scanner should not depend on @viberails/graph" },
+    { "from": "@viberails/scanner", "to": "viberails", "allow": false, "reason": "@viberails/scanner should not depend on viberails" },
+    { "from": "@viberails/config", "to": "@viberails/scanner", "allow": false, "reason": "@viberails/config should not depend on @viberails/scanner" },
+    { "from": "@viberails/config", "to": "@viberails/context", "allow": false, "reason": "@viberails/config should not depend on @viberails/context" },
+    { "from": "@viberails/config", "to": "@viberails/graph", "allow": false, "reason": "@viberails/config should not depend on @viberails/graph" },
+    { "from": "@viberails/config", "to": "viberails", "allow": false, "reason": "@viberails/config should not depend on viberails" },
+    { "from": "@viberails/context", "to": "@viberails/scanner", "allow": false, "reason": "@viberails/context should not depend on @viberails/scanner" },
+    { "from": "@viberails/context", "to": "@viberails/graph", "allow": false, "reason": "@viberails/context should not depend on @viberails/graph" },
+    { "from": "@viberails/context", "to": "viberails", "allow": false, "reason": "@viberails/context should not depend on viberails" },
+    { "from": "@viberails/graph", "to": "@viberails/scanner", "allow": false, "reason": "@viberails/graph should not depend on @viberails/scanner" },
+    { "from": "@viberails/graph", "to": "@viberails/config", "allow": false, "reason": "@viberails/graph should not depend on @viberails/config" },
+    { "from": "@viberails/graph", "to": "@viberails/context", "allow": false, "reason": "@viberails/graph should not depend on @viberails/context" },
+    { "from": "@viberails/graph", "to": "viberails", "allow": false, "reason": "@viberails/graph should not depend on viberails" }
   ]
 }

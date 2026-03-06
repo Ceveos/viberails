@@ -43,9 +43,13 @@ program
   .description('Check files against enforced rules')
   .option('--staged', 'Check only staged files (for pre-commit hooks)')
   .option('--files <files...>', 'Check specific files')
-  .action(async (options: { staged?: boolean; files?: string[] }) => {
+  .option('--no-boundaries', 'Skip boundary checking')
+  .action(async (options: { staged?: boolean; files?: string[]; boundaries?: boolean }) => {
     try {
-      const exitCode = await checkCommand(options);
+      const exitCode = await checkCommand({
+        ...options,
+        noBoundaries: options.boundaries === false,
+      });
       process.exit(exitCode);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
