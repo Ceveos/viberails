@@ -29,31 +29,23 @@ describe('init command', () => {
     expect(config.stack.framework).toContain('nextjs');
     expect(config.stack.language).toContain('typescript');
 
-    // .viberails/context.md
+    // .viberails/context.md — should contain enforced rules, not project description
     const contextPath = path.join(tmpDir, '.viberails', 'context.md');
     expect(fs.existsSync(contextPath)).toBe(true);
     const context = fs.readFileSync(contextPath, 'utf-8');
-    expect(context.length).toBeGreaterThan(0);
-    expect(context).toContain('Next.js');
+    expect(context).toContain('viberails enforced rules');
+    expect(context).toContain('300 lines');
 
-    // CLAUDE.md
-    const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
-    expect(fs.existsSync(claudeMdPath)).toBe(true);
-    const claudeMd = fs.readFileSync(claudeMdPath, 'utf-8');
-    expect(claudeMd).toContain('@.viberails/context.md');
+    // Should NOT create CLAUDE.md or .cursorrules
+    expect(fs.existsSync(path.join(tmpDir, 'CLAUDE.md'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
 
-    // .cursorrules
-    const cursorrullesPath = path.join(tmpDir, '.cursorrules');
-    expect(fs.existsSync(cursorrullesPath)).toBe(true);
-    const cursorrules = fs.readFileSync(cursorrullesPath, 'utf-8');
-    expect(cursorrules.length).toBeGreaterThan(0);
-
-    // .gitignore
+    // .gitignore — should include scan-result.json but not .cursorrules
     const gitignorePath = path.join(tmpDir, '.gitignore');
     expect(fs.existsSync(gitignorePath)).toBe(true);
     const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
-    expect(gitignore).toContain('.viberails/');
-    expect(gitignore).toContain('.cursorrules');
+    expect(gitignore).toContain('.viberails/scan-result.json');
+    expect(gitignore).not.toContain('.cursorrules');
   });
 
   it('does not re-initialize if config already exists', async () => {

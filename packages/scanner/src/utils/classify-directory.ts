@@ -82,10 +82,10 @@ function matchByName(relativePath: string): DirectoryRole | null {
 function inferFromContent(dir: WalkedDirectory): ClassifiedDirectory | null {
   const { sourceFileNames, sourceFileCount } = dir;
 
-  // Check for hook files (use* prefix)
+  // Check for hook files (use-* kebab or useXxx camelCase prefix)
   const hookFiles = sourceFileNames.filter((f) => {
     const name = f.split('.')[0];
-    return name.startsWith('use-') || name.startsWith('use');
+    return name.startsWith('use-') || /^use[A-Z]/.test(name);
   });
   if (hookFiles.length > 0 && hookFiles.length / sourceFileCount >= 0.5) {
     return {

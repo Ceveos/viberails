@@ -17,7 +17,7 @@ describe('init command with existing CLAUDE.md', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('preserves existing CLAUDE.md content and appends import directive', async () => {
+  it('does not modify an existing CLAUDE.md', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
     const customContent =
       '# My Project\n\nCustom instructions for AI.\n\n## Rules\n\n- Be concise\n- Use TypeScript';
@@ -26,23 +26,19 @@ describe('init command with existing CLAUDE.md', () => {
     await initCommand({ yes: true }, tmpDir);
 
     const result = fs.readFileSync(claudeMdPath, 'utf-8');
-    // Custom content should be preserved
-    expect(result).toContain('Custom instructions for AI.');
-    expect(result).toContain('- Be concise');
-    expect(result).toContain('- Use TypeScript');
-    // Import directive should be appended
-    expect(result).toContain('@.viberails/context.md');
+    // CLAUDE.md should be untouched
+    expect(result).toBe(customContent);
   });
 
-  it('does not duplicate import directive if already present', async () => {
+  it('does not create CLAUDE.md when none exists', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
-    const contentWithImport = '# My Project\n\n@.viberails/context.md\n';
-    fs.writeFileSync(claudeMdPath, contentWithImport);
+    // Ensure no CLAUDE.md exists
+    if (fs.existsSync(claudeMdPath)) {
+      fs.unlinkSync(claudeMdPath);
+    }
 
     await initCommand({ yes: true }, tmpDir);
 
-    const result = fs.readFileSync(claudeMdPath, 'utf-8');
-    const importCount = (result.match(/@\.viberails\/context\.md/g) ?? []).length;
-    expect(importCount).toBe(1);
+    expect(fs.existsSync(claudeMdPath)).toBe(false);
   });
 });

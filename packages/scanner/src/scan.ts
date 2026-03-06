@@ -5,12 +5,30 @@ import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
 import { detectStack } from './detect-stack.js';
 import { detectStructure } from './detect-structure.js';
+import type { WalkedDirectory } from './utils/walk-directory.js';
 import { walkDirectory } from './utils/walk-directory.js';
 
 /**
  * Options for the scan function.
  */
 export type ScanOptions = {};
+
+/** Patterns that indicate a directory is inside test fixtures, not real project code. */
+const FIXTURE_PATTERNS = [
+  /^tests\/fixtures(\/|$)/,
+  /^test\/fixtures(\/|$)/,
+  /^__tests__\/fixtures(\/|$)/,
+  /^fixtures(\/|$)/,
+];
+
+/**
+ * Filters out directories that are inside test fixture directories.
+ * Fixture directories contain sample project structures that should not
+ * be analyzed as part of the real project.
+ */
+function filterFixtureDirs(dirs: WalkedDirectory[]): WalkedDirectory[] {
+  return dirs.filter((d) => !FIXTURE_PATTERNS.some((pattern) => pattern.test(d.relativePath)));
+}
 
 /**
  * Scans a project directory and returns a comprehensive analysis of its
@@ -41,7 +59,8 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
   }
 
   // Walk directory tree once and share with all detectors
-  const dirs = await walkDirectory(root, 4);
+  const allDirs = await walkDirectory(root, 4);
+  const dirs = filterFixtureDirs(allDirs);
 
   // Run independent detectors in parallel, passing shared walk result
   const [stack, structure, statistics] = await Promise.all([

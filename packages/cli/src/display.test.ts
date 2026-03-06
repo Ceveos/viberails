@@ -16,6 +16,7 @@ function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
       ...overrides.structure,
     },
     conventions: overrides.conventions ?? {},
+
     statistics: {
       totalFiles: 0,
       totalLines: 0,

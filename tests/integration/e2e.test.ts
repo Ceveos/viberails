@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { checkCommand } from '../../packages/cli/src/commands/check.js';
 import { initCommand } from '../../packages/cli/src/commands/init.js';
 import { syncCommand } from '../../packages/cli/src/commands/sync.js';
 import type { ViberailsConfig } from '../../packages/types/src/index.js';
@@ -12,7 +13,7 @@ function readConfig(): ViberailsConfig {
   return JSON.parse(fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'));
 }
 
-describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
+describe('end-to-end: init + sync + check on realistic Next.js 15 project', () => {
   beforeAll(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-e2e-'));
     const fixtureSrc = path.resolve(__dirname, '../fixtures/nextjs-15');
@@ -74,48 +75,37 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
     expect(config.rules.enforceBoundaries).toBe(false);
   });
 
-  it('generates .viberails/context.md with expected content', () => {
+  it('generates .viberails/context.md with enforced rules', () => {
     const contextPath = path.join(tmpDir, '.viberails', 'context.md');
     expect(fs.existsSync(contextPath)).toBe(true);
     const content = fs.readFileSync(contextPath, 'utf-8');
 
-    expect(content).toContain('Next.js 15');
-    expect(content).toContain('App Router');
+    expect(content).toContain('viberails enforced rules');
+    expect(content).toContain('300 lines');
     expect(content).toContain('kebab-case');
-    expect(content).toContain('300');
-    expect(content).toContain('data-table.tsx');
+    expect(content).toContain('viberails check');
   });
 
-  it('creates CLAUDE.md with import directive', () => {
-    const claudePath = path.join(tmpDir, 'CLAUDE.md');
-    expect(fs.existsSync(claudePath)).toBe(true);
-    const content = fs.readFileSync(claudePath, 'utf-8');
-    expect(content).toContain('@.viberails/context.md');
+  it('does not create CLAUDE.md or .cursorrules', () => {
+    expect(fs.existsSync(path.join(tmpDir, 'CLAUDE.md'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
   });
 
-  it('creates .cursorrules', () => {
-    const cursorPath = path.join(tmpDir, '.cursorrules');
-    expect(fs.existsSync(cursorPath)).toBe(true);
-    const content = fs.readFileSync(cursorPath, 'utf-8');
-    expect(content.length).toBeGreaterThan(0);
-    expect(content).toContain('Next.js 15');
-  });
-
-  it('updates .gitignore with viberails entries', () => {
+  it('updates .gitignore with scan-result.json only', () => {
     const gitignorePath = path.join(tmpDir, '.gitignore');
     expect(fs.existsSync(gitignorePath)).toBe(true);
     const content = fs.readFileSync(gitignorePath, 'utf-8');
-    expect(content).toContain('.viberails/');
-    expect(content).toContain('.cursorrules');
+    expect(content).toContain('.viberails/scan-result.json');
+    expect(content).not.toContain('.cursorrules');
+  });
+
+  it('check passes on the fixture project', async () => {
+    const exitCode = await checkCommand({}, tmpDir);
+    expect(exitCode).toBe(0);
   });
 
   it('syncs after adding a new component file', async () => {
-    const contextBefore = fs.readFileSync(path.join(tmpDir, '.viberails', 'context.md'), 'utf-8');
     const configBefore = readConfig();
-
-    // Extract file count from context before sync
-    const countMatch = contextBefore.match(/has (\d+) files/);
-    const fileCountBefore = countMatch ? parseInt(countMatch[1], 10) : 0;
 
     // Add a new component
     fs.writeFileSync(
@@ -148,11 +138,9 @@ describe('end-to-end: init + sync on realistic Next.js 15 project', () => {
 
     await syncCommand(tmpDir);
 
-    // Context regenerated with updated file count
+    // Context regenerated with rules format
     const contextAfter = fs.readFileSync(path.join(tmpDir, '.viberails', 'context.md'), 'utf-8');
-    const countMatchAfter = contextAfter.match(/has (\d+) files/);
-    const fileCountAfter = countMatchAfter ? parseInt(countMatchAfter[1], 10) : 0;
-    expect(fileCountAfter).toBeGreaterThan(fileCountBefore);
+    expect(contextAfter).toContain('viberails enforced rules');
 
     // Config rules preserved across sync
     const configAfter = readConfig();

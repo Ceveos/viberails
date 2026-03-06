@@ -38,12 +38,11 @@ export async function syncCommand(cwd?: string): Promise<void> {
   const merged = mergeConfig(existing, scanResult);
   fs.writeFileSync(configPath, `${JSON.stringify(merged, null, 2)}\n`);
 
-  // 5. Regenerate context, cursorrules, and scan-result.json
+  // 5. Regenerate context and scan-result.json
   writeGeneratedFiles(projectRoot, merged, scanResult);
 
   console.log(`\n${chalk.bold('Synced:')}`);
   console.log(`  ${chalk.green('✓')} ${CONFIG_FILE} — updated`);
   console.log(`  ${chalk.green('✓')} .viberails/context.md — regenerated`);
   console.log(`  ${chalk.green('✓')} .viberails/scan-result.json — updated`);
-  console.log(`  ${chalk.green('✓')} .cursorrules — regenerated`);
 }

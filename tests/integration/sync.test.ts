@@ -22,11 +22,8 @@ describe('sync command', () => {
   });
 
   it('updates config and regenerates context after adding a new file', async () => {
-    // Capture initial state
     const configPath = path.join(tmpDir, 'viberails.config.json');
     const contextPath = path.join(tmpDir, '.viberails', 'context.md');
-    const _initialConfig = fs.readFileSync(configPath, 'utf-8');
-    const _initialContext = fs.readFileSync(contextPath, 'utf-8');
 
     // Add a new source file to the project
     const newFilePath = path.join(tmpDir, 'src', 'lib', 'new-helper.ts');
@@ -41,12 +38,10 @@ describe('sync command', () => {
     expect(updatedConfig.stack).toBeDefined();
     expect(updatedConfig.rules).toBeDefined();
 
-    // Context should be regenerated
+    // Context should be regenerated with rules format
     const updatedContext = fs.readFileSync(contextPath, 'utf-8');
-    expect(updatedContext.length).toBeGreaterThan(0);
-
-    // .cursorrules should be regenerated
-    expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(true);
+    expect(updatedContext).toContain('viberails enforced rules');
+    expect(updatedContext).toContain('300 lines');
   });
 
   it('preserves user-set config values during merge', async () => {

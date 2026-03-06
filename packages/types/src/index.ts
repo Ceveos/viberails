@@ -1,5 +1,6 @@
 export const VERSION = '0.1.0';
 
+export type { CheckResult, CheckRule, CheckViolation } from './check-result.js';
 export type { Confidence, DetectedConvention } from './confidence.js';
 export { confidenceFromConsistency } from './confidence.js';
 export type {
