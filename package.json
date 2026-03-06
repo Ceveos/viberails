@@ -23,7 +23,8 @@
     "lint": "turbo run lint",
     "format": "biome format --write packages/ tests/",
     "prepare": "lefthook install",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "publish-packages": "./scripts/publish.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",

@@ -2,7 +2,7 @@
 
 Guardrails for vibe coding.
 
-A CLI that scans your existing JavaScript or TypeScript project, generates rich AI context files, and enforces architectural conventions — based on what you've actually built, not a template.
+A CLI that scans your existing JavaScript or TypeScript project, detects conventions, infers architectural boundaries, and enforces them on every commit — based on what you've actually built, not a template.
 
 ## Quick Start
 
@@ -11,46 +11,63 @@ cd your-project
 npx viberails
 ```
 
-That's it. viberails scans your project and generates everything.
+viberails scans your project, generates config and context files, and installs a pre-commit hook.
 
 ## What It Generates
 
 | File | Purpose |
 |------|---------|
-| `viberails.config.json` | Detected stack, conventions, and rule thresholds |
-| `.viberails/context.md` | AI context in natural language — the source of truth |
-| `CLAUDE.md` | Claude Code entry point with `@import` directive |
-| `.cursorrules` | Cursor IDE context (generated from context.md) |
+| `viberails.config.json` | Detected stack, conventions, boundary rules, and rule thresholds |
+| `.viberails/context.md` | AI context in natural language — enforced rules your AI tools can read |
+| `.viberails/scan-result.json` | Raw scan data (gitignored) |
 
-All generated files are derived from your actual codebase — not boilerplate.
+viberails also installs a pre-commit hook that runs `viberails check --staged` automatically.
 
 ## Commands
 
 ### `npx viberails` (or `viberails init`)
 
-Scans your project and generates all context files. Prompts for confirmation before writing.
-
-**Options:**
+Scans your project, generates config and context files, and sets up a pre-commit hook.
 
 - `--yes` / `-y` — Non-interactive mode. Uses defaults, includes only high-confidence conventions.
 
 ### `viberails sync`
 
-Re-scans your project and regenerates context files. Preserves any manual edits you've made to `viberails.config.json`.
+Re-scans your project and regenerates context files. Preserves any manual edits to `viberails.config.json`.
 
-Run this after:
+### `viberails check`
 
-- Adding new directories or patterns to your project
-- Updating dependencies
-- Significantly refactoring structure
+Validates your project against the configured rules.
+
+- `--staged` — Check only staged files (used by the pre-commit hook).
+
+**Checks:** file size limits, naming conventions, missing tests, and import boundary violations.
+
+### `viberails boundaries`
+
+Displays configured boundary rules and detected violations.
+
+- `--infer` — Infer boundary rules from existing import patterns.
 
 ## How It Works
 
 1. **Scan** — Reads `package.json` to detect your framework, language, styling, and tooling. Walks your directory tree to map structure and analyze naming conventions.
 
-2. **Detect** — Each convention comes with a confidence level based on consistency across your codebase.
+2. **Detect** — Each convention gets a confidence level based on consistency across your codebase. For monorepos, import boundaries are inferred from existing dependency patterns.
 
-3. **Generate** — Produces `context.md` in natural language, then derives `CLAUDE.md` and `.cursorrules` from it.
+3. **Generate** — Produces `viberails.config.json` with detected rules and `.viberails/context.md` with enforced rules in natural language.
+
+4. **Enforce** — A pre-commit hook runs `viberails check --staged` on every commit, catching violations before they land.
+
+## Pre-commit Hooks
+
+`viberails init` automatically detects your hook manager and integrates:
+
+- **Lefthook** — Appends a `viberails` command to `lefthook.yml`
+- **Husky** — Adds to `.husky/pre-commit`
+- **No hook manager** — Creates `.git/hooks/pre-commit` directly
+
+The hook runs in warn-only mode by default. Set `"enforcement": "enforce"` in `viberails.config.json` to block commits with violations.
 
 ## Confidence Model
 
@@ -61,10 +78,6 @@ Run this after:
 | Low | < 70% | Omitted entirely |
 
 In `--yes` mode, only high-confidence conventions are included.
-
-## Learn More
-
-Documentation and examples at [viberails.sh](https://viberails.sh).
 
 ## License
 
