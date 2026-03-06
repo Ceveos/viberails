@@ -161,6 +161,50 @@ export const configSchema = {
       items: { type: 'string' },
       description: 'Glob patterns for files and directories to ignore.',
     },
+    boundaries: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['from', 'to', 'allow'],
+        properties: {
+          from: {
+            type: 'string',
+            description: 'Source package or directory pattern.',
+          },
+          to: {
+            type: 'string',
+            description: 'Target package or directory pattern.',
+          },
+          allow: {
+            type: 'boolean',
+            description: 'Whether this import direction is allowed or disallowed.',
+          },
+          reason: {
+            type: 'string',
+            description: 'Human-readable explanation of why this boundary exists.',
+          },
+        },
+        additionalProperties: false,
+      },
+      description: 'Module boundary rules for import enforcement.',
+    },
+    workspace: {
+      type: 'object',
+      required: ['packages', 'isMonorepo'],
+      properties: {
+        packages: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Relative paths to workspace packages.',
+        },
+        isMonorepo: {
+          type: 'boolean',
+          description: 'Whether this project is a monorepo with multiple packages.',
+        },
+      },
+      additionalProperties: false,
+      description: 'Workspace configuration for monorepo projects.',
+    },
   },
   additionalProperties: false,
   definitions: {

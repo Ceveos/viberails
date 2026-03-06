@@ -152,6 +152,44 @@ describe('mergeConfig', () => {
     expect(merged.structure.pages).toBe('src/app'); // existing value kept
   });
 
+  it('preserves existing boundary rules during merge', () => {
+    const existing = createExistingConfig();
+    existing.boundaries = [
+      { from: '@mono/web', to: '@mono/api', allow: false, reason: 'Custom rule' },
+    ];
+    const scanResult = createScanResult();
+
+    const merged = mergeConfig(existing, scanResult);
+
+    expect(merged.boundaries).toEqual([
+      { from: '@mono/web', to: '@mono/api', allow: false, reason: 'Custom rule' },
+    ]);
+  });
+
+  it('takes fresh workspace from scan result', () => {
+    const existing = createExistingConfig();
+    existing.workspace = {
+      packages: ['packages/old'],
+      isMonorepo: true,
+    };
+
+    const scanResult = createScanResult();
+    scanResult.workspace = {
+      patterns: ['packages/*'],
+      packages: [
+        { name: '@mono/core', path: '/abs/core', relativePath: 'packages/core', internalDeps: [] },
+        { name: '@mono/web', path: '/abs/web', relativePath: 'packages/web', internalDeps: [] },
+      ],
+    };
+
+    const merged = mergeConfig(existing, scanResult);
+
+    expect(merged.workspace).toEqual({
+      packages: ['packages/core', 'packages/web'],
+      isMonorepo: true,
+    });
+  });
+
   it('does not overwrite existing object-form conventions', () => {
     const existing = createExistingConfig();
     existing.conventions.componentNaming = {

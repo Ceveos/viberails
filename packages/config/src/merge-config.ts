@@ -99,7 +99,7 @@ function mergeConventions(
 export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): ViberailsConfig {
   const fresh = generateConfig(scanResult);
 
-  return {
+  const merged: ViberailsConfig = {
     $schema: existing.$schema ?? fresh.$schema,
     version: existing.version,
     name: existing.name,
@@ -110,4 +110,18 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
     rules: { ...existing.rules },
     ignore: [...existing.ignore],
   };
+
+  // Workspace: always take fresh scan (structure can change)
+  if (fresh.workspace) {
+    merged.workspace = fresh.workspace;
+  }
+
+  // Boundaries: preserve existing rules (user may have adjusted)
+  if (existing.boundaries) {
+    merged.boundaries = [...existing.boundaries];
+  } else if (fresh.boundaries) {
+    merged.boundaries = [...fresh.boundaries];
+  }
+
+  return merged;
 }

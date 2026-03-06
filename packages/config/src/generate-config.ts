@@ -128,7 +128,7 @@ function mapConventions(scanResult: ScanResult): ConfigConventions {
  * @returns A complete ViberailsConfig ready to be written as JSON
  */
 export function generateConfig(scanResult: ScanResult): ViberailsConfig {
-  return {
+  const config: ViberailsConfig = {
     $schema: 'https://viberails.sh/schema/v1.json',
     version: 1,
     name: path.basename(scanResult.root),
@@ -139,4 +139,14 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
     rules: { ...DEFAULT_RULES },
     ignore: [...DEFAULT_IGNORE],
   };
+
+  if (scanResult.workspace) {
+    config.workspace = {
+      packages: scanResult.workspace.packages.map((p) => p.relativePath),
+      isMonorepo: true,
+    };
+    config.boundaries = [];
+  }
+
+  return config;
 }

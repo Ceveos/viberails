@@ -129,6 +129,30 @@ describe('configSchema validation', () => {
     ).toBe(false);
   });
 
+  it('validates a config with boundaries and workspace', () => {
+    const ajv = new Ajv();
+    const validate = ajv.compile(configSchema);
+    const config = generateConfig(makeMinimalScanResult());
+
+    const withBoundaries = {
+      ...config,
+      boundaries: [
+        { from: '@mono/web', to: '@mono/api', allow: false, reason: 'No cross-import' },
+        { from: '@mono/web', to: '@mono/core', allow: true },
+      ],
+      workspace: {
+        packages: ['packages/web', 'packages/api', 'packages/core'],
+        isMonorepo: true,
+      },
+    };
+
+    const valid = validate(withBoundaries);
+    if (!valid) {
+      console.error('Validation errors:', validate.errors);
+    }
+    expect(valid).toBe(true);
+  });
+
   it('rejects config with additional properties', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);

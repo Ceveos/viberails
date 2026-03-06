@@ -175,6 +175,43 @@ describe('generateConfig', () => {
     expect(config.conventions).toEqual({});
   });
 
+  it('includes workspace config when scan result has workspace', () => {
+    const scanResult = createNextjs15ScanResult();
+    scanResult.workspace = {
+      patterns: ['packages/*'],
+      packages: [
+        {
+          name: '@mono/core',
+          path: '/abs/packages/core',
+          relativePath: 'packages/core',
+          internalDeps: [],
+        },
+        {
+          name: '@mono/api',
+          path: '/abs/packages/api',
+          relativePath: 'packages/api',
+          internalDeps: ['@mono/core'],
+        },
+      ],
+    };
+
+    const config = generateConfig(scanResult);
+
+    expect(config.workspace).toEqual({
+      packages: ['packages/core', 'packages/api'],
+      isMonorepo: true,
+    });
+    expect(config.boundaries).toEqual([]);
+  });
+
+  it('omits workspace and boundaries when scan result has no workspace', () => {
+    const scanResult = createNextjs15ScanResult();
+    const config = generateConfig(scanResult);
+
+    expect(config.workspace).toBeUndefined();
+    expect(config.boundaries).toBeUndefined();
+  });
+
   it('uses first directory found for each role', () => {
     const scanResult = createNextjs15ScanResult();
     scanResult.structure.directories = [
