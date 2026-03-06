@@ -12,14 +12,14 @@ const fixturesDir = resolve(__dirname, '../../../tests/fixtures');
 
 describe('detectConventions', () => {
   describe('fileNaming detection', () => {
-    it('detects kebab-case with medium confidence for nextjs-15 fixture', async () => {
+    it('detects kebab-case with high confidence for nextjs-15 fixture', async () => {
       const fixturePath = join(fixturesDir, 'nextjs-15');
       const structure = await detectStructure(fixturePath);
       const conventions = await detectConventions(fixturePath, structure);
 
       expect(conventions['fileNaming']).toBeDefined();
       expect(conventions['fileNaming'].value).toBe('kebab-case');
-      expect(conventions['fileNaming'].confidence).toBe('medium');
+      expect(conventions['fileNaming'].confidence).toBe('high');
     });
 
     it('detects kebab-case with medium confidence for mixed-conventions fixture', async () => {

@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import type { DetectedConvention, ScanResult, StackItem } from '@viberails/types';
 
 /** Display names for framework identifiers. */
@@ -37,13 +38,6 @@ function formatItem(item: StackItem, nameMap?: Record<string, string>): string {
 }
 
 /**
- * Format a confidence indicator: ✓ for high, ~ for medium.
- */
-function indicator(confidence: string): string {
-  return confidence === 'high' ? '✓' : '~';
-}
-
-/**
  * Format a confidence label for display.
  */
 function confidenceLabel(convention: DetectedConvention): string {
@@ -62,36 +56,37 @@ function confidenceLabel(convention: DetectedConvention): string {
 export function displayScanResults(scanResult: ScanResult): void {
   const { stack, conventions } = scanResult;
 
-  console.log('\nDetected:');
+  console.log('\n' + chalk.bold('Detected:'));
 
   if (stack.framework) {
-    console.log(`  ✓ ${formatItem(stack.framework, FRAMEWORK_NAMES)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.framework, FRAMEWORK_NAMES)}`);
   }
-  console.log(`  ✓ ${formatItem(stack.language)}`);
+  console.log(`  ${chalk.green('✓')} ${formatItem(stack.language)}`);
   if (stack.styling) {
-    console.log(`  ✓ ${formatItem(stack.styling, STYLING_NAMES)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.styling, STYLING_NAMES)}`);
   }
   if (stack.backend) {
-    console.log(`  ✓ ${formatItem(stack.backend, FRAMEWORK_NAMES)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.backend, FRAMEWORK_NAMES)}`);
   }
   if (stack.linter) {
-    console.log(`  ✓ ${formatItem(stack.linter)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
   }
   if (stack.testRunner) {
-    console.log(`  ✓ ${formatItem(stack.testRunner)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
   }
   if (stack.packageManager) {
-    console.log(`  ✓ ${formatItem(stack.packageManager)}`);
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.packageManager)}`);
   }
 
   const conventionEntries = Object.entries(conventions);
   if (conventionEntries.length > 0) {
-    console.log('\nConventions:');
+    console.log('\n' + chalk.bold('Conventions:'));
     for (const [key, convention] of conventionEntries) {
       if (convention.confidence === 'low') continue;
       const label = CONVENTION_LABELS[key] ?? key;
-      const ind = indicator(convention.confidence);
-      console.log(`  ${ind} ${label}: ${convention.value} (${confidenceLabel(convention)})`);
+      const ind = convention.confidence === 'high' ? chalk.green('✓') : chalk.yellow('~');
+      const detail = chalk.dim(`(${confidenceLabel(convention)})`);
+      console.log(`  ${ind} ${label}: ${convention.value} ${detail}`);
     }
   }
 

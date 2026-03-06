@@ -10,9 +10,9 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       "value": "camelCase",
     },
     "fileNaming": {
-      "confidence": "medium",
-      "consistency": 75,
-      "sampleSize": 8,
+      "confidence": "high",
+      "consistency": 100,
+      "sampleSize": 11,
       "value": "kebab-case",
     },
     "hookNaming": {
@@ -39,6 +39,10 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       "version": "5",
     },
     "libraries": [],
+    "linter": {
+      "name": "eslint",
+      "version": "9",
+    },
     "packageManager": {
       "name": "npm",
     },
@@ -52,35 +56,35 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
     },
   },
   "statistics": {
-    "averageFileLines": 2,
+    "averageFileLines": 42,
     "filesByExtension": {
-      ".ts": 9,
+      ".ts": 11,
       ".tsx": 7,
     },
     "largestFiles": [
       {
-        "lines": 3,
+        "lines": 303,
+        "path": "src/components/data-table.tsx",
+      },
+      {
+        "lines": 48,
+        "path": "src/components/nav-bar.tsx",
+      },
+      {
+        "lines": 43,
+        "path": "src/hooks/use-auth.ts",
+      },
+      {
+        "lines": 40,
+        "path": "src/components/base-button.tsx",
+      },
+      {
+        "lines": 37,
         "path": "src/hooks/use-form.ts",
       },
-      {
-        "lines": 2,
-        "path": "__tests__/app.test.ts",
-      },
-      {
-        "lines": 2,
-        "path": "__tests__/hooks.test.ts",
-      },
-      {
-        "lines": 2,
-        "path": "__tests__/utils.test.ts",
-      },
-      {
-        "lines": 2,
-        "path": "src/app/layout.tsx",
-      },
     ],
-    "totalFiles": 16,
-    "totalLines": 33,
+    "totalFiles": 18,
+    "totalLines": 752,
   },
   "structure": {
     "directories": [
@@ -110,7 +114,7 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       },
       {
         "confidence": "high",
-        "fileCount": 2,
+        "fileCount": 3,
         "path": "src/lib",
         "role": "utils",
       },

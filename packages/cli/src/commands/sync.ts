@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import chalk from 'chalk';
 import { loadConfig, mergeConfig } from '@viberails/config';
 import { generateContext, generateCursorrules } from '@viberails/context';
 import { scan } from '@viberails/scanner';
@@ -21,7 +22,9 @@ export async function syncCommand(cwd?: string): Promise<void> {
   const projectRoot = findProjectRoot(startDir);
   if (!projectRoot) {
     console.error(
-      'Could not find a package.json in this directory or any parent directory.',
+      chalk.red('Error:') + ' No package.json found in this directory or any parent.\n\n' +
+      'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
+      chalk.cyan('  npx viberails'),
     );
     process.exit(1);
   }
@@ -33,13 +36,15 @@ export async function syncCommand(cwd?: string): Promise<void> {
     existing = await loadConfig(configPath);
   } catch {
     console.error(
-      `No ${CONFIG_FILE} found. Run \`npx viberails\` first to initialize.`,
+      chalk.red('Error:') + ' No viberails.config.json found.\n\n' +
+      'Run init first to set up viberails in this project:\n' +
+      chalk.cyan('  npx viberails'),
     );
     process.exit(1);
   }
 
   // 3. Re-scan
-  console.log('Scanning project...');
+  console.log(chalk.dim('Scanning project...'));
   const scanResult = await scan(projectRoot);
 
   // 4. Merge config
@@ -62,8 +67,8 @@ export async function syncCommand(cwd?: string): Promise<void> {
   const cursorrules = generateCursorrules(context, userCursorrules);
   fs.writeFileSync(path.join(projectRoot, '.cursorrules'), cursorrules);
 
-  console.log('Synced:');
-  console.log(`  ${CONFIG_FILE} — updated`);
-  console.log(`  ${CONTEXT_DIR}/${CONTEXT_FILE} — regenerated`);
-  console.log('  .cursorrules — regenerated');
+  console.log('\n' + chalk.bold('Synced:'));
+  console.log(`  ${chalk.green('✓')} ${CONFIG_FILE} — updated`);
+  console.log(`  ${chalk.green('✓')} ${CONTEXT_DIR}/${CONTEXT_FILE} — regenerated`);
+  console.log(`  ${chalk.green('✓')} .cursorrules — regenerated`);
 }

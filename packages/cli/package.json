@@ -34,6 +34,7 @@
     "@viberails/context": "workspace:*",
     "@viberails/scanner": "workspace:*",
     "@viberails/types": "workspace:*",
+    "chalk": "^5.4.1",
     "commander": "^14.0.3"
   }
 }

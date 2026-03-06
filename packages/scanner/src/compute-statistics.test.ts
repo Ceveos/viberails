@@ -12,7 +12,7 @@ describe('computeStatistics', () => {
   it('counts files correctly for nextjs-15 fixture', async () => {
     const stats = await computeStatistics(join(fixturesDir, 'nextjs-15'));
 
-    expect(stats.totalFiles).toBe(16);
+    expect(stats.totalFiles).toBe(18);
     expect(stats.totalLines).toBeGreaterThan(0);
     expect(stats.averageFileLines).toBeGreaterThan(0);
   });
