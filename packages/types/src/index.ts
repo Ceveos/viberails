@@ -1,5 +1,6 @@
 export const VERSION = '0.1.0';
 
+export type { BoundaryRule, BoundaryViolation } from './boundary.js';
 export type { CheckResult, CheckRule, CheckViolation } from './check-result.js';
 export type { Confidence, DetectedConvention } from './confidence.js';
 export { confidenceFromConsistency } from './confidence.js';
@@ -10,6 +11,7 @@ export type {
   ConfigStructure,
   ConventionValue,
   ViberailsConfig,
+  WorkspaceConfig,
 } from './config.js';
 export {
   FRAMEWORK_NAMES,
@@ -18,9 +20,17 @@ export {
   STYLING_NAMES,
 } from './display-names.js';
 export type {
+  ImportEdge,
+  ImportGraph,
+  ImportGraphNode,
+  ImportKind,
+  WorkspacePackage,
+} from './graph.js';
+export type {
   CodebaseStatistics,
   DetectedStack,
   DetectedStructure,
+  DetectedWorkspace,
   DirectoryInfo,
   DirectoryRole,
   FileStatistic,

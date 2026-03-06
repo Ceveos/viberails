@@ -1,3 +1,4 @@
+import type { BoundaryRule } from './boundary.js';
 import type { Confidence } from './confidence.js';
 
 /**
@@ -31,6 +32,23 @@ export interface ViberailsConfig {
 
   /** Glob patterns for files and directories to ignore. */
   ignore: string[];
+
+  /** Module boundary rules for import enforcement (V1.1+). */
+  boundaries?: BoundaryRule[];
+
+  /** Workspace configuration for monorepo support (V1.1+). */
+  workspace?: WorkspaceConfig;
+}
+
+/**
+ * Workspace configuration for monorepo projects.
+ */
+export interface WorkspaceConfig {
+  /** Relative paths to workspace packages (e.g. `"packages/scanner"`). */
+  packages: string[];
+
+  /** Whether this project is a monorepo with multiple packages. */
+  isMonorepo: boolean;
 }
 
 /**

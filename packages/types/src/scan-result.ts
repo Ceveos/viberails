@@ -1,4 +1,5 @@
 import type { Confidence, DetectedConvention } from './confidence.js';
+import type { WorkspacePackage } from './graph.js';
 
 /**
  * The complete output of scanning a project. Consumed by the config
@@ -19,6 +20,21 @@ export interface ScanResult {
 
   /** Quantitative statistics about the codebase. */
   statistics: CodebaseStatistics;
+
+  /** Detected workspace information for monorepo projects (V1.1+). */
+  workspace?: DetectedWorkspace;
+}
+
+/**
+ * Workspace information detected by scanning the project root
+ * for pnpm-workspace.yaml or package.json workspaces field.
+ */
+export interface DetectedWorkspace {
+  /** Workspace glob patterns from configuration (e.g. `["packages/*"]`). */
+  patterns: string[];
+
+  /** Resolved workspace packages. */
+  packages: WorkspacePackage[];
 }
 
 /**
