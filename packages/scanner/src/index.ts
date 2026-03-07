@@ -1,5 +1,11 @@
 export const VERSION = '0.1.0';
 
+export {
+  aggregateConventions,
+  aggregateStacks,
+  aggregateStatistics,
+  aggregateStructures,
+} from './aggregate.js';
 export { computeStatistics } from './compute-statistics.js';
 export { detectConventions } from './detect-conventions.js';
 export { detectAdditionalFrameworks, detectStack, extractMajorVersion } from './detect-stack.js';
