@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import type { ScanResult } from '@viberails/types';
 import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
@@ -84,5 +84,16 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
     conventions,
     statistics,
     workspace,
+    packages: [
+      {
+        name: basename(root),
+        root,
+        relativePath: '',
+        stack,
+        structure,
+        conventions,
+        statistics,
+      },
+    ],
   };
 }
