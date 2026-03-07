@@ -6,6 +6,19 @@ These rules are checked before commits. Violations will be **warned** but not bl
 - Functions must not exceed **50 lines**. Extract helpers for complex logic.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.
 
+## Per-package rules
+
+The following packages have rules that differ from the global defaults:
+
+### packages/cli
+### packages/config
+### packages/context
+### packages/graph
+- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
+### packages/scanner
+- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
+### packages/types
+
 ## Boundary rules
 
 These import boundaries are enforced:
@@ -30,5 +43,12 @@ These import boundaries are enforced:
 - `@viberails/graph` must NOT import from `@viberails/config` (@viberails/graph should not depend on @viberails/config)
 - `@viberails/graph` must NOT import from `@viberails/context` (@viberails/graph should not depend on @viberails/context)
 - `@viberails/graph` must NOT import from `viberails` (@viberails/graph should not depend on viberails)
+
+## Development setup
+
+This project uses **Biome** for formatting and linting.
+
+- Enable format-on-save in your editor to avoid lint failures on commit.
+- If using VS Code, install the [Biome extension](https://marketplace.visualstudio.com/items?itemName=biomejs.biome) and enable format-on-save.
 
 Run `viberails check` before committing to catch violations early.

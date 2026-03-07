@@ -123,6 +123,9 @@ function displayMonorepoResults(scanResult: ScanResult): void {
   if (stack.linter) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
   }
+  if (stack.formatter) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+  }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
   }
@@ -181,6 +184,9 @@ export function displayScanResults(scanResult: ScanResult): void {
   }
   if (stack.linter) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
+  }
+  if (stack.formatter) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
   }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);

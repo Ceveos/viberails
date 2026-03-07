@@ -20,6 +20,7 @@ function mergeStack(existing: ConfigStack, fresh: ConfigStack): ConfigStack {
     styling: existing.styling ?? fresh.styling,
     backend: existing.backend ?? fresh.backend,
     linter: existing.linter ?? fresh.linter,
+    formatter: existing.formatter ?? fresh.formatter,
     testRunner: existing.testRunner ?? fresh.testRunner,
   };
 }

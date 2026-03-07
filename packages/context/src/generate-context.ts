@@ -97,10 +97,67 @@ export function generateContext(config: ViberailsConfig): string {
     sections.push(boundaryLines.join('\n'));
   }
 
+  const setupLines = formatDevelopmentSetup(config);
+  if (setupLines.length > 0) {
+    sections.push('');
+    sections.push(setupLines.join('\n'));
+  }
+
   sections.push('');
   sections.push('Run `viberails check` before committing to catch violations early.\n');
 
   return sections.join('\n');
+}
+
+/**
+ * Build the "Development setup" section describing the project's
+ * formatter and linter, with guidance on enabling format-on-save.
+ */
+function formatDevelopmentSetup(config: ViberailsConfig): string[] {
+  const { linter, formatter } = config.stack;
+  if (!linter && !formatter) return [];
+
+  const lines: string[] = [];
+  lines.push('## Development setup\n');
+
+  const toolName = (id: string): string => {
+    const name = id.split('@')[0];
+    if (name === 'biome') return 'Biome';
+    if (name === 'prettier') return 'Prettier';
+    if (name === 'eslint') return 'ESLint';
+    return name;
+  };
+
+  if (formatter && linter) {
+    const fmt = toolName(formatter);
+    const lint = toolName(linter);
+    if (fmt === lint) {
+      lines.push(`This project uses **${fmt}** for formatting and linting.\n`);
+    } else {
+      lines.push(`This project uses **${fmt}** for formatting and **${lint}** for linting.\n`);
+    }
+  } else if (formatter) {
+    lines.push(`This project uses **${toolName(formatter)}** for formatting.\n`);
+  } else if (linter) {
+    lines.push(`This project uses **${toolName(linter)}** for linting.\n`);
+  }
+
+  lines.push('- Enable format-on-save in your editor to avoid lint failures on commit.');
+
+  if (formatter) {
+    const fmt = toolName(formatter);
+    if (fmt === 'Biome') {
+      lines.push(
+        '- If using VS Code, install the [Biome extension](https://marketplace.visualstudio.com/items?itemName=biomejs.biome) and enable format-on-save.',
+      );
+    } else if (fmt === 'Prettier') {
+      lines.push(
+        '- If using VS Code, install the [Prettier extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) and enable format-on-save.',
+      );
+    }
+  }
+
+  return lines;
 }
 
 /**

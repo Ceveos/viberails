@@ -70,6 +70,19 @@ describe('generateConfig', () => {
     expect(config.structure.testPattern).toBe('*.test.ts');
   });
 
+  it('maps formatter from scan result to config', () => {
+    const scanResult = createNextjs15ScanResult();
+    scanResult.stack.formatter = { name: 'prettier', version: '3' };
+    const config = generateConfig(scanResult);
+    expect(config.stack.formatter).toBe('prettier@3');
+  });
+
+  it('omits formatter when not detected', () => {
+    const scanResult = createNextjs15ScanResult();
+    const config = generateConfig(scanResult);
+    expect(config.stack.formatter).toBeUndefined();
+  });
+
   it('includes high-confidence conventions with metadata', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);

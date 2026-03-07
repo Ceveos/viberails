@@ -113,6 +113,47 @@ describe('detectStack', () => {
     });
   });
 
+  describe('formatter detection', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-fmt-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects Prettier as formatter from devDependencies', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { prettier: '^3.2.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.formatter).toEqual({ name: 'prettier', version: '3' });
+    });
+
+    it('detects Biome as both linter and formatter', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { '@biomejs/biome': '^2.0.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.linter).toEqual({ name: 'biome', version: '2' });
+      expect(result.formatter).toEqual({ name: 'biome', version: '2' });
+    });
+
+    it('returns no formatter when none is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { eslint: '^9.0.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.formatter).toBeUndefined();
+    });
+  });
+
   describe('package manager detection', () => {
     let tempDir: string;
 

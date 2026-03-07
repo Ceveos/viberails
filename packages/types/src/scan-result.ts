@@ -88,6 +88,9 @@ export interface DetectedStack {
   /** Linter in use (e.g. ESLint, Biome). */
   linter?: StackItem;
 
+  /** Formatter in use (e.g. Prettier, Biome). */
+  formatter?: StackItem;
+
   /** Test runner in use (e.g. Vitest, Jest). */
   testRunner?: StackItem;
 

@@ -234,6 +234,72 @@ describe('per-package rules', () => {
   });
 });
 
+describe('development setup section', () => {
+  it('includes setup section when formatter is configured', () => {
+    const output = generateContext(
+      makeConfig({
+        stack: {
+          language: 'typescript',
+          packageManager: 'pnpm',
+          formatter: 'biome@2',
+          linter: 'biome@2',
+        },
+      }),
+    );
+    expect(output).toContain('## Development setup');
+    expect(output).toContain('**Biome** for formatting and linting');
+    expect(output).toContain('format-on-save');
+  });
+
+  it('shows separate tools when formatter and linter differ', () => {
+    const output = generateContext(
+      makeConfig({
+        stack: {
+          language: 'typescript',
+          packageManager: 'pnpm',
+          formatter: 'prettier@3',
+          linter: 'eslint@9',
+        },
+      }),
+    );
+    expect(output).toContain('**Prettier** for formatting');
+    expect(output).toContain('**ESLint** for linting');
+  });
+
+  it('omits setup section when no linter or formatter', () => {
+    const output = generateContext(
+      makeConfig({ stack: { language: 'typescript', packageManager: 'pnpm' } }),
+    );
+    expect(output).not.toContain('Development setup');
+  });
+
+  it('includes linter-only section when no formatter', () => {
+    const output = generateContext(
+      makeConfig({ stack: { language: 'typescript', packageManager: 'pnpm', linter: 'eslint@9' } }),
+    );
+    expect(output).toContain('## Development setup');
+    expect(output).toContain('**ESLint** for linting');
+  });
+
+  it('recommends Biome VS Code extension for Biome formatter', () => {
+    const output = generateContext(
+      makeConfig({
+        stack: { language: 'typescript', packageManager: 'pnpm', formatter: 'biome@2' },
+      }),
+    );
+    expect(output).toContain('Biome extension');
+  });
+
+  it('recommends Prettier VS Code extension for Prettier formatter', () => {
+    const output = generateContext(
+      makeConfig({
+        stack: { language: 'typescript', packageManager: 'pnpm', formatter: 'prettier@3' },
+      }),
+    );
+    expect(output).toContain('Prettier extension');
+  });
+});
+
 describe('flat project handling', () => {
   it('omits srcDir from test requirement when project has no srcDir', () => {
     const output = generateContext(

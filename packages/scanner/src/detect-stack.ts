@@ -112,6 +112,7 @@ export async function detectStack(
   const backend = detectFirst(allDeps, BACKEND_MAPPINGS);
   const packageManager = await detectPackageManager(projectPath);
   const linter = detectLinter(allDeps);
+  const formatter = detectFormatter(allDeps);
   const testRunner = detectTestRunner(allDeps);
   const libraries = detectLibraries(allDeps);
 
@@ -122,6 +123,7 @@ export async function detectStack(
     ...(backend && { backend }),
     packageManager,
     ...(linter && { linter }),
+    ...(formatter && { formatter }),
     ...(testRunner && { testRunner }),
     libraries,
   };
@@ -186,6 +188,19 @@ async function detectPackageManager(projectPath: string): Promise<StackItem> {
 function detectLinter(allDeps: Record<string, string>): StackItem | undefined {
   if ('eslint' in allDeps) {
     return { name: 'eslint', version: extractMajorVersion(allDeps.eslint) };
+  }
+  if ('@biomejs/biome' in allDeps) {
+    return {
+      name: 'biome',
+      version: extractMajorVersion(allDeps['@biomejs/biome']),
+    };
+  }
+  return undefined;
+}
+
+function detectFormatter(allDeps: Record<string, string>): StackItem | undefined {
+  if ('prettier' in allDeps) {
+    return { name: 'prettier', version: extractMajorVersion(allDeps.prettier) };
   }
   if ('@biomejs/biome' in allDeps) {
     return {

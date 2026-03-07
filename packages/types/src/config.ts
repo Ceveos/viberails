@@ -96,6 +96,9 @@ export interface ConfigStack {
   /** Linter (e.g. `"eslint@9"`, `"biome"`). */
   linter?: string;
 
+  /** Formatter (e.g. `"prettier"`, `"biome"`). */
+  formatter?: string;
+
   /** Test runner (e.g. `"vitest"`, `"jest"`). */
   testRunner?: string;
 }

@@ -34,6 +34,7 @@ function mapStack(scanResult: ScanResult): ConfigStack {
   if (stack.styling) config.styling = formatStackItem(stack.styling);
   if (stack.backend) config.backend = formatStackItem(stack.backend);
   if (stack.linter) config.linter = formatStackItem(stack.linter);
+  if (stack.formatter) config.formatter = formatStackItem(stack.formatter);
   if (stack.testRunner) config.testRunner = formatStackItem(stack.testRunner);
 
   return config;
@@ -176,6 +177,7 @@ function generatePackageOverrides(
       'styling',
       'backend',
       'linter',
+      'formatter',
       'testRunner',
     ] as const;
     for (const field of optionalStackFields) {
