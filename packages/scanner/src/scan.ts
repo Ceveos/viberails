@@ -3,9 +3,10 @@ import { basename, resolve } from 'node:path';
 import type { ScanResult } from '@viberails/types';
 import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
-import { detectStack } from './detect-stack.js';
+import { detectAdditionalFrameworks, detectStack } from './detect-stack.js';
 import { detectStructure } from './detect-structure.js';
 import { detectWorkspace } from './detect-workspace.js';
+import { readPackageJson } from './utils/read-package-json.js';
 import type { WalkedDirectory } from './utils/walk-directory.js';
 import { walkDirectory } from './utils/walk-directory.js';
 
@@ -63,19 +64,35 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
   const allDirs = await walkDirectory(root, 4);
   const dirs = filterFixtureDirs(allDirs);
 
-  // Detect workspace first — needed for aggregating deps in stack detection
+  // Detect workspace first
   const workspace = await detectWorkspace(root);
-  const workspaceDirs = workspace?.packages.map((p) => p.path);
+
+  // Aggregate workspace package deps so global stack detection sees all frameworks
+  let workspaceDeps: Record<string, string> | undefined;
+  if (workspace) {
+    const pkgs = await Promise.all(workspace.packages.map((p) => readPackageJson(p.path)));
+    workspaceDeps = {};
+    for (const pkg of pkgs) {
+      if (!pkg) continue;
+      Object.assign(workspaceDeps, pkg.dependencies, pkg.devDependencies);
+    }
+  }
 
   // Run independent detectors in parallel, passing shared walk result
   const [stack, structure, statistics] = await Promise.all([
-    detectStack(root, workspaceDirs),
+    detectStack(root, workspaceDeps),
     detectStructure(root, dirs),
     computeStatistics(root, dirs),
   ]);
 
   // detectConventions depends on structure result
   const conventions = await detectConventions(root, structure, dirs);
+
+  // For monorepos, add secondary frameworks (e.g. Expo alongside Next.js) to libraries
+  if (workspaceDeps) {
+    const additional = detectAdditionalFrameworks(workspaceDeps, stack.framework?.name);
+    stack.libraries = [...additional, ...stack.libraries];
+  }
 
   return {
     root,

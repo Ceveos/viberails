@@ -87,42 +87,33 @@ const LOCK_FILE_MAP: Array<{ file: string; name: string }> = [
  * Detects the technology stack of a project by reading its package.json
  * and checking for lock files and configuration files.
  *
- * In monorepo projects, pass `workspaceDirs` to aggregate dependencies
- * from all workspace packages, ensuring frameworks like Next.js or Expo
- * are detected even when only declared in workspace packages.
+ * When `additionalDeps` is provided, they are merged as a base layer
+ * beneath the package's own deps. This allows monorepo root-level deps
+ * (e.g. typescript, eslint) to be visible during per-package scanning.
  *
  * @param projectPath - Absolute path to the project root directory.
- * @param workspaceDirs - Optional absolute paths to workspace package directories.
+ * @param additionalDeps - Optional base dependencies merged under package deps.
  * @returns The detected technology stack.
  */
 export async function detectStack(
   projectPath: string,
-  workspaceDirs?: string[],
+  additionalDeps?: Record<string, string>,
 ): Promise<DetectedStack> {
   const pkg = await readPackageJson(projectPath);
   const allDeps: Record<string, string> = {
+    ...additionalDeps,
     ...pkg?.dependencies,
     ...pkg?.devDependencies,
   };
 
-  // Aggregate deps from workspace packages for monorepo detection
-  if (workspaceDirs && workspaceDirs.length > 0) {
-    const workspacePkgs = await Promise.all(workspaceDirs.map((dir) => readPackageJson(dir)));
-    for (const wsPkg of workspacePkgs) {
-      if (!wsPkg) continue;
-      Object.assign(allDeps, wsPkg.dependencies, wsPkg.devDependencies);
-    }
-  }
-
   const framework = detectFramework(allDeps);
-  const additionalFrameworks = detectAdditionalFrameworks(allDeps, framework?.name);
-  const language = await detectLanguage(projectPath, allDeps, workspaceDirs);
+  const language = await detectLanguage(projectPath, allDeps);
   const styling = detectFirst(allDeps, STYLING_MAPPINGS);
   const backend = detectFirst(allDeps, BACKEND_MAPPINGS);
   const packageManager = await detectPackageManager(projectPath);
   const linter = detectLinter(allDeps);
   const testRunner = detectTestRunner(allDeps);
-  const libraries = [...additionalFrameworks, ...detectLibraries(allDeps)];
+  const libraries = detectLibraries(allDeps);
 
   return {
     ...(framework && { framework }),
@@ -155,7 +146,6 @@ function detectFramework(allDeps: Record<string, string>): StackItem | undefined
 async function detectLanguage(
   projectPath: string,
   allDeps: Record<string, string>,
-  workspaceDirs?: string[],
 ): Promise<StackItem> {
   if ('typescript' in allDeps) {
     return {
@@ -165,14 +155,6 @@ async function detectLanguage(
   }
   if (await fileExists(join(projectPath, 'tsconfig.json'))) {
     return { name: 'typescript' };
-  }
-  // Check workspace packages for tsconfig.json (monorepo with TS only in packages)
-  if (workspaceDirs) {
-    for (const dir of workspaceDirs) {
-      if (await fileExists(join(dir, 'tsconfig.json'))) {
-        return { name: 'typescript' };
-      }
-    }
   }
   return { name: 'javascript' };
 }
@@ -226,10 +208,10 @@ function detectTestRunner(allDeps: Record<string, string>): StackItem | undefine
 
 /**
  * Detects additional frameworks beyond the primary one.
- * In monorepos, multiple frameworks (e.g. Next.js + Expo) may coexist.
- * Returns them as StackItems to be included in the libraries list.
+ * Used by `scan()` to include secondary frameworks (e.g. Expo alongside Next.js)
+ * in the aggregate libraries list for monorepo projects.
  */
-function detectAdditionalFrameworks(
+export function detectAdditionalFrameworks(
   allDeps: Record<string, string>,
   primaryFrameworkName?: string,
 ): StackItem[] {
