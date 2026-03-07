@@ -2,7 +2,12 @@ import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { loadConfig } from '@viberails/config';
-import type { CheckViolation, ViberailsConfig } from '@viberails/types';
+import type {
+  CheckViolation,
+  ConfigConventions,
+  ConfigRules,
+  ViberailsConfig,
+} from '@viberails/types';
 import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
@@ -79,25 +84,28 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     const absPath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
     const relPath = path.relative(projectRoot, absPath);
 
-    if (isIgnored(relPath, config.ignore)) continue;
+    const effectiveIgnore = resolveIgnoreForFile(relPath, config);
+    if (isIgnored(relPath, effectiveIgnore)) continue;
     if (!fs.existsSync(absPath)) continue;
 
+    const resolved = resolveConfigForFile(relPath, config);
+
     // Check 1: File size
-    if (config.rules.maxFileLines > 0) {
+    if (resolved.rules.maxFileLines > 0) {
       const lines = countFileLines(absPath);
-      if (lines !== null && lines > config.rules.maxFileLines) {
+      if (lines !== null && lines > resolved.rules.maxFileLines) {
         violations.push({
           file: relPath,
           rule: 'file-size',
-          message: `${lines} lines (max ${config.rules.maxFileLines}). Split into focused modules.`,
+          message: `${lines} lines (max ${resolved.rules.maxFileLines}). Split into focused modules.`,
           severity,
         });
       }
     }
 
     // Check 2: File naming convention
-    if (config.rules.enforceNaming && config.conventions.fileNaming) {
-      const namingViolation = checkNaming(relPath, config);
+    if (resolved.rules.enforceNaming && resolved.conventions.fileNaming) {
+      const namingViolation = checkNaming(relPath, resolved.conventions);
       if (namingViolation) {
         violations.push({
           file: relPath,
@@ -180,6 +188,50 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   return 0;
 }
 
+interface ResolvedConfig {
+  rules: ConfigRules;
+  conventions: ConfigConventions;
+}
+
+/**
+ * Resolve the effective config for a file by finding its package override.
+ * Returns the global config merged with any matching package overrides.
+ */
+export function resolveConfigForFile(relPath: string, config: ViberailsConfig): ResolvedConfig {
+  if (!config.packages || config.packages.length === 0) {
+    return { rules: config.rules, conventions: config.conventions };
+  }
+
+  // Sort by path length descending to match the most specific package first
+  const sortedPackages = [...config.packages].sort((a, b) => b.path.length - a.path.length);
+
+  for (const pkg of sortedPackages) {
+    if (relPath.startsWith(`${pkg.path}/`) || relPath === pkg.path) {
+      return {
+        rules: { ...config.rules, ...pkg.rules },
+        conventions: { ...config.conventions, ...pkg.conventions },
+      };
+    }
+  }
+
+  return { rules: config.rules, conventions: config.conventions };
+}
+
+/**
+ * Resolve ignore patterns for a file, appending any package-specific patterns.
+ */
+function resolveIgnoreForFile(relPath: string, config: ViberailsConfig): string[] {
+  const globalIgnore = config.ignore;
+  if (!config.packages) return globalIgnore;
+
+  for (const pkg of config.packages) {
+    if (pkg.ignore && relPath.startsWith(`${pkg.path}/`)) {
+      return [...globalIgnore, ...pkg.ignore];
+    }
+  }
+  return globalIgnore;
+}
+
 /** Count lines in a file. Returns null if the file can't be read. */
 function countFileLines(filePath: string): number | null {
   try {
@@ -196,7 +248,7 @@ function countFileLines(filePath: string): number | null {
 }
 
 /** Check whether a file's name violates the configured naming convention. */
-function checkNaming(relPath: string, config: ViberailsConfig): string | undefined {
+function checkNaming(relPath: string, conventions: ConfigConventions): string | undefined {
   const filename = path.basename(relPath);
 
   // Skip non-source files
@@ -216,9 +268,9 @@ function checkNaming(relPath: string, config: ViberailsConfig): string | undefin
 
   const bare = filename.slice(0, filename.indexOf('.'));
   const convention =
-    typeof config.conventions.fileNaming === 'string'
-      ? config.conventions.fileNaming
-      : config.conventions.fileNaming?.value;
+    typeof conventions.fileNaming === 'string'
+      ? conventions.fileNaming
+      : conventions.fileNaming?.value;
 
   if (!convention) return undefined;
 
