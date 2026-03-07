@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
 
-const SOURCE_EXTS = new Set([
+export const SOURCE_EXTS = new Set([
   '.ts',
   '.tsx',
   '.js',
@@ -15,7 +15,7 @@ const SOURCE_EXTS = new Set([
   '.astro',
 ]);
 
-const NAMING_PATTERNS: Record<string, RegExp> = {
+export const NAMING_PATTERNS: Record<string, RegExp> = {
   'kebab-case': /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/,
   camelCase: /^[a-z][a-zA-Z0-9]*$/,
   PascalCase: /^[A-Z][a-zA-Z0-9]*$/,
