@@ -4,8 +4,14 @@ import type {
   ScanResult,
   StackItem,
 } from '@viberails/types';
-import { FRAMEWORK_NAMES, LIBRARY_NAMES, ROLE_DESCRIPTIONS, STYLING_NAMES } from '@viberails/types';
+import { FRAMEWORK_NAMES, LIBRARY_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
+import {
+  formatExtensions,
+  formatRoleGroup,
+  formatSummary,
+  groupByRole,
+} from './display-helpers.js';
 
 /** Labels for convention keys. */
 const CONVENTION_LABELS: Record<string, string> = {
@@ -51,6 +57,57 @@ function formatPackageSummary(pkg: PackageScanResult): string {
 }
 
 /**
+ * Display conventions section, shared between single-package and monorepo.
+ */
+function displayConventions(scanResult: ScanResult): void {
+  const conventionEntries = Object.entries(scanResult.conventions);
+  if (conventionEntries.length === 0) return;
+
+  console.log(`\n${chalk.bold('Conventions:')}`);
+  for (const [key, convention] of conventionEntries) {
+    if (convention.confidence === 'low') continue;
+    const label = CONVENTION_LABELS[key] ?? key;
+
+    if (scanResult.packages.length > 1) {
+      const pkgValues = scanResult.packages
+        .filter((pkg) => pkg.conventions[key] && pkg.conventions[key].confidence !== 'low')
+        .map((pkg) => ({ relativePath: pkg.relativePath, convention: pkg.conventions[key] }));
+
+      const allSame = pkgValues.every((pv) => pv.convention.value === convention.value);
+
+      if (allSame || pkgValues.length <= 1) {
+        const ind = convention.confidence === 'high' ? chalk.green('✓') : chalk.yellow('~');
+        const detail = chalk.dim(`(${confidenceLabel(convention)})`);
+        console.log(`  ${ind} ${label}: ${convention.value} ${detail}`);
+      } else {
+        console.log(`  ${chalk.yellow('~')} ${label}: varies by package`);
+        for (const pv of pkgValues) {
+          const pct = Math.round(pv.convention.consistency);
+          console.log(`    ${pv.relativePath}: ${pv.convention.value} (${pct}%)`);
+        }
+      }
+    } else {
+      const ind = convention.confidence === 'high' ? chalk.green('✓') : chalk.yellow('~');
+      const detail = chalk.dim(`(${confidenceLabel(convention)})`);
+      console.log(`  ${ind} ${label}: ${convention.value} ${detail}`);
+    }
+  }
+}
+
+/**
+ * Display summary section with statistics.
+ */
+function displaySummarySection(scanResult: ScanResult): void {
+  const pkgCount = scanResult.packages.length > 1 ? scanResult.packages.length : undefined;
+  console.log(`\n${chalk.bold('Summary:')}`);
+  console.log(`  ${formatSummary(scanResult.statistics, pkgCount)}`);
+  const ext = formatExtensions(scanResult.statistics.filesByExtension);
+  if (ext) {
+    console.log(`  ${ext}`);
+  }
+}
+
+/**
  * Display scan results for a monorepo with per-package summaries.
  */
 function displayMonorepoResults(scanResult: ScanResult): void {
@@ -76,53 +133,24 @@ function displayMonorepoResults(scanResult: ScanResult): void {
     console.log(formatPackageSummary(pkg));
   }
 
-  // Structure grouped by package
+  // Structure grouped by role per package
   const packagesWithDirs = packages.filter((pkg) =>
     pkg.structure.directories.some((d) => d.role !== 'unknown'),
   );
   if (packagesWithDirs.length > 0) {
     console.log(`\n${chalk.bold('Structure:')}`);
     for (const pkg of packagesWithDirs) {
-      const meaningfulDirs = pkg.structure.directories.filter((d) => d.role !== 'unknown');
-      if (meaningfulDirs.length === 0) continue;
+      const groups = groupByRole(pkg.structure.directories);
+      if (groups.length === 0) continue;
       console.log(`  ${pkg.relativePath}:`);
-      for (const dir of meaningfulDirs) {
-        const label = ROLE_DESCRIPTIONS[dir.role] ?? dir.role;
-        const files = dir.fileCount === 1 ? '1 file' : `${dir.fileCount} files`;
-        console.log(`    ${chalk.green('✓')} ${dir.path} — ${label} (${files})`);
+      for (const group of groups) {
+        console.log(`    ${chalk.green('✓')} ${formatRoleGroup(group)}`);
       }
     }
   }
 
-  // Conventions — show global, break down per-package where they differ
-  const conventionEntries = Object.entries(scanResult.conventions);
-  if (conventionEntries.length > 0) {
-    console.log(`\n${chalk.bold('Conventions:')}`);
-    for (const [key, convention] of conventionEntries) {
-      if (convention.confidence === 'low') continue;
-      const label = CONVENTION_LABELS[key] ?? key;
-
-      // Check if packages have differing values for this convention
-      const pkgValues = packages
-        .filter((pkg) => pkg.conventions[key] && pkg.conventions[key].confidence !== 'low')
-        .map((pkg) => ({ relativePath: pkg.relativePath, convention: pkg.conventions[key] }));
-
-      const allSame = pkgValues.every((pv) => pv.convention.value === convention.value);
-
-      if (allSame || pkgValues.length <= 1) {
-        const ind = convention.confidence === 'high' ? chalk.green('✓') : chalk.yellow('~');
-        const detail = chalk.dim(`(${confidenceLabel(convention)})`);
-        console.log(`  ${ind} ${label}: ${convention.value} ${detail}`);
-      } else {
-        console.log(`  ${chalk.yellow('~')} ${label}: varies by package`);
-        for (const pv of pkgValues) {
-          const pct = Math.round(pv.convention.consistency);
-          console.log(`    ${pv.relativePath}: ${pv.convention.value} (${pct}%)`);
-        }
-      }
-    }
-  }
-
+  displayConventions(scanResult);
+  displaySummarySection(scanResult);
   console.log('');
 }
 
@@ -137,7 +165,7 @@ export function displayScanResults(scanResult: ScanResult): void {
     return;
   }
 
-  const { stack, conventions } = scanResult;
+  const { stack } = scanResult;
 
   console.log(`\n${chalk.bold('Detected:')}`);
 
@@ -166,28 +194,16 @@ export function displayScanResults(scanResult: ScanResult): void {
     }
   }
 
-  // Structure
-  const meaningfulDirs = scanResult.structure.directories.filter((d) => d.role !== 'unknown');
-  if (meaningfulDirs.length > 0) {
+  // Structure grouped by role
+  const groups = groupByRole(scanResult.structure.directories);
+  if (groups.length > 0) {
     console.log(`\n${chalk.bold('Structure:')}`);
-    for (const dir of meaningfulDirs) {
-      const label = ROLE_DESCRIPTIONS[dir.role] ?? dir.role;
-      const files = dir.fileCount === 1 ? '1 file' : `${dir.fileCount} files`;
-      console.log(`  ${chalk.green('✓')} ${dir.path} — ${label} (${files})`);
+    for (const group of groups) {
+      console.log(`  ${chalk.green('✓')} ${formatRoleGroup(group)}`);
     }
   }
 
-  const conventionEntries = Object.entries(conventions);
-  if (conventionEntries.length > 0) {
-    console.log(`\n${chalk.bold('Conventions:')}`);
-    for (const [key, convention] of conventionEntries) {
-      if (convention.confidence === 'low') continue;
-      const label = CONVENTION_LABELS[key] ?? key;
-      const ind = convention.confidence === 'high' ? chalk.green('✓') : chalk.yellow('~');
-      const detail = chalk.dim(`(${confidenceLabel(convention)})`);
-      console.log(`  ${ind} ${label}: ${convention.value} ${detail}`);
-    }
-  }
-
+  displayConventions(scanResult);
+  displaySummarySection(scanResult);
   console.log('');
 }

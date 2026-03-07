@@ -52,6 +52,11 @@ describe('walkDirectory', () => {
     await writeFile(join(dir, 'dist', 'index.js'), '');
     await mkdir(join(dir, '.next'));
     await mkdir(join(dir, 'coverage'));
+    await mkdir(join(dir, '.expo'));
+    await mkdir(join(dir, 'android'));
+    await mkdir(join(dir, 'ios'));
+    await mkdir(join(dir, 'Pods'));
+    await mkdir(join(dir, '.gradle'));
     await mkdir(join(dir, 'src'));
     await writeFile(join(dir, 'src', 'app.ts'), '');
 
@@ -63,6 +68,11 @@ describe('walkDirectory', () => {
     expect(paths).not.toContain('dist');
     expect(paths).not.toContain('.next');
     expect(paths).not.toContain('coverage');
+    expect(paths).not.toContain('.expo');
+    expect(paths).not.toContain('android');
+    expect(paths).not.toContain('ios');
+    expect(paths).not.toContain('Pods');
+    expect(paths).not.toContain('.gradle');
   });
 
   it('respects maxDepth parameter', async () => {
