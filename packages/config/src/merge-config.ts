@@ -3,6 +3,7 @@ import type {
   ConfigStack,
   ConfigStructure,
   ConventionValue,
+  PackageConfigOverrides,
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
@@ -123,5 +124,33 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
     merged.boundaries = [...fresh.boundaries];
   }
 
+  // Packages: preserve existing overrides, add new ones
+  if (existing.packages || fresh.packages) {
+    merged.packages = mergePackageOverrides(existing.packages, fresh.packages);
+  }
+
   return merged;
+}
+
+/**
+ * Merge per-package overrides: keep existing user-edited overrides,
+ * add new packages from fresh scan.
+ */
+function mergePackageOverrides(
+  existing?: PackageConfigOverrides[],
+  fresh?: PackageConfigOverrides[],
+): PackageConfigOverrides[] | undefined {
+  if (!fresh || fresh.length === 0) return existing;
+  if (!existing || existing.length === 0) return fresh;
+
+  const existingByPath = new Map(existing.map((p) => [p.path, p]));
+  const merged: PackageConfigOverrides[] = [...existing];
+
+  for (const freshPkg of fresh) {
+    if (!existingByPath.has(freshPkg.path)) {
+      merged.push(freshPkg);
+    }
+  }
+
+  return merged.length > 0 ? merged : undefined;
 }

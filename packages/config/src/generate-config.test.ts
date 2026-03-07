@@ -223,3 +223,152 @@ describe('generateConfig', () => {
     expect(config.structure.components).toBe('src/components');
   });
 });
+
+function createMonorepoScanResult(): ScanResult {
+  const base = createNextjs15ScanResult();
+  base.workspace = {
+    patterns: ['apps/*', 'packages/*'],
+    packages: [
+      { name: '@app/web', path: '/abs/apps/web', relativePath: 'apps/web', internalDeps: [] },
+      {
+        name: '@app/mobile',
+        path: '/abs/apps/mobile',
+        relativePath: 'apps/mobile',
+        internalDeps: [],
+      },
+      {
+        name: '@app/shared',
+        path: '/abs/packages/shared',
+        relativePath: 'packages/shared',
+        internalDeps: [],
+      },
+    ],
+  };
+  return base;
+}
+
+function createPackageScanResult(overrides: {
+  name: string;
+  relativePath: string;
+  framework?: { name: string; version?: string };
+  fileNaming?: {
+    value: string;
+    confidence: 'high' | 'medium' | 'low';
+    sampleSize: number;
+    consistency: number;
+  };
+}) {
+  return {
+    name: overrides.name,
+    root: `/abs/${overrides.relativePath}`,
+    relativePath: overrides.relativePath,
+    stack: {
+      language: { name: 'typescript' } as const,
+      packageManager: { name: 'pnpm' } as const,
+      framework: overrides.framework,
+      libraries: [],
+    },
+    structure: { directories: [] },
+    conventions: overrides.fileNaming ? { fileNaming: overrides.fileNaming } : {},
+    statistics: {
+      totalFiles: 10,
+      totalLines: 500,
+      averageFileLines: 50,
+      largestFiles: [],
+      filesByExtension: { '.ts': 10 },
+    },
+  };
+}
+
+describe('per-package overrides', () => {
+  it('generates no overrides for single-package project', () => {
+    const scanResult = createNextjs15ScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: 'my-app',
+        relativePath: '.',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 100, consistency: 97 },
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+    expect(config.packages).toBeUndefined();
+  });
+
+  it('generates overrides when package conventions differ', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      }),
+      createPackageScanResult({
+        name: '@app/mobile',
+        relativePath: 'apps/mobile',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 30, consistency: 100 },
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+    expect(config.packages).toBeDefined();
+    expect(config.packages!.length).toBeGreaterThan(0);
+
+    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    expect(mobileOverride).toBeDefined();
+    expect(mobileOverride!.conventions!.fileNaming).toEqual({
+      value: 'PascalCase',
+      _confidence: 'high',
+      _consistency: 100,
+    });
+  });
+
+  it('omits overrides for packages matching global conventions', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      }),
+      createPackageScanResult({
+        name: '@app/mobile',
+        relativePath: 'apps/mobile',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+    expect(config.packages).toBeUndefined();
+  });
+
+  it('includes framework override when package framework differs from global', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      }),
+      createPackageScanResult({
+        name: '@app/mobile',
+        relativePath: 'apps/mobile',
+        framework: { name: 'expo', version: '53' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+    expect(config.packages).toBeDefined();
+
+    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    expect(mobileOverride).toBeDefined();
+    expect(mobileOverride!.stack!.framework).toBe('expo@53');
+  });
+});

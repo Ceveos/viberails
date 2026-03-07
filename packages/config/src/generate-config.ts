@@ -6,6 +6,7 @@ import type {
   ConventionValue,
   DetectedConvention,
   DirectoryRole,
+  PackageConfigOverrides,
   ScanResult,
   StackItem,
   ViberailsConfig,
@@ -118,6 +119,76 @@ function mapConventions(scanResult: ScanResult): ConfigConventions {
 }
 
 /**
+ * Compare a package's conventions against the global config conventions.
+ * Returns only the differing conventions, or undefined if all match.
+ */
+function conventionsDiffer(
+  pkgConventions: Record<string, DetectedConvention>,
+  globalConventions: ConfigConventions,
+): Partial<ConfigConventions> | undefined {
+  const overrides: Partial<ConfigConventions> = {};
+  let hasDiff = false;
+
+  for (const key of CONVENTION_KEYS) {
+    const detected = pkgConventions[key];
+    if (!detected) continue;
+
+    const mapped = mapConvention(detected);
+    if (mapped === undefined) continue;
+
+    const globalValue = globalConventions[key];
+    const globalStr = typeof globalValue === 'string' ? globalValue : globalValue?.value;
+    if (detected.value !== globalStr) {
+      overrides[key] = mapped;
+      hasDiff = true;
+    }
+  }
+
+  return hasDiff ? overrides : undefined;
+}
+
+/**
+ * Generate per-package config overrides for packages whose stack or
+ * conventions differ from the aggregate global config.
+ */
+function generatePackageOverrides(
+  scanResult: ScanResult,
+  globalConfig: ViberailsConfig,
+): PackageConfigOverrides[] | undefined {
+  if (!scanResult.packages || scanResult.packages.length <= 1) return undefined;
+
+  const overrides: PackageConfigOverrides[] = [];
+
+  for (const pkg of scanResult.packages) {
+    const override: PackageConfigOverrides = {
+      name: pkg.name,
+      path: pkg.relativePath,
+    };
+    let hasDiff = false;
+
+    // Compare framework
+    const pkgFramework = pkg.stack.framework ? formatStackItem(pkg.stack.framework) : undefined;
+    if (pkgFramework !== globalConfig.stack.framework) {
+      override.stack = { framework: pkgFramework };
+      hasDiff = true;
+    }
+
+    // Compare conventions
+    const conventionOverrides = conventionsDiffer(pkg.conventions, globalConfig.conventions);
+    if (conventionOverrides) {
+      override.conventions = conventionOverrides;
+      hasDiff = true;
+    }
+
+    if (hasDiff) {
+      overrides.push(override);
+    }
+  }
+
+  return overrides.length > 0 ? overrides : undefined;
+}
+
+/**
  * Generate a ViberailsConfig from scan results.
  *
  * Maps the scanner's DetectedStack, DetectedStructure, and conventions
@@ -146,6 +217,11 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
       isMonorepo: true,
     };
     config.boundaries = [];
+  }
+
+  const packageOverrides = generatePackageOverrides(scanResult, config);
+  if (packageOverrides) {
+    config.packages = packageOverrides;
   }
 
   return config;

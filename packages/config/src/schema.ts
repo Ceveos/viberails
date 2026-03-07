@@ -205,6 +205,45 @@ export const configSchema = {
       additionalProperties: false,
       description: 'Workspace configuration for monorepo projects.',
     },
+    packages: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['name', 'path'],
+        properties: {
+          name: { type: 'string', description: 'Package name from package.json.' },
+          path: { type: 'string', description: 'Relative path to the package.' },
+          stack: {
+            type: 'object',
+            properties: {
+              framework: { type: 'string' },
+              language: { type: 'string' },
+              styling: { type: 'string' },
+              backend: { type: 'string' },
+              packageManager: { type: 'string' },
+              linter: { type: 'string' },
+              testRunner: { type: 'string' },
+            },
+            additionalProperties: false,
+          },
+          conventions: { $ref: '#/properties/conventions' },
+          rules: {
+            type: 'object',
+            properties: {
+              maxFileLines: { type: 'number' },
+              maxFunctionLines: { type: 'number' },
+              requireTests: { type: 'boolean' },
+              enforceNaming: { type: 'boolean' },
+              enforceBoundaries: { type: 'boolean' },
+            },
+            additionalProperties: false,
+          },
+          ignore: { type: 'array', items: { type: 'string' } },
+        },
+        additionalProperties: false,
+      },
+      description: 'Per-package overrides for monorepo projects.',
+    },
   },
   additionalProperties: false,
   definitions: {
