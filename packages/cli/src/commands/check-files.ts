@@ -3,6 +3,20 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
 
+const ALWAYS_SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  '.next',
+  '.expo',
+  '.output',
+  '.svelte-kit',
+  '.turbo',
+  'coverage',
+  '.viberails',
+]);
+
 export const SOURCE_EXTS = new Set([
   '.ts',
   '.tsx',
@@ -67,7 +81,11 @@ export function checkNaming(relPath: string, conventions: ConfigConventions): st
     filename.includes('.config.') ||
     filename.includes('.test.') ||
     filename.includes('.spec.') ||
-    filename.startsWith('.')
+    filename.startsWith('.') ||
+    filename.startsWith('_') ||
+    filename.startsWith('+') ||
+    filename.startsWith('$') ||
+    filename.startsWith('[')
   ) {
     return undefined;
   }
@@ -112,7 +130,7 @@ export function getAllSourceFiles(projectRoot: string, config: ViberailsConfig):
     for (const entry of entries) {
       const rel = path.relative(projectRoot, path.join(dir, entry.name));
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist') {
+        if (ALWAYS_SKIP_DIRS.has(entry.name)) {
           continue;
         }
         if (isIgnored(rel, config.ignore)) continue;
