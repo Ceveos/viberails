@@ -1,4 +1,5 @@
-export const VERSION = '0.1.0';
+declare const __PACKAGE_VERSION__: string;
+export const VERSION: string = __PACKAGE_VERSION__;
 
 export type { BoundaryRule, BoundaryViolation } from './boundary.js';
 export type { CheckResult, CheckRule, CheckViolation } from './check-result.js';

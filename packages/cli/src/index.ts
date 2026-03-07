@@ -6,7 +6,8 @@ import { fixCommand } from './commands/fix.js';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
 
-export const VERSION = '0.2.1';
+declare const __PACKAGE_VERSION__: string;
+export const VERSION: string = __PACKAGE_VERSION__;
 
 const program = new Command();
 

@@ -1,3 +1,6 @@
+declare const __PACKAGE_VERSION__: string;
+export const VERSION: string = __PACKAGE_VERSION__;
+
 export { buildImportGraph, type GraphOptions } from './build-graph.js';
 export { checkBoundaries } from './check-boundaries.js';
 export { detectCycles } from './detect-cycles.js';
