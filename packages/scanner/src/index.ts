@@ -8,7 +8,7 @@ export {
 } from './aggregate.js';
 export { computeStatistics } from './compute-statistics.js';
 export { detectConventions } from './detect-conventions.js';
-export { detectAdditionalFrameworks, detectStack, extractMajorVersion } from './detect-stack.js';
+export { detectStack, extractMajorVersion } from './detect-stack.js';
 export { detectStructure } from './detect-structure.js';
 export { detectWorkspace } from './detect-workspace.js';
 export { scanPackage } from './scan-package.js';

@@ -206,28 +206,6 @@ function detectTestRunner(allDeps: Record<string, string>): StackItem | undefine
   return undefined;
 }
 
-/**
- * Detects additional frameworks beyond the primary one.
- * Used by `scan()` to include secondary frameworks (e.g. Expo alongside Next.js)
- * in the aggregate libraries list for monorepo projects.
- */
-export function detectAdditionalFrameworks(
-  allDeps: Record<string, string>,
-  primaryFrameworkName?: string,
-): StackItem[] {
-  const additional: StackItem[] = [];
-  for (const mapping of FRAMEWORK_MAPPINGS) {
-    if (!(mapping.dep in allDeps)) continue;
-    if (mapping.excludeDep && mapping.excludeDep in allDeps) continue;
-    if (mapping.name === primaryFrameworkName) continue;
-    additional.push({
-      name: mapping.name,
-      version: extractMajorVersion(allDeps[mapping.dep]),
-    });
-  }
-  return additional;
-}
-
 function detectLibraries(allDeps: Record<string, string>): StackItem[] {
   const libs: StackItem[] = [];
   for (const mapping of LIBRARY_MAPPINGS) {

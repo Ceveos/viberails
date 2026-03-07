@@ -63,7 +63,7 @@ describe('aggregateStacks', () => {
     expect(result.language).toEqual({ name: 'typescript', version: '5' });
   });
 
-  it('picks first framework as primary', () => {
+  it('picks highest-priority framework as primary regardless of order', () => {
     const result = aggregateStacks([
       makePackage({
         stack: {

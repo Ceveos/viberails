@@ -7,11 +7,23 @@ import {
   type PackageScanResult,
 } from '@viberails/types';
 
+/** Framework priority order — higher-priority frameworks become the primary. */
+const FRAMEWORK_PRIORITY = [
+  'nextjs',
+  'sveltekit',
+  'astro',
+  'expo',
+  'react-native',
+  'svelte',
+  'vue',
+  'react',
+];
+
 /**
  * Combines per-package stacks into a single aggregate stack.
  *
  * TypeScript wins over JavaScript if any package uses it.
- * The first package's framework becomes the primary; others go into libraries.
+ * The highest-priority framework becomes the primary; others go into libraries.
  */
 export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
   if (packages.length === 1) return packages[0].stack;
@@ -22,8 +34,16 @@ export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
 
   const packageManager = packages[0].stack.packageManager;
 
-  const firstWithFramework = packages.find((p) => p.stack.framework);
-  const framework = firstWithFramework?.stack.framework;
+  const frameworkPackages = packages.filter((p) => p.stack.framework);
+  let framework: (typeof packages)[0]['stack']['framework'];
+  if (frameworkPackages.length > 0) {
+    frameworkPackages.sort((a, b) => {
+      const aIdx = FRAMEWORK_PRIORITY.indexOf(a.stack.framework!.name);
+      const bIdx = FRAMEWORK_PRIORITY.indexOf(b.stack.framework!.name);
+      return (aIdx === -1 ? Infinity : aIdx) - (bIdx === -1 ? Infinity : bIdx);
+    });
+    framework = frameworkPackages[0].stack.framework;
+  }
 
   const libraryMap = new Map<string, { name: string; version?: string }>();
 
