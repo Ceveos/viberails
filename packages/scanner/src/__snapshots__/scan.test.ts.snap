@@ -58,7 +58,7 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       },
       "name": "fixture-nextjs",
       "relativePath": "",
-      "root": "/Users/alex/Developer/viberails/tests/fixtures/nextjs-15",
+      "root": "<PROJECT_ROOT>",
       "stack": {
         "framework": {
           "name": "nextjs",

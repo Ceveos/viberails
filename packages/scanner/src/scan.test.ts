@@ -165,8 +165,15 @@ describe('scan', () => {
   it('matches snapshot for nextjs-15 fixture', async () => {
     const result = await scan(join(fixturesDir, 'nextjs-15'));
 
-    // Replace root with a placeholder so snapshots are portable
-    const snapshot = { ...result, root: '<PROJECT_ROOT>' };
+    // Replace root paths with placeholders so snapshots are portable
+    const snapshot = {
+      ...result,
+      root: '<PROJECT_ROOT>',
+      packages: result.packages.map((pkg) => ({
+        ...pkg,
+        root: pkg.root.replace(result.root, '<PROJECT_ROOT>'),
+      })),
+    };
     expect(snapshot).toMatchSnapshot();
   });
 });
