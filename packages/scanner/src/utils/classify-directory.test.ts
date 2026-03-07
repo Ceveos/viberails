@@ -215,6 +215,159 @@ describe('classifyDirectory', () => {
     });
   });
 
+  describe('monorepo suffix matching', () => {
+    it('classifies apps/web/lib as utils via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/lib',
+          sourceFileCount: 3,
+          sourceFileNames: ['api.ts', 'auth.ts', 'utils.ts'],
+        }),
+      );
+      expect(result?.role).toBe('utils');
+    });
+
+    it('classifies apps/mobile/hooks as hooks via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/mobile/hooks',
+          sourceFileCount: 5,
+          sourceFileNames: [
+            'useAuth.ts',
+            'useTheme.ts',
+            'useSettings.ts',
+            'useProfile.ts',
+            'useNav.ts',
+          ],
+        }),
+      );
+      expect(result?.role).toBe('hooks');
+    });
+
+    it('classifies apps/web/components as components via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/components',
+          sourceFileCount: 4,
+          sourceFileNames: ['Button.tsx', 'Header.tsx', 'Footer.tsx', 'Layout.tsx'],
+        }),
+      );
+      expect(result?.role).toBe('components');
+    });
+
+    it('classifies apps/web/app as pages via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/app',
+          sourceFileCount: 3,
+          sourceFileNames: ['page.tsx', 'layout.tsx', 'loading.tsx'],
+        }),
+      );
+      expect(result?.role).toBe('pages');
+    });
+
+    it('classifies packages/db/src/__tests__ as tests via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'packages/db/src/__tests__',
+          sourceFileCount: 12,
+          sourceFileNames: ['user.test.ts', 'post.test.ts', 'auth.test.ts'],
+        }),
+      );
+      expect(result?.role).toBe('tests');
+    });
+
+    it('classifies apps/web/src/styles as styles via suffix match', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/src/styles',
+          sourceFileCount: 2,
+          sourceFileNames: ['theme.ts', 'globals.ts'],
+        }),
+      );
+      expect(result?.role).toBe('styles');
+    });
+
+    it('classifies apps/web/app/api as api via suffix match on multi-segment pattern', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/app/api',
+          sourceFileCount: 3,
+          sourceFileNames: ['route.ts', 'webhook.ts', 'auth.ts'],
+        }),
+      );
+      expect(result?.role).toBe('api');
+    });
+
+    it('classifies apps/web/src/utils as utils via suffix match on multi-segment pattern', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/src/utils',
+          sourceFileCount: 2,
+          sourceFileNames: ['format.ts', 'parse.ts'],
+        }),
+      );
+      expect(result?.role).toBe('utils');
+    });
+  });
+
+  describe('content-based minimum file count', () => {
+    it('does NOT classify a directory with 1 hook file as hooks', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'src/custom',
+          sourceFileCount: 1,
+          sourceFileNames: ['useAuth.ts'],
+        }),
+      );
+      expect(result?.role).not.toBe('hooks');
+    });
+
+    it('does NOT classify a directory with 1 test file as tests', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'src/custom',
+          sourceFileCount: 1,
+          sourceFileNames: ['auth.test.ts'],
+        }),
+      );
+      expect(result?.role).not.toBe('tests');
+    });
+
+    it('classifies directory with 2 hook files as hooks', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'src/custom',
+          sourceFileCount: 2,
+          sourceFileNames: ['useAuth.ts', 'useTheme.ts'],
+        }),
+      );
+      expect(result?.role).toBe('hooks');
+    });
+
+    it('classifies directory with 2 test files as tests', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'src/custom',
+          sourceFileCount: 2,
+          sourceFileNames: ['auth.test.ts', 'user.test.ts'],
+        }),
+      );
+      expect(result?.role).toBe('tests');
+    });
+
+    it('name match takes priority over content heuristics for lib with one hook', () => {
+      const result = classifyDirectory(
+        makeDir({
+          relativePath: 'apps/web/lib',
+          sourceFileCount: 1,
+          sourceFileNames: ['useApi.ts'],
+        }),
+      );
+      expect(result?.role).toBe('utils');
+    });
+  });
+
   describe('null and unknown returns', () => {
     it('returns null for directory with no source files and no name match', () => {
       const result = classifyDirectory(

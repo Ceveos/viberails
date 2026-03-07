@@ -39,6 +39,8 @@ interface FrameworkMapping {
 
 const FRAMEWORK_MAPPINGS: FrameworkMapping[] = [
   { dep: 'next', name: 'nextjs' },
+  { dep: 'expo', name: 'expo' },
+  { dep: 'react-native', name: 'react-native', excludeDep: 'expo' },
   { dep: '@sveltejs/kit', name: 'sveltekit' },
   { dep: 'svelte', name: 'svelte' },
   { dep: 'astro', name: 'astro' },
@@ -85,24 +87,42 @@ const LOCK_FILE_MAP: Array<{ file: string; name: string }> = [
  * Detects the technology stack of a project by reading its package.json
  * and checking for lock files and configuration files.
  *
+ * In monorepo projects, pass `workspaceDirs` to aggregate dependencies
+ * from all workspace packages, ensuring frameworks like Next.js or Expo
+ * are detected even when only declared in workspace packages.
+ *
  * @param projectPath - Absolute path to the project root directory.
+ * @param workspaceDirs - Optional absolute paths to workspace package directories.
  * @returns The detected technology stack.
  */
-export async function detectStack(projectPath: string): Promise<DetectedStack> {
+export async function detectStack(
+  projectPath: string,
+  workspaceDirs?: string[],
+): Promise<DetectedStack> {
   const pkg = await readPackageJson(projectPath);
   const allDeps: Record<string, string> = {
     ...pkg?.dependencies,
     ...pkg?.devDependencies,
   };
 
+  // Aggregate deps from workspace packages for monorepo detection
+  if (workspaceDirs && workspaceDirs.length > 0) {
+    const workspacePkgs = await Promise.all(workspaceDirs.map((dir) => readPackageJson(dir)));
+    for (const wsPkg of workspacePkgs) {
+      if (!wsPkg) continue;
+      Object.assign(allDeps, wsPkg.dependencies, wsPkg.devDependencies);
+    }
+  }
+
   const framework = detectFramework(allDeps);
-  const language = await detectLanguage(projectPath, allDeps);
+  const additionalFrameworks = detectAdditionalFrameworks(allDeps, framework?.name);
+  const language = await detectLanguage(projectPath, allDeps, workspaceDirs);
   const styling = detectFirst(allDeps, STYLING_MAPPINGS);
   const backend = detectFirst(allDeps, BACKEND_MAPPINGS);
   const packageManager = await detectPackageManager(projectPath);
   const linter = detectLinter(allDeps);
   const testRunner = detectTestRunner(allDeps);
-  const libraries = detectLibraries(allDeps);
+  const libraries = [...additionalFrameworks, ...detectLibraries(allDeps)];
 
   return {
     ...(framework && { framework }),
@@ -135,6 +155,7 @@ function detectFramework(allDeps: Record<string, string>): StackItem | undefined
 async function detectLanguage(
   projectPath: string,
   allDeps: Record<string, string>,
+  workspaceDirs?: string[],
 ): Promise<StackItem> {
   if ('typescript' in allDeps) {
     return {
@@ -144,6 +165,14 @@ async function detectLanguage(
   }
   if (await fileExists(join(projectPath, 'tsconfig.json'))) {
     return { name: 'typescript' };
+  }
+  // Check workspace packages for tsconfig.json (monorepo with TS only in packages)
+  if (workspaceDirs) {
+    for (const dir of workspaceDirs) {
+      if (await fileExists(join(dir, 'tsconfig.json'))) {
+        return { name: 'typescript' };
+      }
+    }
   }
   return { name: 'javascript' };
 }
@@ -193,6 +222,28 @@ function detectTestRunner(allDeps: Record<string, string>): StackItem | undefine
     return { name: 'jest', version: extractMajorVersion(allDeps.jest) };
   }
   return undefined;
+}
+
+/**
+ * Detects additional frameworks beyond the primary one.
+ * In monorepos, multiple frameworks (e.g. Next.js + Expo) may coexist.
+ * Returns them as StackItems to be included in the libraries list.
+ */
+function detectAdditionalFrameworks(
+  allDeps: Record<string, string>,
+  primaryFrameworkName?: string,
+): StackItem[] {
+  const additional: StackItem[] = [];
+  for (const mapping of FRAMEWORK_MAPPINGS) {
+    if (!(mapping.dep in allDeps)) continue;
+    if (mapping.excludeDep && mapping.excludeDep in allDeps) continue;
+    if (mapping.name === primaryFrameworkName) continue;
+    additional.push({
+      name: mapping.name,
+      version: extractMajorVersion(allDeps[mapping.dep]),
+    });
+  }
+  return additional;
 }
 
 function detectLibraries(allDeps: Record<string, string>): StackItem[] {

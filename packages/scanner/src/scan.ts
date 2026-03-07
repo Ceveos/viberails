@@ -63,18 +63,19 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
   const allDirs = await walkDirectory(root, 4);
   const dirs = filterFixtureDirs(allDirs);
 
+  // Detect workspace first — needed for aggregating deps in stack detection
+  const workspace = await detectWorkspace(root);
+  const workspaceDirs = workspace?.packages.map((p) => p.path);
+
   // Run independent detectors in parallel, passing shared walk result
   const [stack, structure, statistics] = await Promise.all([
-    detectStack(root),
+    detectStack(root, workspaceDirs),
     detectStructure(root, dirs),
     computeStatistics(root, dirs),
   ]);
 
   // detectConventions depends on structure result
   const conventions = await detectConventions(root, structure, dirs);
-
-  // Detect workspace configuration (monorepo support)
-  const workspace = await detectWorkspace(root);
 
   return {
     root,

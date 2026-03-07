@@ -1,0 +1,8 @@
+{
+  "name": "@app/mobile",
+  "dependencies": {
+    "expo": "^53.0.0",
+    "react-native": "^0.76.0",
+    "react": "^19.0.0"
+  }
+}

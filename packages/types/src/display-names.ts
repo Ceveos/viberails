@@ -1,6 +1,8 @@
 /** Display names for framework identifiers. */
 export const FRAMEWORK_NAMES: Record<string, string> = {
   nextjs: 'Next.js',
+  expo: 'Expo',
+  'react-native': 'React Native',
   remix: 'Remix',
   nuxt: 'Nuxt',
   sveltekit: 'SvelteKit',
@@ -29,6 +31,14 @@ export const LIBRARY_NAMES: Record<string, string> = {
   trpc: 'tRPC',
   prisma: 'Prisma',
   drizzle: 'Drizzle',
+  expo: 'Expo',
+  'react-native': 'React Native',
+  nextjs: 'Next.js',
+  react: 'React',
+  sveltekit: 'SvelteKit',
+  svelte: 'Svelte',
+  astro: 'Astro',
+  vue: 'Vue',
 };
 
 /** Display names for directory roles. */

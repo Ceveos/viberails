@@ -65,12 +65,16 @@ export function classifyDirectory(dir: WalkedDirectory): ClassifiedDirectory | n
 
 /**
  * Matches a relative path against known role patterns.
+ * Supports suffix matching so monorepo paths like `apps/web/lib`
+ * match patterns like `lib`.
  * Returns the role if matched, or null.
  */
 function matchByName(relativePath: string): DirectoryRole | null {
   for (const { role, pathPatterns } of ROLE_PATTERNS) {
     for (const pattern of pathPatterns) {
-      if (relativePath === pattern) return role;
+      if (relativePath === pattern || relativePath.endsWith(`/${pattern}`)) {
+        return role;
+      }
     }
   }
   return null;
@@ -83,11 +87,13 @@ function inferFromContent(dir: WalkedDirectory): ClassifiedDirectory | null {
   const { sourceFileNames, sourceFileCount } = dir;
 
   // Check for hook files (use-* kebab or useXxx camelCase prefix)
+  // Require at least 2 matching files to avoid misclassifying directories
+  // with a single hook utility (e.g. lib/ with one useXxx file)
   const hookFiles = sourceFileNames.filter((f) => {
     const name = f.split('.')[0];
     return name.startsWith('use-') || /^use[A-Z]/.test(name);
   });
-  if (hookFiles.length > 0 && hookFiles.length / sourceFileCount >= 0.5) {
+  if (hookFiles.length >= 2 && hookFiles.length / sourceFileCount >= 0.5) {
     return {
       path: dir.relativePath,
       role: 'hooks',
@@ -96,9 +102,9 @@ function inferFromContent(dir: WalkedDirectory): ClassifiedDirectory | null {
     };
   }
 
-  // Check for test files
+  // Check for test files — require at least 2 to avoid false positives
   const testFiles = sourceFileNames.filter((f) => f.includes('.test.') || f.includes('.spec.'));
-  if (testFiles.length > 0 && testFiles.length / sourceFileCount >= 0.5) {
+  if (testFiles.length >= 2 && testFiles.length / sourceFileCount >= 0.5) {
     return {
       path: dir.relativePath,
       role: 'tests',

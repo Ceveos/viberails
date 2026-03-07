@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +65,113 @@ describe('detectStack', () => {
     expect(result.language).toEqual({ name: 'javascript' });
     expect(result.packageManager).toEqual({ name: 'npm' });
     expect(result.libraries).toEqual([]);
+  });
+
+  describe('workspace dependency aggregation', () => {
+    let tempDir: string;
+    let webDir: string;
+    let mobileDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-workspace-'));
+      webDir = join(tempDir, 'apps', 'web');
+      mobileDir = join(tempDir, 'apps', 'mobile');
+
+      await mkdir(webDir, { recursive: true });
+      await mkdir(mobileDir, { recursive: true });
+
+      // Root package.json — no framework deps, no typescript
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'monorepo', private: true }),
+      );
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+
+      // Web package has Next.js + TypeScript
+      await writeFile(
+        join(webDir, 'package.json'),
+        JSON.stringify({
+          name: '@app/web',
+          dependencies: { next: '^15.0.0', react: '^19.0.0' },
+          devDependencies: { typescript: '^5.5.0' },
+        }),
+      );
+      await writeFile(join(webDir, 'tsconfig.json'), '{}');
+
+      // Mobile package has Expo
+      await writeFile(
+        join(mobileDir, 'package.json'),
+        JSON.stringify({
+          name: '@app/mobile',
+          dependencies: { expo: '^53.0.0', 'react-native': '^0.76.0' },
+        }),
+      );
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects typescript from workspace package deps', async () => {
+      const result = await detectStack(tempDir, [webDir, mobileDir]);
+      expect(result.language.name).toBe('typescript');
+    });
+
+    it('detects Next.js as primary framework from workspace deps', async () => {
+      const result = await detectStack(tempDir, [webDir, mobileDir]);
+      expect(result.framework).toEqual({ name: 'nextjs', version: '15' });
+    });
+
+    it('detects Expo as additional library from workspace deps', async () => {
+      const result = await detectStack(tempDir, [webDir, mobileDir]);
+      const expoLib = result.libraries.find((l) => l.name === 'expo');
+      expect(expoLib).toEqual({ name: 'expo', version: '53' });
+    });
+
+    it('does not include react when next is present (excludeDep)', async () => {
+      const result = await detectStack(tempDir, [webDir, mobileDir]);
+      const reactLib = result.libraries.find((l) => l.name === 'react');
+      expect(reactLib).toBeUndefined();
+    });
+
+    it('does not include react-native when expo is present (excludeDep)', async () => {
+      const result = await detectStack(tempDir, [webDir, mobileDir]);
+      const rnLib = result.libraries.find((l) => l.name === 'react-native');
+      expect(rnLib).toBeUndefined();
+    });
+
+    it('falls back to javascript without workspace dirs', async () => {
+      const result = await detectStack(tempDir);
+      expect(result.language.name).toBe('javascript');
+      expect(result.framework).toBeUndefined();
+    });
+  });
+
+  describe('workspace typescript detection via tsconfig.json', () => {
+    let tempDir: string;
+    let pkgDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-tsconfig-'));
+      pkgDir = join(tempDir, 'packages', 'core');
+      await mkdir(pkgDir, { recursive: true });
+
+      // Root has no typescript dep and no tsconfig
+      await writeFile(join(tempDir, 'package.json'), JSON.stringify({ name: 'monorepo' }));
+
+      // Workspace package has tsconfig but no typescript dep
+      await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@app/core' }));
+      await writeFile(join(pkgDir, 'tsconfig.json'), '{}');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects typescript from workspace package tsconfig.json', async () => {
+      const result = await detectStack(tempDir, [pkgDir]);
+      expect(result.language.name).toBe('typescript');
+    });
   });
 
   describe('package manager detection', () => {
