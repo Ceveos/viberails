@@ -1,4 +1,4 @@
-import type { ConventionValue, ViberailsConfig } from '@viberails/types';
+import type { ConventionValue, PackageConfigOverrides, ViberailsConfig } from '@viberails/types';
 
 /** Naming convention examples for directive formatting. */
 const NAMING_EXAMPLES: Record<string, string> = {
@@ -80,6 +80,12 @@ export function generateContext(config: ViberailsConfig): string {
     sections.push('_(No rules configured. Edit `viberails.config.json` to add rules.)_');
   }
 
+  const packageLines = formatPackageOverrides(config);
+  if (packageLines.length > 0) {
+    sections.push('');
+    sections.push(packageLines.join('\n'));
+  }
+
   const boundaryLines = formatBoundaryRules(config);
   if (boundaryLines.length > 0) {
     sections.push('');
@@ -90,6 +96,53 @@ export function generateContext(config: ViberailsConfig): string {
   sections.push('Run `viberails check` before committing to catch violations early.\n');
 
   return sections.join('\n');
+}
+
+/**
+ * Build the header for a package override section.
+ */
+function packageHeader(pkg: PackageConfigOverrides): string {
+  const framework = pkg.stack?.framework;
+  if (framework) {
+    const name = typeof framework === 'string' ? framework.split('@')[0] : framework;
+    return `### ${pkg.path} (${name})`;
+  }
+  return `### ${pkg.path}`;
+}
+
+/**
+ * Build the per-package overrides section as markdown lines.
+ */
+function formatPackageOverrides(config: ViberailsConfig): string[] {
+  if (!config.packages || config.packages.length === 0) return [];
+
+  const lines: string[] = [];
+  lines.push('## Per-package rules\n');
+  lines.push('The following packages have rules that differ from the global defaults:\n');
+
+  for (const pkg of config.packages) {
+    lines.push(packageHeader(pkg));
+
+    if (pkg.conventions?.fileNaming) {
+      const val = conventionValue(pkg.conventions.fileNaming);
+      const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
+      lines.push(`- Source files use **${val}**: ${examples}.`);
+    }
+
+    if (pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines > 0) {
+      lines.push(
+        `- Files must not exceed **${pkg.rules.maxFileLines} lines**. Split into focused modules.`,
+      );
+    }
+
+    if (pkg.rules?.maxFunctionLines !== undefined && pkg.rules.maxFunctionLines > 0) {
+      lines.push(
+        `- Functions must not exceed **${pkg.rules.maxFunctionLines} lines**. Extract helpers for complex logic.`,
+      );
+    }
+  }
+
+  return lines;
 }
 
 /**

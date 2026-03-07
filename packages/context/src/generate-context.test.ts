@@ -148,3 +148,65 @@ describe('generateContext (rules-focused)', () => {
     expect(output).not.toContain('(');
   });
 });
+
+describe('per-package rules', () => {
+  it('omits per-package section when no package overrides', () => {
+    const result = generateContext(makeConfig());
+    expect(result).not.toContain('Per-package rules');
+  });
+
+  it('does not include per-package section for empty overrides array', () => {
+    const result = generateContext(makeConfig({ packages: [] }));
+    expect(result).not.toContain('Per-package rules');
+  });
+
+  it('includes per-package section with convention override', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: '@app/mobile',
+            path: 'apps/mobile',
+            stack: { framework: 'expo@53' },
+            conventions: { fileNaming: 'PascalCase' },
+          },
+        ],
+      }),
+    );
+    expect(result).toContain('## Per-package rules');
+    expect(result).toContain('### apps/mobile (expo)');
+    expect(result).toContain('**PascalCase**');
+  });
+
+  it('shows package header without framework when stack is absent', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: '@app/shared',
+            path: 'packages/shared',
+            conventions: { fileNaming: 'camelCase' },
+          },
+        ],
+      }),
+    );
+    expect(result).toContain('### packages/shared');
+    expect(result).not.toContain('(');
+  });
+
+  it('includes rule overrides for maxFileLines and maxFunctionLines', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: '@app/web',
+            path: 'apps/web',
+            rules: { maxFileLines: 200, maxFunctionLines: 30 },
+          },
+        ],
+      }),
+    );
+    expect(result).toContain('**200 lines**');
+    expect(result).toContain('**30 lines**');
+  });
+});
