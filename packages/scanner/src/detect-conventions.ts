@@ -200,7 +200,7 @@ async function detectImportAlias(projectPath: string): Promise<DetectedConventio
     if (aliases.length === 0) return undefined;
 
     return {
-      value: aliases[0],
+      value: aliases.join(','),
       confidence: 'high',
       sampleSize: aliases.length,
       consistency: 100,

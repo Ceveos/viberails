@@ -371,4 +371,40 @@ describe('per-package overrides', () => {
     expect(mobileOverride).toBeDefined();
     expect(mobileOverride!.stack!.framework).toBe('expo@53');
   });
+
+  it('includes styling override when package styling differs from global', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        framework: { name: 'nextjs', version: '15' },
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      }),
+      {
+        ...createPackageScanResult({
+          name: '@app/mobile',
+          relativePath: 'apps/mobile',
+          framework: { name: 'nextjs', version: '15' },
+          fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
+        }),
+        stack: {
+          language: { name: 'typescript' },
+          packageManager: { name: 'pnpm' },
+          framework: { name: 'nextjs', version: '15' },
+          styling: { name: 'nativewind', version: '4' },
+          libraries: [],
+        },
+      },
+    ];
+
+    const config = generateConfig(scanResult);
+    expect(config.packages).toBeDefined();
+
+    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    expect(mobileOverride).toBeDefined();
+    expect(mobileOverride!.stack!.styling).toBe('nativewind@4');
+    // Framework matches global, so it should not be in the override
+    expect(mobileOverride!.stack!.framework).toBeUndefined();
+  });
 });

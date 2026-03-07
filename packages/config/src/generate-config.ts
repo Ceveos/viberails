@@ -92,7 +92,7 @@ function mapConvention(convention: DetectedConvention): ConventionValue | undefi
 }
 
 /** Convention keys from ScanResult that map to ConfigConventions fields. */
-const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
+export const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
   'fileNaming',
   'componentNaming',
   'hookNaming',
@@ -166,10 +166,30 @@ function generatePackageOverrides(
     };
     let hasDiff = false;
 
-    // Compare framework
-    const pkgFramework = pkg.stack.framework ? formatStackItem(pkg.stack.framework) : undefined;
-    if (pkgFramework !== globalConfig.stack.framework) {
-      override.stack = { framework: pkgFramework };
+    // Compare stack fields — only include overrides when the package has a
+    // value that differs from the global, not when the package simply lacks the field
+    const stackOverride: Partial<ConfigStack> = {};
+    let hasStackDiff = false;
+
+    const optionalStackFields = [
+      'framework',
+      'styling',
+      'backend',
+      'linter',
+      'testRunner',
+    ] as const;
+    for (const field of optionalStackFields) {
+      const pkgItem = pkg.stack[field];
+      if (!pkgItem) continue;
+      const pkgValue = formatStackItem(pkgItem);
+      if (pkgValue !== globalConfig.stack[field]) {
+        stackOverride[field] = pkgValue;
+        hasStackDiff = true;
+      }
+    }
+
+    if (hasStackDiff) {
+      override.stack = stackOverride;
       hasDiff = true;
     }
 

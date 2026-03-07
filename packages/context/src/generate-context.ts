@@ -41,10 +41,15 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
   }
 
   if (rules.requireTests && structure.testPattern) {
-    const srcDir = structure.srcDir ?? 'src';
-    lines.push(
-      `- Every source file in \`${srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
-    );
+    if (structure.srcDir) {
+      lines.push(
+        `- Every source file in \`${structure.srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
+      );
+    } else {
+      lines.push(
+        `- Every source file must have a corresponding \`${structure.testPattern}\` file.`,
+      );
+    }
   }
 
   return lines;
@@ -127,6 +132,21 @@ function formatPackageOverrides(config: ViberailsConfig): string[] {
       const val = conventionValue(pkg.conventions.fileNaming);
       const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
       lines.push(`- Source files use **${val}**: ${examples}.`);
+    }
+
+    if (pkg.conventions?.componentNaming) {
+      const val = conventionValue(pkg.conventions.componentNaming);
+      lines.push(`- Components use **${val}** naming.`);
+    }
+
+    if (pkg.conventions?.hookNaming) {
+      const val = conventionValue(pkg.conventions.hookNaming);
+      lines.push(`- Hooks use **${val}** naming.`);
+    }
+
+    if (pkg.conventions?.importAlias) {
+      const val = conventionValue(pkg.conventions.importAlias);
+      lines.push(`- Import alias: \`${val}\`.`);
     }
 
     if (pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines > 0) {

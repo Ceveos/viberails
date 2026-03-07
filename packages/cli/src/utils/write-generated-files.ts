@@ -19,19 +19,22 @@ export function writeGeneratedFiles(
   config: ViberailsConfig,
   scanResult: ScanResult,
 ): void {
-  // Ensure .viberails directory exists
   const contextDir = path.join(projectRoot, CONTEXT_DIR);
-  if (!fs.existsSync(contextDir)) {
-    fs.mkdirSync(contextDir, { recursive: true });
+
+  try {
+    if (!fs.existsSync(contextDir)) {
+      fs.mkdirSync(contextDir, { recursive: true });
+    }
+
+    const context = generateContext(config);
+    fs.writeFileSync(path.join(contextDir, CONTEXT_FILE), context);
+
+    fs.writeFileSync(
+      path.join(contextDir, SCAN_RESULT_FILE),
+      `${JSON.stringify(scanResult, null, 2)}\n`,
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to write generated files to ${contextDir}: ${message}`);
   }
-
-  // Generate and write rules-focused context.md
-  const context = generateContext(config);
-  fs.writeFileSync(path.join(contextDir, CONTEXT_FILE), context);
-
-  // Write scan-result.json for drift detection
-  fs.writeFileSync(
-    path.join(contextDir, SCAN_RESULT_FILE),
-    `${JSON.stringify(scanResult, null, 2)}\n`,
-  );
 }

@@ -1,6 +1,6 @@
 import type { ViberailsConfig } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
-import { resolveConfigForFile } from './check.js';
+import { resolveConfigForFile } from './check-config.js';
 
 const baseConfig: ViberailsConfig = {
   version: 1,

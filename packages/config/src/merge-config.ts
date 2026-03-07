@@ -7,7 +7,7 @@ import type {
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
-import { generateConfig } from './generate-config.js';
+import { CONVENTION_KEYS, generateConfig } from './generate-config.js';
 
 /**
  * Merge stack: keep existing values, fill in undefined fields from fresh scan.
@@ -58,14 +58,6 @@ function markAsDetected(value: ConventionValue): ConventionValue {
   }
   return { ...value, _detected: true };
 }
-
-/** Convention keys to iterate during merge. */
-const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
-  'fileNaming',
-  'componentNaming',
-  'hookNaming',
-  'importAlias',
-];
 
 /**
  * Merge conventions: keep all existing values, add new detections with `_detected: true`.

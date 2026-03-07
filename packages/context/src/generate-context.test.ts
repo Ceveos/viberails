@@ -209,4 +209,44 @@ describe('per-package rules', () => {
     expect(result).toContain('**200 lines**');
     expect(result).toContain('**30 lines**');
   });
+
+  it('includes all convention overrides, not just fileNaming', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: '@app/mobile',
+            path: 'apps/mobile',
+            conventions: {
+              fileNaming: 'PascalCase',
+              componentNaming: 'PascalCase',
+              hookNaming: 'useXxx',
+              importAlias: '~/*',
+            },
+          },
+        ],
+      }),
+    );
+    expect(result).toContain('**PascalCase**');
+    expect(result).toContain('Components use **PascalCase** naming');
+    expect(result).toContain('Hooks use **useXxx** naming');
+    expect(result).toContain('Import alias: `~/*`');
+  });
+});
+
+describe('flat project handling', () => {
+  it('omits srcDir from test requirement when project has no srcDir', () => {
+    const output = generateContext(
+      makeConfig({
+        structure: { testPattern: '*.test.ts' },
+      }),
+    );
+    expect(output).toContain('Every source file must have a corresponding');
+    expect(output).not.toContain('src/');
+  });
+
+  it('includes srcDir in test requirement when present', () => {
+    const output = generateContext(makeConfig());
+    expect(output).toContain('src/');
+  });
 });
