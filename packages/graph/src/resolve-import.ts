@@ -1,6 +1,6 @@
-import type { ImportKind, WorkspacePackage } from '@viberails/types';
 import { builtinModules } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import type { ImportKind, WorkspacePackage } from '@viberails/types';
 import type { Project } from 'ts-morph';
 
 /** Result of resolving an import specifier. */

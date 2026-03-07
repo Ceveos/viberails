@@ -1,6 +1,6 @@
 import {
-  confidenceFromConsistency,
   type CodebaseStatistics,
+  confidenceFromConsistency,
   type DetectedConvention,
   type DetectedStack,
   type DetectedStructure,

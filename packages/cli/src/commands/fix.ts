@@ -10,12 +10,12 @@ import { checkNaming, getAllSourceFiles } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
 import { updateImportsAfterRenames } from './fix-imports.js';
 import {
-  type RenameRecord,
   computeRename,
   deduplicateRenames,
   executeRename,
+  type RenameRecord,
 } from './fix-naming.js';
-import { type TestStubRecord, generateTestStub, writeTestStub } from './fix-tests.js';
+import { generateTestStub, type TestStubRecord, writeTestStub } from './fix-tests.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 

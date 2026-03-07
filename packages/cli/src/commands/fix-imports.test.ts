@@ -2,8 +2,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { RenameRecord } from './fix-naming.js';
 import { updateImportsAfterRenames } from './fix-imports.js';
+import type { RenameRecord } from './fix-naming.js';
 
 let tmpDir: string;
 

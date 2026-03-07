@@ -14,7 +14,7 @@ import { readPackageJson } from './utils/read-package-json.js';
 /**
  * Options for the scan function.
  */
-export type ScanOptions = {};
+export type ScanOptions = Record<string, never>;
 
 /**
  * Scans a project directory and returns a comprehensive analysis of its

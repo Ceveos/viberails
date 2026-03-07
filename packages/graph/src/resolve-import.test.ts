@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import type { WorkspacePackage } from '@viberails/types';
 import { Project } from 'ts-morph';
+import { describe, expect, it } from 'vitest';
 import { resolveImport } from './resolve-import.js';
 
 function createProject(files: Record<string, string>) {
