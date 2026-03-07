@@ -28,9 +28,8 @@ const FRAMEWORK_PRIORITY = [
 export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
   if (packages.length === 1) return packages[0].stack;
 
-  const language = packages.some((p) => p.stack.language.name === 'typescript')
-    ? packages.find((p) => p.stack.language.name === 'typescript')!.stack.language
-    : packages[0].stack.language;
+  const tsPackage = packages.find((p) => p.stack.language.name === 'typescript');
+  const language = tsPackage ? tsPackage.stack.language : packages[0].stack.language;
 
   const packageManager = packages[0].stack.packageManager;
 
@@ -38,8 +37,8 @@ export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
   let framework: (typeof packages)[0]['stack']['framework'];
   if (frameworkPackages.length > 0) {
     frameworkPackages.sort((a, b) => {
-      const aIdx = FRAMEWORK_PRIORITY.indexOf(a.stack.framework!.name);
-      const bIdx = FRAMEWORK_PRIORITY.indexOf(b.stack.framework!.name);
+      const aIdx = FRAMEWORK_PRIORITY.indexOf(a.stack.framework?.name ?? '');
+      const bIdx = FRAMEWORK_PRIORITY.indexOf(b.stack.framework?.name ?? '');
       return (aIdx === -1 ? Infinity : aIdx) - (bIdx === -1 ? Infinity : bIdx);
     });
     framework = frameworkPackages[0].stack.framework;

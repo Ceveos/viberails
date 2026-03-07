@@ -136,6 +136,12 @@ export const configSchema = {
           default: 300,
           description: 'Maximum number of lines allowed per file.',
         },
+        maxTestFileLines: {
+          type: 'number',
+          default: 0,
+          description:
+            'Maximum number of lines allowed per test file. Set to 0 to exempt test files from size checks.',
+        },
         maxFunctionLines: {
           type: 'number',
           default: 50,
@@ -236,6 +242,7 @@ export const configSchema = {
             type: 'object',
             properties: {
               maxFileLines: { type: 'number' },
+              maxTestFileLines: { type: 'number' },
               maxFunctionLines: { type: 'number' },
               requireTests: { type: 'boolean' },
               enforceNaming: { type: 'boolean' },

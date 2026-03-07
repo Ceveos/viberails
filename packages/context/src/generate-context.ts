@@ -20,12 +20,6 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
     );
   }
 
-  if (rules.maxFunctionLines > 0) {
-    lines.push(
-      `- Functions must not exceed **${rules.maxFunctionLines} lines**. Extract helpers for complex logic.`,
-    );
-  }
-
   if (rules.enforceNaming && conventions.fileNaming) {
     const val = conventionValue(conventions.fileNaming);
     const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;

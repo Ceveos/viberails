@@ -180,6 +180,13 @@ export interface ConfigRules {
   maxFileLines: number;
 
   /**
+   * Maximum number of lines allowed per test file.
+   * Set to 0 to exempt test files from size checks.
+   * @default 0
+   */
+  maxTestFileLines: number;
+
+  /**
    * Maximum number of lines allowed per function.
    * @default 50
    */

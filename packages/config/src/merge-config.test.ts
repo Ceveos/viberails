@@ -56,6 +56,7 @@ function createExistingConfig(): ViberailsConfig {
     },
     rules: {
       maxFileLines: 500, // Developer override
+      maxTestFileLines: 0,
       maxFunctionLines: 50,
       requireTests: true,
       enforceNaming: true,
@@ -257,13 +258,13 @@ describe('mergeConfig', () => {
     const merged = mergeConfig(existing, scanResult);
 
     // Existing web override preserved (user may have edited it)
-    expect(merged.packages!.find((p) => p.path === 'apps/web')).toEqual({
+    expect(merged.packages?.find((p) => p.path === 'apps/web')).toEqual({
       name: '@app/web',
       path: 'apps/web',
       stack: { framework: 'nextjs@15' },
     });
     // New mobile override added
-    expect(merged.packages!.find((p) => p.path === 'apps/mobile')).toBeDefined();
+    expect(merged.packages?.find((p) => p.path === 'apps/mobile')).toBeDefined();
   });
 
   it('does not overwrite existing object-form conventions', () => {

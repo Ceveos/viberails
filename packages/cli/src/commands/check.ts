@@ -23,6 +23,77 @@ export interface CheckOptions {
   files?: string[];
   staged?: boolean;
   noBoundaries?: boolean;
+  quiet?: boolean;
+  limit?: number;
+}
+
+/** Check if a file path looks like a test file. */
+function isTestFile(relPath: string): boolean {
+  const filename = path.basename(relPath);
+  return (
+    filename.includes('.test.') ||
+    filename.includes('.spec.') ||
+    filename.startsWith('test.') ||
+    filename.startsWith('spec.') ||
+    relPath.includes('__tests__/') ||
+    relPath.includes('__test__/')
+  );
+}
+
+/**
+ * Print violations grouped by rule type with counts.
+ */
+function printGroupedViolations(violations: CheckViolation[], limit?: number): void {
+  const groups = new Map<string, CheckViolation[]>();
+  for (const v of violations) {
+    const existing = groups.get(v.rule) ?? [];
+    existing.push(v);
+    groups.set(v.rule, existing);
+  }
+
+  const ruleOrder = ['file-size', 'file-naming', 'missing-test', 'boundary-violation'];
+  const sortedKeys = [...groups.keys()].sort(
+    (a, b) =>
+      (ruleOrder.indexOf(a) === -1 ? 99 : ruleOrder.indexOf(a)) -
+      (ruleOrder.indexOf(b) === -1 ? 99 : ruleOrder.indexOf(b)),
+  );
+
+  let totalShown = 0;
+  const totalLimit = limit ?? Number.POSITIVE_INFINITY;
+
+  for (const rule of sortedKeys) {
+    const group = groups.get(rule);
+    if (!group) continue;
+    const remaining = totalLimit - totalShown;
+    if (remaining <= 0) break;
+
+    const toShow = group.slice(0, remaining);
+    const hidden = group.length - toShow.length;
+
+    for (const v of toShow) {
+      const icon = v.severity === 'error' ? chalk.red('✗') : chalk.yellow('!');
+      console.log(`${icon} ${chalk.dim(v.rule)} ${v.file}: ${v.message}`);
+    }
+    totalShown += toShow.length;
+
+    if (hidden > 0) {
+      console.log(chalk.dim(`  ... and ${hidden} more ${rule} violations`));
+    }
+  }
+}
+
+/**
+ * Print a summary of violations by rule type.
+ */
+function printSummary(violations: CheckViolation[]): void {
+  const counts = new Map<string, number>();
+  for (const v of violations) {
+    counts.set(v.rule, (counts.get(v.rule) ?? 0) + 1);
+  }
+
+  const word = violations.length === 1 ? 'violation' : 'violations';
+  const parts = [...counts.entries()].map(([rule, count]) => `${count} ${rule}`);
+  console.log(`\n${violations.length} ${word} found (${parts.join(', ')}).`);
 }
 
 /**
@@ -76,14 +147,16 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
     const resolved = resolveConfigForFile(relPath, config);
 
-    // Check 1: File size
-    if (resolved.rules.maxFileLines > 0) {
+    // Check 1: File size (with separate threshold for test files)
+    const testFile = isTestFile(relPath);
+    const maxLines = testFile ? resolved.rules.maxTestFileLines : resolved.rules.maxFileLines;
+    if (maxLines > 0) {
       const lines = countFileLines(absPath);
-      if (lines !== null && lines > resolved.rules.maxFileLines) {
+      if (lines !== null && lines > maxLines) {
         violations.push({
           file: relPath,
           rule: 'file-size',
-          message: `${lines} lines (max ${resolved.rules.maxFileLines}). Split into focused modules.`,
+          message: `${lines} lines (max ${maxLines}). Split into focused modules.`,
           severity,
         });
       }
@@ -158,13 +231,11 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     return 0;
   }
 
-  for (const v of violations) {
-    const icon = v.severity === 'error' ? chalk.red('✗') : chalk.yellow('!');
-    console.log(`${icon} ${chalk.dim(v.rule)} ${v.file}: ${v.message}`);
+  if (!options.quiet) {
+    printGroupedViolations(violations, options.limit);
   }
 
-  const word = violations.length === 1 ? 'violation' : 'violations';
-  console.log(`\n${violations.length} ${word} found.`);
+  printSummary(violations);
 
   if (config.enforcement === 'enforce') {
     console.log(chalk.red('Fix violations before committing.'));

@@ -3,14 +3,17 @@ export const FRAMEWORK_NAMES: Record<string, string> = {
   nextjs: 'Next.js',
   expo: 'Expo',
   'react-native': 'React Native',
+  angular: 'Angular',
   remix: 'Remix',
   nuxt: 'Nuxt',
   sveltekit: 'SvelteKit',
   astro: 'Astro',
   vite: 'Vite',
   gatsby: 'Gatsby',
+  nestjs: 'NestJS',
   express: 'Express',
   fastify: 'Fastify',
+  koa: 'Koa',
   hono: 'Hono',
 };
 

@@ -71,7 +71,10 @@ function mergeConventions(
 
   for (const key of CONVENTION_KEYS) {
     if (!hasConvention(existing, key) && fresh[key] !== undefined) {
-      merged[key] = markAsDetected(fresh[key]!);
+      const freshValue = fresh[key];
+      if (freshValue !== undefined) {
+        merged[key] = markAsDetected(freshValue);
+      }
     }
   }
 

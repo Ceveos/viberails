@@ -186,26 +186,27 @@ interface TsConfigSubset {
 }
 
 /**
- * Detects import alias patterns from tsconfig.json paths configuration.
- * Returns undefined if tsconfig.json is missing or has no paths.
+ * Detects import alias patterns from tsconfig.json or jsconfig.json paths configuration.
+ * Checks tsconfig.json first, then falls back to jsconfig.json for JavaScript projects.
  */
 async function detectImportAlias(projectPath: string): Promise<DetectedConvention | undefined> {
-  try {
-    const raw = await readFile(join(projectPath, 'tsconfig.json'), 'utf-8');
-    const tsconfig = JSON.parse(raw) as TsConfigSubset;
-    const paths = tsconfig.compilerOptions?.paths;
-    if (!paths) return undefined;
+  for (const configFile of ['tsconfig.json', 'jsconfig.json']) {
+    try {
+      const raw = await readFile(join(projectPath, configFile), 'utf-8');
+      const config = JSON.parse(raw) as TsConfigSubset;
+      const paths = config.compilerOptions?.paths;
+      if (!paths) continue;
 
-    const aliases = Object.keys(paths);
-    if (aliases.length === 0) return undefined;
+      const aliases = Object.keys(paths);
+      if (aliases.length === 0) continue;
 
-    return {
-      value: aliases.join(','),
-      confidence: 'high',
-      sampleSize: aliases.length,
-      consistency: 100,
-    };
-  } catch {
-    return undefined;
+      return {
+        value: aliases.join(','),
+        confidence: 'high',
+        sampleSize: aliases.length,
+        consistency: 100,
+      };
+    } catch {}
   }
+  return undefined;
 }

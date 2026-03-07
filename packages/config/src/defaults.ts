@@ -6,6 +6,7 @@ import type { ConfigRules } from '@viberails/types';
  */
 export const DEFAULT_RULES: ConfigRules = {
   maxFileLines: 300,
+  maxTestFileLines: 0,
   maxFunctionLines: 50,
   requireTests: true,
   enforceNaming: true,
@@ -17,6 +18,10 @@ export const DEFAULT_RULES: ConfigRules = {
  */
 export const DEFAULT_IGNORE: string[] = [
   '**/*.d.ts',
+  '**/*.min.js',
+  '**/*.min.cjs',
+  '**/*.umd.js',
+  '**/*.bundle.js',
   'dist/**',
   'node_modules/**',
   'build/**',
@@ -26,6 +31,9 @@ export const DEFAULT_IGNORE: string[] = [
   '.svelte-kit/**',
   '.turbo/**',
   'coverage/**',
-  'public/**',
+  '**/public/**',
+  '**/vendor/**',
   '.viberails/**',
+  '**/generated/**',
+  '**/__generated__/**',
 ];

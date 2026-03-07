@@ -14,6 +14,10 @@ const ALWAYS_SKIP_DIRS = new Set([
   '.svelte-kit',
   '.turbo',
   'coverage',
+  'public',
+  'vendor',
+  '__generated__',
+  'generated',
   '.viberails',
 ]);
 
@@ -39,12 +43,25 @@ export const NAMING_PATTERNS: Record<string, RegExp> = {
 /** Check if a path matches any ignore pattern. */
 export function isIgnored(relPath: string, ignorePatterns: string[]): boolean {
   for (const pattern of ignorePatterns) {
-    if (pattern.endsWith('/**')) {
+    const startsGlob = pattern.startsWith('**/');
+    const endsGlob = pattern.endsWith('/**');
+
+    if (startsGlob && endsGlob) {
+      // Pattern like **/public/** — match directory name anywhere in path
+      const middle = pattern.slice(3, -3);
+      if (
+        relPath.startsWith(`${middle}/`) ||
+        relPath.includes(`/${middle}/`) ||
+        relPath === middle
+      ) {
+        return true;
+      }
+    } else if (endsGlob) {
       const prefix = pattern.slice(0, -3);
       if (relPath.startsWith(`${prefix}/`) || relPath === prefix) return true;
-    } else if (pattern.startsWith('**/')) {
+    } else if (startsGlob) {
       const suffix = pattern.slice(3);
-      if (relPath.endsWith(suffix)) return true;
+      if (relPath.endsWith(suffix) || relPath === suffix) return true;
     } else if (relPath === pattern || relPath.startsWith(`${pattern}/`)) {
       return true;
     }

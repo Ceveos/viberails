@@ -11,6 +11,7 @@ const baseConfig: ViberailsConfig = {
   conventions: { fileNaming: 'kebab-case' },
   rules: {
     maxFileLines: 300,
+    maxTestFileLines: 0,
     maxFunctionLines: 50,
     requireTests: true,
     enforceNaming: true,

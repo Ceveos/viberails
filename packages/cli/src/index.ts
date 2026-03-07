@@ -46,19 +46,29 @@ program
   .option('--staged', 'Check only staged files (for pre-commit hooks)')
   .option('--files <files...>', 'Check specific files')
   .option('--no-boundaries', 'Skip boundary checking')
-  .action(async (options: { staged?: boolean; files?: string[]; boundaries?: boolean }) => {
-    try {
-      const exitCode = await checkCommand({
-        ...options,
-        noBoundaries: options.boundaries === false,
-      });
-      process.exit(exitCode);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`${chalk.red('Error:')} ${message}`);
-      process.exit(1);
-    }
-  });
+  .option('--quiet', 'Show only summary counts, not individual violations')
+  .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
+  .action(
+    async (options: {
+      staged?: boolean;
+      files?: string[];
+      boundaries?: boolean;
+      quiet?: boolean;
+      limit?: number;
+    }) => {
+      try {
+        const exitCode = await checkCommand({
+          ...options,
+          noBoundaries: options.boundaries === false,
+        });
+        process.exit(exitCode);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`${chalk.red('Error:')} ${message}`);
+        process.exit(1);
+      }
+    },
+  );
 
 program
   .command('fix')

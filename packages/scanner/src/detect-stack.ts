@@ -41,18 +41,22 @@ const FRAMEWORK_MAPPINGS: FrameworkMapping[] = [
   { dep: 'next', name: 'nextjs' },
   { dep: 'expo', name: 'expo' },
   { dep: 'react-native', name: 'react-native', excludeDep: 'expo' },
+  { dep: '@angular/core', name: 'angular' },
   { dep: '@sveltejs/kit', name: 'sveltekit' },
   { dep: 'svelte', name: 'svelte' },
   { dep: 'astro', name: 'astro' },
   { dep: '@remix-run/react', name: 'remix' },
   { dep: 'nuxt', name: 'nuxt' },
   { dep: 'vue', name: 'vue', excludeDep: 'nuxt' },
+  { dep: 'gatsby', name: 'gatsby' },
   { dep: 'react', name: 'react', excludeDep: 'next' },
 ];
 
 const BACKEND_MAPPINGS: Array<{ dep: string; name: string }> = [
+  { dep: '@nestjs/core', name: 'nestjs' },
   { dep: 'express', name: 'express' },
   { dep: 'fastify', name: 'fastify' },
+  { dep: 'koa', name: 'koa' },
   { dep: 'hono', name: 'hono' },
   { dep: '@supabase/supabase-js', name: 'supabase' },
   { dep: 'firebase', name: 'firebase' },
@@ -219,6 +223,15 @@ function detectTestRunner(allDeps: Record<string, string>): StackItem | undefine
   }
   if ('jest' in allDeps) {
     return { name: 'jest', version: extractMajorVersion(allDeps.jest) };
+  }
+  if ('@playwright/test' in allDeps) {
+    return { name: 'playwright', version: extractMajorVersion(allDeps['@playwright/test']) };
+  }
+  if ('cypress' in allDeps) {
+    return { name: 'cypress', version: extractMajorVersion(allDeps.cypress) };
+  }
+  if ('mocha' in allDeps) {
+    return { name: 'mocha', version: extractMajorVersion(allDeps.mocha) };
   }
   return undefined;
 }

@@ -328,11 +328,11 @@ describe('per-package overrides', () => {
 
     const config = generateConfig(scanResult);
     expect(config.packages).toBeDefined();
-    expect(config.packages!.length).toBeGreaterThan(0);
+    expect(config.packages?.length).toBeGreaterThan(0);
 
-    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
     expect(mobileOverride).toBeDefined();
-    expect(mobileOverride!.conventions!.fileNaming).toEqual({
+    expect(mobileOverride?.conventions?.fileNaming).toEqual({
       value: 'PascalCase',
       _confidence: 'high',
       _consistency: 100,
@@ -380,9 +380,9 @@ describe('per-package overrides', () => {
     const config = generateConfig(scanResult);
     expect(config.packages).toBeDefined();
 
-    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
     expect(mobileOverride).toBeDefined();
-    expect(mobileOverride!.stack!.framework).toBe('expo@53');
+    expect(mobileOverride?.stack?.framework).toBe('expo@53');
   });
 
   it('includes styling override when package styling differs from global', () => {
@@ -414,10 +414,10 @@ describe('per-package overrides', () => {
     const config = generateConfig(scanResult);
     expect(config.packages).toBeDefined();
 
-    const mobileOverride = config.packages!.find((p) => p.path === 'apps/mobile');
+    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
     expect(mobileOverride).toBeDefined();
-    expect(mobileOverride!.stack!.styling).toBe('nativewind@4');
+    expect(mobileOverride?.stack?.styling).toBe('nativewind@4');
     // Framework matches global, so it should not be in the override
-    expect(mobileOverride!.stack!.framework).toBeUndefined();
+    expect(mobileOverride?.stack?.framework).toBeUndefined();
   });
 });

@@ -3,7 +3,6 @@
 These rules are checked before commits. Violations will be **warned** but not blocked:
 
 - Files must not exceed **300 lines**. Split into focused modules.
-- Functions must not exceed **50 lines**. Extract helpers for complex logic.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.
 
 ## Per-package rules

@@ -29,6 +29,7 @@ function validConfig(): ViberailsConfig {
     conventions: {},
     rules: {
       maxFileLines: 300,
+      maxTestFileLines: 0,
       maxFunctionLines: 50,
       requireTests: true,
       enforceNaming: true,

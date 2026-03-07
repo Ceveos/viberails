@@ -26,10 +26,10 @@ describe('detectWorkspace', () => {
     const result = await detectWorkspace(join(FIXTURES, 'monorepo-basic'));
 
     expect(result).toBeDefined();
-    expect(result!.patterns).toEqual(['packages/*']);
-    expect(result!.packages).toHaveLength(3);
+    expect(result?.patterns).toEqual(['packages/*']);
+    expect(result?.packages).toHaveLength(3);
 
-    const names = result!.packages.map((p) => p.name).sort();
+    const names = result?.packages.map((p) => p.name).sort();
     expect(names).toEqual(['@mono/api', '@mono/core', '@mono/web']);
   });
 
@@ -41,13 +41,13 @@ describe('detectWorkspace', () => {
   it('correctly identifies internal dependencies between packages', async () => {
     const result = await detectWorkspace(join(FIXTURES, 'monorepo-basic'));
 
-    const api = result!.packages.find((p) => p.name === '@mono/api');
-    const web = result!.packages.find((p) => p.name === '@mono/web');
-    const core = result!.packages.find((p) => p.name === '@mono/core');
+    const api = result?.packages.find((p) => p.name === '@mono/api');
+    const web = result?.packages.find((p) => p.name === '@mono/web');
+    const core = result?.packages.find((p) => p.name === '@mono/core');
 
-    expect(api!.internalDeps).toEqual(['@mono/core']);
-    expect(web!.internalDeps).toEqual(['@mono/core']);
-    expect(core!.internalDeps).toEqual([]);
+    expect(api?.internalDeps).toEqual(['@mono/core']);
+    expect(web?.internalDeps).toEqual(['@mono/core']);
+    expect(core?.internalDeps).toEqual([]);
   });
 
   it('handles missing package.json in workspace directory gracefully', async () => {
@@ -72,8 +72,8 @@ describe('detectWorkspace', () => {
 
     const result = await detectWorkspace(dir);
     expect(result).toBeDefined();
-    expect(result!.packages).toHaveLength(1);
-    expect(result!.packages[0].name).toBe('@test/valid');
+    expect(result?.packages).toHaveLength(1);
+    expect(result?.packages[0].name).toBe('@test/valid');
   });
 
   it('handles pnpm-workspace.yaml format', async () => {
@@ -96,16 +96,16 @@ describe('detectWorkspace', () => {
 
     const result = await detectWorkspace(dir);
     expect(result).toBeDefined();
-    expect(result!.patterns).toEqual(['packages/*']);
-    expect(result!.packages).toHaveLength(1);
-    expect(result!.packages[0].name).toBe('@test/lib');
+    expect(result?.patterns).toEqual(['packages/*']);
+    expect(result?.packages).toHaveLength(1);
+    expect(result?.packages[0].name).toBe('@test/lib');
   });
 
   it('sets correct relative paths for packages', async () => {
     const result = await detectWorkspace(join(FIXTURES, 'monorepo-basic'));
-    const core = result!.packages.find((p) => p.name === '@mono/core');
+    const core = result?.packages.find((p) => p.name === '@mono/core');
 
-    expect(core!.relativePath).toBe('packages/core');
+    expect(core?.relativePath).toBe('packages/core');
   });
 
   it('handles workspaces as object with packages field', async () => {
@@ -128,6 +128,6 @@ describe('detectWorkspace', () => {
 
     const result = await detectWorkspace(dir);
     expect(result).toBeDefined();
-    expect(result!.packages).toHaveLength(1);
+    expect(result?.packages).toHaveLength(1);
   });
 });

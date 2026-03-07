@@ -65,7 +65,7 @@ export async function buildImportGraph(
     const filePath = sourceFile.getFilePath();
 
     // Determine which package this file belongs to
-    const ownerPkg = packages.find((pkg) => filePath.startsWith(pkg.path + '/'));
+    const ownerPkg = packages.find((pkg) => filePath.startsWith(`${pkg.path}/`));
 
     nodes.push({
       filePath,

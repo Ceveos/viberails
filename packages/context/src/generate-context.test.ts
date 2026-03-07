@@ -14,6 +14,7 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
     },
     rules: {
       maxFileLines: 300,
+      maxTestFileLines: 0,
       maxFunctionLines: 50,
       requireTests: true,
       enforceNaming: true,
@@ -35,9 +36,9 @@ describe('generateContext (rules-focused)', () => {
     expect(output).toContain('300 lines');
   });
 
-  it('mentions function size limit', () => {
+  it('does not mention function size limit (not enforced by check)', () => {
     const output = generateContext(makeConfig());
-    expect(output).toContain('50 lines');
+    expect(output).not.toContain('50 lines');
   });
 
   it('mentions naming convention with example', () => {
@@ -86,6 +87,7 @@ describe('generateContext (rules-focused)', () => {
       makeConfig({
         rules: {
           maxFileLines: 0,
+          maxTestFileLines: 0,
           maxFunctionLines: 0,
           requireTests: false,
           enforceNaming: false,

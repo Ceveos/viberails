@@ -98,6 +98,12 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
 
   validateConfig(parsed, configPath);
 
+  // Apply defaults for optional fields added after V1.0
+  const rules = parsed.rules as Record<string, unknown>;
+  if (rules.maxTestFileLines === undefined) {
+    rules.maxTestFileLines = 0;
+  }
+
   // Safe to cast: validateConfig has verified all required fields and types
   return parsed as unknown as ViberailsConfig;
 }
