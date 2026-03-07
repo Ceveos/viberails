@@ -1,9 +1,4 @@
-import type {
-  DetectedConvention,
-  PackageScanResult,
-  ScanResult,
-  StackItem,
-} from '@viberails/types';
+import type { DetectedConvention, ScanResult, StackItem } from '@viberails/types';
 import { FRAMEWORK_NAMES, LIBRARY_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
 import {
@@ -12,6 +7,7 @@ import {
   formatSummary,
   groupByRole,
 } from './display-helpers.js';
+import { displayMonorepoResults } from './display-monorepo.js';
 
 /** Labels for convention keys. */
 const CONVENTION_LABELS: Record<string, string> = {
@@ -24,7 +20,7 @@ const CONVENTION_LABELS: Record<string, string> = {
 /**
  * Format a StackItem for display: "DisplayName Version".
  */
-function formatItem(item: StackItem, nameMap?: Record<string, string>): string {
+export function formatItem(item: StackItem, nameMap?: Record<string, string>): string {
   const name = nameMap?.[item.name] ?? item.name;
   return item.version ? `${name} ${item.version}` : name;
 }
@@ -32,7 +28,7 @@ function formatItem(item: StackItem, nameMap?: Record<string, string>): string {
 /**
  * Format a confidence label for display.
  */
-function confidenceLabel(convention: DetectedConvention): string {
+export function confidenceLabel(convention: DetectedConvention): string {
   const pct = Math.round(convention.consistency);
   if (convention.confidence === 'high') {
     return `${pct}% — high confidence, will enforce`;
@@ -41,25 +37,9 @@ function confidenceLabel(convention: DetectedConvention): string {
 }
 
 /**
- * Format a package summary line for monorepo display.
- */
-function formatPackageSummary(pkg: PackageScanResult): string {
-  const parts: string[] = [];
-  if (pkg.stack.framework) {
-    parts.push(formatItem(pkg.stack.framework, FRAMEWORK_NAMES));
-  }
-  if (pkg.stack.styling) {
-    parts.push(formatItem(pkg.stack.styling, STYLING_NAMES));
-  }
-  const files = `${pkg.statistics.totalFiles} files`;
-  const detail = parts.length > 0 ? `${parts.join(', ')} (${files})` : `(${files})`;
-  return `  ${pkg.relativePath} — ${detail}`;
-}
-
-/**
  * Display conventions section, shared between single-package and monorepo.
  */
-function displayConventions(scanResult: ScanResult): void {
+export function displayConventions(scanResult: ScanResult): void {
   const conventionEntries = Object.entries(scanResult.conventions);
   if (conventionEntries.length === 0) return;
 
@@ -97,7 +77,7 @@ function displayConventions(scanResult: ScanResult): void {
 /**
  * Display summary section with statistics.
  */
-function displaySummarySection(scanResult: ScanResult): void {
+export function displaySummarySection(scanResult: ScanResult): void {
   const pkgCount = scanResult.packages.length > 1 ? scanResult.packages.length : undefined;
   console.log(`\n${chalk.bold('Summary:')}`);
   console.log(`  ${formatSummary(scanResult.statistics, pkgCount)}`);
@@ -105,56 +85,6 @@ function displaySummarySection(scanResult: ScanResult): void {
   if (ext) {
     console.log(`  ${ext}`);
   }
-}
-
-/**
- * Display scan results for a monorepo with per-package summaries.
- */
-function displayMonorepoResults(scanResult: ScanResult): void {
-  const { stack, packages } = scanResult;
-
-  console.log(`\n${chalk.bold(`Detected: (monorepo, ${packages.length} packages)`)}`);
-
-  // Shared stack items at the top
-  console.log(`  ${chalk.green('✓')} ${formatItem(stack.language)}`);
-  if (stack.packageManager) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.packageManager)}`);
-  }
-  if (stack.linter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
-  }
-  if (stack.formatter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
-  }
-  if (stack.testRunner) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
-  }
-
-  // Per-package summaries
-  console.log('');
-  for (const pkg of packages) {
-    console.log(formatPackageSummary(pkg));
-  }
-
-  // Structure grouped by role per package
-  const packagesWithDirs = packages.filter((pkg) =>
-    pkg.structure.directories.some((d) => d.role !== 'unknown'),
-  );
-  if (packagesWithDirs.length > 0) {
-    console.log(`\n${chalk.bold('Structure:')}`);
-    for (const pkg of packagesWithDirs) {
-      const groups = groupByRole(pkg.structure.directories);
-      if (groups.length === 0) continue;
-      console.log(`  ${pkg.relativePath}:`);
-      for (const group of groups) {
-        console.log(`    ${chalk.green('✓')} ${formatRoleGroup(group)}`);
-      }
-    }
-  }
-
-  displayConventions(scanResult);
-  displaySummarySection(scanResult);
-  console.log('');
 }
 
 /**

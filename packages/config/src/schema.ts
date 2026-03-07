@@ -59,6 +59,10 @@ export const configSchema = {
           type: 'string',
           description: 'Linter (e.g. "eslint@9", "biome").',
         },
+        formatter: {
+          type: 'string',
+          description: 'Formatter (e.g. "prettier", "biome").',
+        },
         testRunner: {
           type: 'string',
           description: 'Test runner (e.g. "vitest", "jest").',
@@ -222,6 +226,7 @@ export const configSchema = {
               backend: { type: 'string' },
               packageManager: { type: 'string' },
               linter: { type: 'string' },
+              formatter: { type: 'string' },
               testRunner: { type: 'string' },
             },
             additionalProperties: false,

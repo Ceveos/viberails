@@ -31,10 +31,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@viberails/types": "workspace:*"
+    "@viberails/types": "workspace:*",
+    "ajv": "^8.18.0"
   },
   "devDependencies": {
-    "@types/node": "^25.3.5",
-    "ajv": "^8.18.0"
+    "@types/node": "^25.3.5"
   }
 }
