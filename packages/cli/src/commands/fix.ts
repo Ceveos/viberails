@@ -48,7 +48,7 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
   const config = await loadConfig(configPath);
 
   // Git dirty check — warn but don't block
-  if (!options.yes && !options.dryRun) {
+  if (!options.dryRun) {
     const isDirty = checkGitDirty(projectRoot);
     if (isDirty) {
       console.log(

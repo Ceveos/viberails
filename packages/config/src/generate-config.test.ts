@@ -1,6 +1,6 @@
 import type { ScanResult } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RULES } from './defaults.js';
+import { DEFAULT_IGNORE, DEFAULT_RULES } from './defaults.js';
 import { generateConfig } from './generate-config.js';
 
 function createNextjs15ScanResult(): ScanResult {
@@ -134,7 +134,7 @@ describe('generateConfig', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.ignore).toEqual(['**/*.d.ts', 'dist/**', 'node_modules/**']);
+    expect(config.ignore).toEqual(DEFAULT_IGNORE);
   });
 
   it('derives project name from root path basename', () => {

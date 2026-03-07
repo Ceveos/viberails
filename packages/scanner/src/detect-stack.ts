@@ -44,7 +44,9 @@ const FRAMEWORK_MAPPINGS: FrameworkMapping[] = [
   { dep: '@sveltejs/kit', name: 'sveltekit' },
   { dep: 'svelte', name: 'svelte' },
   { dep: 'astro', name: 'astro' },
-  { dep: 'vue', name: 'vue' },
+  { dep: '@remix-run/react', name: 'remix' },
+  { dep: 'nuxt', name: 'nuxt' },
+  { dep: 'vue', name: 'vue', excludeDep: 'nuxt' },
   { dep: 'react', name: 'react', excludeDep: 'next' },
 ];
 

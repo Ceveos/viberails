@@ -113,6 +113,55 @@ describe('detectStack', () => {
     });
   });
 
+  describe('Remix and Nuxt detection', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-remix-nuxt-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects Remix from @remix-run/react dependency', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { '@remix-run/react': '^2.0.0', react: '^18.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework).toEqual({ name: 'remix', version: '2' });
+    });
+
+    it('detects Nuxt from nuxt dependency', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { nuxt: '^3.0.0', vue: '^3.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework).toEqual({ name: 'nuxt', version: '3' });
+    });
+
+    it('does not report vue when nuxt is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { nuxt: '^3.0.0', vue: '^3.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework?.name).toBe('nuxt');
+    });
+  });
+
   describe('formatter detection', () => {
     let tempDir: string;
 
