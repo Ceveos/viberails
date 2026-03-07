@@ -1,5 +1,5 @@
-import type { ImportGraph, ImportGraphNode, WorkspacePackage } from '@viberails/types';
 import { relative } from 'node:path';
+import type { ImportGraph, ImportGraphNode, WorkspacePackage } from '@viberails/types';
 import { Project } from 'ts-morph';
 import { detectCycles } from './detect-cycles.js';
 import { parseImports } from './parse-imports.js';

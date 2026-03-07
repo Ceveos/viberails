@@ -1,19 +1,11 @@
-import type { ConventionValue, ViberailsConfig } from '@viberails/types';
-
-/** Naming convention examples for directive formatting. */
-const NAMING_EXAMPLES: Record<string, string> = {
-  'kebab-case': '`user-profile.ts`, not `UserProfile.ts`',
-  camelCase: '`userProfile.ts`, not `user-profile.ts`',
-  PascalCase: '`UserProfile.ts`, not `user-profile.ts`',
-  snake_case: '`user_profile.ts`, not `UserProfile.ts`',
-};
-
-/**
- * Extract the effective value from a ConventionValue (string or object).
- */
-function conventionValue(cv: ConventionValue): string {
-  return typeof cv === 'string' ? cv : cv.value;
-}
+import type { ViberailsConfig } from '@viberails/types';
+import {
+  conventionValue,
+  formatBoundaryRules,
+  formatDevelopmentSetup,
+  formatPackageOverrides,
+  NAMING_EXAMPLES,
+} from './format-helpers.js';
 
 /**
  * Build the list of enforced rules as markdown bullet points.
@@ -41,10 +33,15 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
   }
 
   if (rules.requireTests && structure.testPattern) {
-    const srcDir = structure.srcDir ?? 'src';
-    lines.push(
-      `- Every source file in \`${srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
-    );
+    if (structure.srcDir) {
+      lines.push(
+        `- Every source file in \`${structure.srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
+      );
+    } else {
+      lines.push(
+        `- Every source file must have a corresponding \`${structure.testPattern}\` file.`,
+      );
+    }
   }
 
   return lines;
@@ -80,38 +77,26 @@ export function generateContext(config: ViberailsConfig): string {
     sections.push('_(No rules configured. Edit `viberails.config.json` to add rules.)_');
   }
 
+  const packageLines = formatPackageOverrides(config);
+  if (packageLines.length > 0) {
+    sections.push('');
+    sections.push(packageLines.join('\n'));
+  }
+
   const boundaryLines = formatBoundaryRules(config);
   if (boundaryLines.length > 0) {
     sections.push('');
     sections.push(boundaryLines.join('\n'));
   }
 
+  const setupLines = formatDevelopmentSetup(config);
+  if (setupLines.length > 0) {
+    sections.push('');
+    sections.push(setupLines.join('\n'));
+  }
+
   sections.push('');
   sections.push('Run `viberails check` before committing to catch violations early.\n');
 
   return sections.join('\n');
-}
-
-/**
- * Build the boundary rules section as markdown lines.
- * Only includes deny rules (allow: false).
- */
-function formatBoundaryRules(config: ViberailsConfig): string[] {
-  if (!config.rules.enforceBoundaries || !config.boundaries || config.boundaries.length === 0) {
-    return [];
-  }
-
-  const denyRules = config.boundaries.filter((r) => !r.allow);
-  if (denyRules.length === 0) return [];
-
-  const lines: string[] = [];
-  lines.push('## Boundary rules\n');
-  lines.push('These import boundaries are enforced:\n');
-
-  for (const rule of denyRules) {
-    const reason = rule.reason ? ` (${rule.reason})` : '';
-    lines.push(`- \`${rule.from}\` must NOT import from \`${rule.to}\`${reason}`);
-  }
-
-  return lines;
 }

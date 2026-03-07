@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,18 +67,11 @@ describe('detectStack', () => {
     expect(result.libraries).toEqual([]);
   });
 
-  describe('workspace dependency aggregation', () => {
+  describe('additionalDeps merging', () => {
     let tempDir: string;
-    let webDir: string;
-    let mobileDir: string;
 
     beforeAll(async () => {
-      tempDir = await mkdtemp(join(tmpdir(), 'viberails-workspace-'));
-      webDir = join(tempDir, 'apps', 'web');
-      mobileDir = join(tempDir, 'apps', 'mobile');
-
-      await mkdir(webDir, { recursive: true });
-      await mkdir(mobileDir, { recursive: true });
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-addldeps-'));
 
       // Root package.json — no framework deps, no typescript
       await writeFile(
@@ -86,91 +79,78 @@ describe('detectStack', () => {
         JSON.stringify({ name: 'monorepo', private: true }),
       );
       await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
-
-      // Web package has Next.js + TypeScript
-      await writeFile(
-        join(webDir, 'package.json'),
-        JSON.stringify({
-          name: '@app/web',
-          dependencies: { next: '^15.0.0', react: '^19.0.0' },
-          devDependencies: { typescript: '^5.5.0' },
-        }),
-      );
-      await writeFile(join(webDir, 'tsconfig.json'), '{}');
-
-      // Mobile package has Expo
-      await writeFile(
-        join(mobileDir, 'package.json'),
-        JSON.stringify({
-          name: '@app/mobile',
-          dependencies: { expo: '^53.0.0', 'react-native': '^0.76.0' },
-        }),
-      );
     });
 
     afterAll(async () => {
       await rm(tempDir, { recursive: true, force: true });
     });
 
-    it('detects typescript from workspace package deps', async () => {
-      const result = await detectStack(tempDir, [webDir, mobileDir]);
+    it('detects typescript from additionalDeps', async () => {
+      const result = await detectStack(tempDir, { typescript: '^5.5.0' });
       expect(result.language.name).toBe('typescript');
+      expect(result.language.version).toBe('5');
     });
 
-    it('detects Next.js as primary framework from workspace deps', async () => {
-      const result = await detectStack(tempDir, [webDir, mobileDir]);
+    it('detects Next.js from additionalDeps', async () => {
+      const result = await detectStack(tempDir, {
+        next: '^15.0.0',
+        react: '^19.0.0',
+      });
       expect(result.framework).toEqual({ name: 'nextjs', version: '15' });
     });
 
-    it('detects Expo as additional library from workspace deps', async () => {
-      const result = await detectStack(tempDir, [webDir, mobileDir]);
-      const expoLib = result.libraries.find((l) => l.name === 'expo');
-      expect(expoLib).toEqual({ name: 'expo', version: '53' });
+    it('package deps override additionalDeps', async () => {
+      // additionalDeps has next 14, but package.json has no deps
+      // so additionalDeps value is used
+      const result = await detectStack(tempDir, { next: '^14.0.0', react: '^18.0.0' });
+      expect(result.framework).toEqual({ name: 'nextjs', version: '14' });
     });
 
-    it('does not include react when next is present (excludeDep)', async () => {
-      const result = await detectStack(tempDir, [webDir, mobileDir]);
-      const reactLib = result.libraries.find((l) => l.name === 'react');
-      expect(reactLib).toBeUndefined();
-    });
-
-    it('does not include react-native when expo is present (excludeDep)', async () => {
-      const result = await detectStack(tempDir, [webDir, mobileDir]);
-      const rnLib = result.libraries.find((l) => l.name === 'react-native');
-      expect(rnLib).toBeUndefined();
-    });
-
-    it('falls back to javascript without workspace dirs', async () => {
+    it('falls back to javascript without additionalDeps', async () => {
       const result = await detectStack(tempDir);
       expect(result.language.name).toBe('javascript');
       expect(result.framework).toBeUndefined();
     });
   });
 
-  describe('workspace typescript detection via tsconfig.json', () => {
+  describe('formatter detection', () => {
     let tempDir: string;
-    let pkgDir: string;
 
     beforeAll(async () => {
-      tempDir = await mkdtemp(join(tmpdir(), 'viberails-tsconfig-'));
-      pkgDir = join(tempDir, 'packages', 'core');
-      await mkdir(pkgDir, { recursive: true });
-
-      // Root has no typescript dep and no tsconfig
-      await writeFile(join(tempDir, 'package.json'), JSON.stringify({ name: 'monorepo' }));
-
-      // Workspace package has tsconfig but no typescript dep
-      await writeFile(join(pkgDir, 'package.json'), JSON.stringify({ name: '@app/core' }));
-      await writeFile(join(pkgDir, 'tsconfig.json'), '{}');
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-fmt-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
     });
 
     afterAll(async () => {
       await rm(tempDir, { recursive: true, force: true });
     });
 
-    it('detects typescript from workspace package tsconfig.json', async () => {
-      const result = await detectStack(tempDir, [pkgDir]);
-      expect(result.language.name).toBe('typescript');
+    it('detects Prettier as formatter from devDependencies', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { prettier: '^3.2.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.formatter).toEqual({ name: 'prettier', version: '3' });
+    });
+
+    it('detects Biome as both linter and formatter', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { '@biomejs/biome': '^2.0.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.linter).toEqual({ name: 'biome', version: '2' });
+      expect(result.formatter).toEqual({ name: 'biome', version: '2' });
+    });
+
+    it('returns no formatter when none is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', devDependencies: { eslint: '^9.0.0' } }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.formatter).toBeUndefined();
     });
   });
 

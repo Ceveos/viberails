@@ -1,5 +1,4 @@
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
 import type {
   BoundaryRule,
   ImportEdge,
@@ -7,8 +6,9 @@ import type {
   ImportGraphNode,
   WorkspacePackage,
 } from '@viberails/types';
-import { checkBoundaries } from './check-boundaries.js';
+import { describe, expect, it } from 'vitest';
 import { buildImportGraph } from './build-graph.js';
+import { checkBoundaries } from './check-boundaries.js';
 
 /** Helper to create a minimal node. */
 function node(filePath: string, relativePath: string, packageName?: string): ImportGraphNode {

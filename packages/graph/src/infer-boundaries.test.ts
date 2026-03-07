@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ImportEdge, ImportGraph, ImportGraphNode, WorkspacePackage } from '@viberails/types';
+import { describe, expect, it } from 'vitest';
 import { inferBoundaries } from './infer-boundaries.js';
 
 /** Helper to create a minimal node. */

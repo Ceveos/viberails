@@ -38,6 +38,28 @@ export interface ViberailsConfig {
 
   /** Workspace configuration for monorepo support (V1.1+). */
   workspace?: WorkspaceConfig;
+
+  /** Per-package overrides for monorepo projects. Only packages that differ from global. */
+  packages?: PackageConfigOverrides[];
+}
+
+/**
+ * Per-package configuration overrides for monorepo projects.
+ * Only fields that differ from the global config are included.
+ */
+export interface PackageConfigOverrides {
+  /** Package name from package.json. */
+  name: string;
+  /** Relative path to the package (e.g. "apps/web"). */
+  path: string;
+  /** Override stack fields (only differences from global). */
+  stack?: Partial<ConfigStack>;
+  /** Override conventions (only differences from global). */
+  conventions?: Partial<ConfigConventions>;
+  /** Override rules (only differences from global). */
+  rules?: Partial<ConfigRules>;
+  /** Additional ignore patterns for this package (appended to global). */
+  ignore?: string[];
 }
 
 /**
@@ -73,6 +95,9 @@ export interface ConfigStack {
 
   /** Linter (e.g. `"eslint@9"`, `"biome"`). */
   linter?: string;
+
+  /** Formatter (e.g. `"prettier"`, `"biome"`). */
+  formatter?: string;
 
   /** Test runner (e.g. `"vitest"`, `"jest"`). */
   testRunner?: string;

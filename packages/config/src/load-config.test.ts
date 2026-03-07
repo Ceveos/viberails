@@ -71,6 +71,58 @@ describe('loadConfig', () => {
     await expect(loadConfig(configPath)).rejects.toThrow('stack');
     await expect(loadConfig(configPath)).rejects.toThrow('rules');
   });
+
+  it('throws when stack is missing required fields', async () => {
+    const configPath = path.join(tmpDir, 'bad-stack.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        stack: {},
+        rules: {
+          maxFileLines: 300,
+          maxFunctionLines: 50,
+          requireTests: true,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('stack.language');
+    await expect(loadConfig(configPath)).rejects.toThrow('stack.packageManager');
+  });
+
+  it('throws when rules have wrong types', async () => {
+    const configPath = path.join(tmpDir, 'bad-rules.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        rules: {
+          maxFileLines: 'not-a-number',
+          maxFunctionLines: 50,
+          requireTests: true,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('rules.maxFileLines');
+  });
+
+  it('throws when enforcement has invalid value', async () => {
+    const configPath = path.join(tmpDir, 'bad-enforcement.json');
+    const config = validConfig();
+    (config as Record<string, unknown>).enforcement = 'strict';
+    await fs.writeFile(configPath, JSON.stringify(config));
+
+    await expect(loadConfig(configPath)).rejects.toThrow('enforcement');
+  });
 });
 
 describe('loadConfigSafe', () => {

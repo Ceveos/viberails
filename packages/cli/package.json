@@ -1,6 +1,6 @@
 {
   "name": "viberails",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CLI tool for scanning JS/TS projects and generating AI context",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,7 +37,8 @@
     "@viberails/scanner": "workspace:*",
     "@viberails/types": "workspace:*",
     "chalk": "^5.6.2",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "ts-morph": "^27.0.2"
   },
   "devDependencies": {
     "@types/node": "^25.3.5"

@@ -11,11 +11,12 @@ import type {
   ViberailsConfig,
 } from '@viberails/types';
 import { DEFAULT_IGNORE, DEFAULT_RULES } from './defaults.js';
+import { generatePackageOverrides } from './generate-overrides.js';
 
 /**
  * Format a StackItem as a config string: `"name@version"` or `"name"`.
  */
-function formatStackItem(item: StackItem): string {
+export function formatStackItem(item: StackItem): string {
   return item.version ? `${item.name}@${item.version}` : item.name;
 }
 
@@ -33,6 +34,7 @@ function mapStack(scanResult: ScanResult): ConfigStack {
   if (stack.styling) config.styling = formatStackItem(stack.styling);
   if (stack.backend) config.backend = formatStackItem(stack.backend);
   if (stack.linter) config.linter = formatStackItem(stack.linter);
+  if (stack.formatter) config.formatter = formatStackItem(stack.formatter);
   if (stack.testRunner) config.testRunner = formatStackItem(stack.testRunner);
 
   return config;
@@ -78,7 +80,7 @@ function mapStructure(scanResult: ScanResult): ConfigStructure {
  * Convert a DetectedConvention to a ConventionValue with metadata.
  * Returns undefined for low-confidence conventions (they are omitted).
  */
-function mapConvention(convention: DetectedConvention): ConventionValue | undefined {
+export function mapConvention(convention: DetectedConvention): ConventionValue | undefined {
   if (convention.confidence === 'low') {
     return undefined;
   }
@@ -91,7 +93,7 @@ function mapConvention(convention: DetectedConvention): ConventionValue | undefi
 }
 
 /** Convention keys from ScanResult that map to ConfigConventions fields. */
-const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
+export const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
   'fileNaming',
   'componentNaming',
   'hookNaming',
@@ -146,6 +148,11 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
       isMonorepo: true,
     };
     config.boundaries = [];
+  }
+
+  const packageOverrides = generatePackageOverrides(scanResult, config);
+  if (packageOverrides) {
+    config.packages = packageOverrides;
   }
 
   return config;

@@ -24,7 +24,15 @@
     "format": "biome format --write packages/ tests/",
     "prepare": "lefthook install",
     "clean": "turbo run clean && rm -rf node_modules",
-    "publish-packages": "./scripts/publish.sh"
+    "release": "./scripts/publish.sh",
+    "release:patch": "./scripts/publish.sh patch",
+    "release:minor": "./scripts/publish.sh minor",
+    "release:major": "./scripts/publish.sh major",
+    "release:dry": "./scripts/publish.sh --dry-run",
+    "viberails": "node packages/cli/dist/index.js",
+    "viberails:check": "node packages/cli/dist/index.js check",
+    "viberails:fix": "node packages/cli/dist/index.js fix",
+    "viberails:fix:dry": "node packages/cli/dist/index.js fix --dry-run"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",

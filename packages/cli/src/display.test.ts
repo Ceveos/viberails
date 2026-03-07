@@ -1,31 +1,59 @@
-import type { ScanResult } from '@viberails/types';
+import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { describe, expect, it, vi } from 'vitest';
 import { displayScanResults } from './display.js';
 
+function makeDefaultStats() {
+  return {
+    totalFiles: 0,
+    totalLines: 0,
+    averageFileLines: 0,
+    largestFiles: [],
+    filesByExtension: {},
+  };
+}
+
 function makeScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
+  const stack = {
+    language: { name: 'typescript' },
+    packageManager: { name: 'npm' },
+    libraries: [],
+    ...overrides.stack,
+  };
+  const structure = {
+    directories: [],
+    ...overrides.structure,
+  };
+  const conventions = overrides.conventions ?? {};
+  const statistics = { ...makeDefaultStats(), ...overrides.statistics };
+
   return {
     root: '/project',
-    stack: {
-      language: { name: 'typescript' },
-      packageManager: { name: 'npm' },
-      libraries: [],
-      ...overrides.stack,
-    },
-    structure: {
-      directories: [],
-      ...overrides.structure,
-    },
-    conventions: overrides.conventions ?? {},
-
-    statistics: {
-      totalFiles: 0,
-      totalLines: 0,
-      averageFileLines: 0,
-      largestFiles: [],
-      filesByExtension: {},
-      ...overrides.statistics,
-    },
+    stack,
+    structure,
+    conventions,
+    statistics,
+    packages: overrides.packages ?? [
+      {
+        name: 'project',
+        root: '/project',
+        relativePath: '',
+        stack,
+        structure,
+        conventions,
+        statistics,
+      },
+    ],
   };
+}
+
+function captureOutput(fn: () => void): string {
+  const logs: string[] = [];
+  const consoleSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
+    logs.push(args.join(' '));
+  });
+  fn();
+  consoleSpy.mockRestore();
+  return logs.join('\n');
 }
 
 describe('displayScanResults', () => {
@@ -90,51 +118,242 @@ describe('displayScanResults', () => {
   });
 
   it('skips low-confidence conventions', () => {
-    const logs: string[] = [];
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
-      logs.push(args.join(' '));
-    });
-
-    displayScanResults(
-      makeScanResult({
-        conventions: {
-          fileNaming: { value: 'kebab-case', confidence: 'low', sampleSize: 5, consistency: 50 },
-          componentNaming: {
-            value: 'PascalCase',
-            confidence: 'high',
-            sampleSize: 20,
-            consistency: 95,
+    const output = captureOutput(() =>
+      displayScanResults(
+        makeScanResult({
+          conventions: {
+            fileNaming: { value: 'kebab-case', confidence: 'low', sampleSize: 5, consistency: 50 },
+            componentNaming: {
+              value: 'PascalCase',
+              confidence: 'high',
+              sampleSize: 20,
+              consistency: 95,
+            },
           },
-        },
-      }),
+        }),
+      ),
     );
 
-    const output = logs.join('\n');
     expect(output).not.toContain('kebab-case');
     expect(output).toContain('PascalCase');
-    consoleSpy.mockRestore();
   });
 
   it('filters out unknown directories from structure display', () => {
-    const logs: string[] = [];
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation((...args) => {
-      logs.push(args.join(' '));
-    });
-
-    displayScanResults(
-      makeScanResult({
-        structure: {
-          directories: [
-            { path: 'src/components', role: 'components', fileCount: 10, confidence: 'high' },
-            { path: 'src/random', role: 'unknown', fileCount: 3, confidence: 'low' },
-          ],
-        },
-      }),
+    const output = captureOutput(() =>
+      displayScanResults(
+        makeScanResult({
+          structure: {
+            directories: [
+              { path: 'src/components', role: 'components', fileCount: 10, confidence: 'high' },
+              { path: 'src/random', role: 'unknown', fileCount: 3, confidence: 'low' },
+            ],
+          },
+        }),
+      ),
     );
 
-    const output = logs.join('\n');
-    expect(output).toContain('src/components');
+    expect(output).toContain('Components');
     expect(output).not.toContain('src/random');
-    consoleSpy.mockRestore();
+  });
+
+  it('groups structure directories by role', () => {
+    const output = captureOutput(() =>
+      displayScanResults(
+        makeScanResult({
+          structure: {
+            directories: [
+              { path: 'src/hooks/auth', role: 'hooks', fileCount: 10, confidence: 'high' },
+              { path: 'src/hooks/data', role: 'hooks', fileCount: 20, confidence: 'high' },
+              { path: 'src/hooks/ui', role: 'hooks', fileCount: 15, confidence: 'high' },
+              { path: 'src/hooks/forms', role: 'hooks', fileCount: 10, confidence: 'high' },
+            ],
+          },
+        }),
+      ),
+    );
+
+    // Should show merged "Hooks — 4 dirs (55 files)" instead of individual paths
+    expect(output).toContain('Hooks');
+    expect(output).toContain('4 dirs');
+    expect(output).toContain('55 files');
+    // Individual paths should NOT appear
+    expect(output).not.toContain('src/hooks/auth');
+    expect(output).not.toContain('src/hooks/data');
+  });
+
+  it('shows path for single-directory roles', () => {
+    const output = captureOutput(() =>
+      displayScanResults(
+        makeScanResult({
+          structure: {
+            directories: [{ path: 'src/hooks', role: 'hooks', fileCount: 8, confidence: 'high' }],
+          },
+        }),
+      ),
+    );
+
+    expect(output).toContain('Hooks');
+    expect(output).toContain('src/hooks');
+    expect(output).toContain('8 files');
+  });
+
+  it('shows summary with file and line counts', () => {
+    const output = captureOutput(() =>
+      displayScanResults(
+        makeScanResult({
+          statistics: {
+            totalFiles: 150,
+            totalLines: 12000,
+            averageFileLines: 80,
+            largestFiles: [],
+            filesByExtension: { '.ts': 100, '.tsx': 50 },
+          },
+        }),
+      ),
+    );
+
+    expect(output).toContain('Summary:');
+    expect(output).toContain('150 source files');
+    expect(output).toContain('12,000 lines');
+    expect(output).toContain('avg 80 lines/file');
+    expect(output).toContain('.ts 100');
+    expect(output).toContain('.tsx 50');
+  });
+});
+
+function makeMonorepoScanResult(): ScanResult {
+  const webPkg: PackageScanResult = {
+    name: '@app/web',
+    root: '/project/apps/web',
+    relativePath: 'apps/web',
+    stack: {
+      language: { name: 'typescript' },
+      packageManager: { name: 'pnpm' },
+      framework: { name: 'nextjs', version: '15' },
+      styling: { name: 'tailwindcss', version: '4' },
+      libraries: [],
+    },
+    structure: {
+      directories: [
+        { path: 'components', role: 'components', fileCount: 3, confidence: 'high' },
+        { path: 'app/api', role: 'api', fileCount: 1, confidence: 'high' },
+        { path: 'lib', role: 'utils', fileCount: 2, confidence: 'high' },
+      ],
+    },
+    conventions: {
+      fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 20, consistency: 95 },
+    },
+    statistics: { ...makeDefaultStats(), totalFiles: 6 },
+  };
+
+  const mobilePkg: PackageScanResult = {
+    name: '@app/mobile',
+    root: '/project/apps/mobile',
+    relativePath: 'apps/mobile',
+    stack: {
+      language: { name: 'typescript' },
+      packageManager: { name: 'pnpm' },
+      framework: { name: 'expo' },
+      libraries: [],
+    },
+    structure: {
+      directories: [
+        { path: 'hooks/auth', role: 'hooks', fileCount: 10, confidence: 'high' },
+        { path: 'hooks/data', role: 'hooks', fileCount: 20, confidence: 'high' },
+        { path: 'hooks/ui', role: 'hooks', fileCount: 15, confidence: 'high' },
+        { path: 'hooks/forms', role: 'hooks', fileCount: 10, confidence: 'high' },
+      ],
+    },
+    conventions: {
+      fileNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 10, consistency: 100 },
+    },
+    statistics: { ...makeDefaultStats(), totalFiles: 55 },
+  };
+
+  const sharedPkg: PackageScanResult = {
+    name: '@app/shared',
+    root: '/project/packages/shared',
+    relativePath: 'packages/shared',
+    stack: {
+      language: { name: 'typescript' },
+      packageManager: { name: 'pnpm' },
+      libraries: [{ name: 'zod' }],
+    },
+    structure: { directories: [] },
+    conventions: {},
+    statistics: { ...makeDefaultStats(), totalFiles: 2 },
+  };
+
+  return {
+    root: '/project',
+    stack: {
+      language: { name: 'typescript', version: '5' },
+      packageManager: { name: 'pnpm' },
+      libraries: [],
+    },
+    structure: { directories: [] },
+    conventions: {
+      fileNaming: { value: 'kebab-case', confidence: 'medium', sampleSize: 30, consistency: 75 },
+    },
+    statistics: {
+      totalFiles: 63,
+      totalLines: 4800,
+      averageFileLines: 76,
+      largestFiles: [],
+      filesByExtension: { '.ts': 40, '.tsx': 23 },
+    },
+    packages: [webPkg, mobilePkg, sharedPkg],
+  };
+}
+
+describe('monorepo display', () => {
+  it('shows package count in header', () => {
+    const output = captureOutput(() => displayScanResults(makeMonorepoScanResult()));
+    expect(output).toContain('monorepo');
+    expect(output).toContain('3 packages');
+  });
+
+  it('shows per-package framework summary', () => {
+    const output = captureOutput(() => displayScanResults(makeMonorepoScanResult()));
+    expect(output).toContain('apps/web');
+    expect(output).toContain('Next.js');
+    expect(output).toContain('apps/mobile');
+    expect(output).toContain('Expo');
+  });
+
+  it('groups structure directories by role within packages', () => {
+    const output = captureOutput(() => displayScanResults(makeMonorepoScanResult()));
+    expect(output).toContain('apps/web:');
+    expect(output).toContain('Components');
+    expect(output).toContain('apps/mobile:');
+    // mobile has 4 hooks dirs merged into one group
+    expect(output).toContain('Hooks');
+    expect(output).toContain('4 dirs');
+    expect(output).toContain('55 files');
+    // shared has no meaningful dirs, should not appear in structure
+    expect(output).not.toContain('packages/shared:');
+  });
+
+  it('shows per-package convention breakdown when values differ', () => {
+    const output = captureOutput(() => displayScanResults(makeMonorepoScanResult()));
+    expect(output).toContain('varies by package');
+    expect(output).toContain('kebab-case');
+    expect(output).toContain('PascalCase');
+  });
+
+  it('uses single-package display for non-monorepo', () => {
+    const output = captureOutput(() => displayScanResults(makeScanResult()));
+    expect(output).not.toContain('monorepo');
+  });
+
+  it('shows summary with package count for monorepo', () => {
+    const output = captureOutput(() => displayScanResults(makeMonorepoScanResult()));
+    expect(output).toContain('Summary:');
+    expect(output).toContain('3 packages');
+    expect(output).toContain('63 source files');
+    expect(output).toContain('4,800 lines');
+    expect(output).toContain('avg 76 lines/file');
+    expect(output).toContain('.ts 40');
+    expect(output).toContain('.tsx 23');
   });
 });

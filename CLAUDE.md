@@ -88,7 +88,7 @@ No circular dependencies. No package may import from `cli`. The `types` package 
 ### File Naming
 - All source files use **kebab-case**: `scan-result.ts`, `detect-stack.ts`, `generate-context.ts`
 - Test files use `*.test.ts` suffix, colocated with source: `src/detect-stack.test.ts`
-- One module per file. If a file exceeds 200 lines, split it.
+- One module per file. If a file exceeds 300 lines, split it.
 
 ### Exports
 - Each package has a single `src/index.ts` barrel export

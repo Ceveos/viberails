@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { Project } from 'ts-morph';
+import { describe, expect, it } from 'vitest';
 import { parseImports } from './parse-imports.js';
 
 function createSourceFile(content: string) {

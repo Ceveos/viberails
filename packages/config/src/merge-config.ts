@@ -3,10 +3,11 @@ import type {
   ConfigStack,
   ConfigStructure,
   ConventionValue,
+  PackageConfigOverrides,
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
-import { generateConfig } from './generate-config.js';
+import { CONVENTION_KEYS, generateConfig } from './generate-config.js';
 
 /**
  * Merge stack: keep existing values, fill in undefined fields from fresh scan.
@@ -19,6 +20,7 @@ function mergeStack(existing: ConfigStack, fresh: ConfigStack): ConfigStack {
     styling: existing.styling ?? fresh.styling,
     backend: existing.backend ?? fresh.backend,
     linter: existing.linter ?? fresh.linter,
+    formatter: existing.formatter ?? fresh.formatter,
     testRunner: existing.testRunner ?? fresh.testRunner,
   };
 }
@@ -57,14 +59,6 @@ function markAsDetected(value: ConventionValue): ConventionValue {
   }
   return { ...value, _detected: true };
 }
-
-/** Convention keys to iterate during merge. */
-const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
-  'fileNaming',
-  'componentNaming',
-  'hookNaming',
-  'importAlias',
-];
 
 /**
  * Merge conventions: keep all existing values, add new detections with `_detected: true`.
@@ -123,5 +117,33 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
     merged.boundaries = [...fresh.boundaries];
   }
 
+  // Packages: preserve existing overrides, add new ones
+  if (existing.packages || fresh.packages) {
+    merged.packages = mergePackageOverrides(existing.packages, fresh.packages);
+  }
+
   return merged;
+}
+
+/**
+ * Merge per-package overrides: keep existing user-edited overrides,
+ * add new packages from fresh scan.
+ */
+function mergePackageOverrides(
+  existing?: PackageConfigOverrides[],
+  fresh?: PackageConfigOverrides[],
+): PackageConfigOverrides[] | undefined {
+  if (!fresh || fresh.length === 0) return existing;
+  if (!existing || existing.length === 0) return fresh;
+
+  const existingByPath = new Map(existing.map((p) => [p.path, p]));
+  const merged: PackageConfigOverrides[] = [...existing];
+
+  for (const freshPkg of fresh) {
+    if (!existingByPath.has(freshPkg.path)) {
+      merged.push(freshPkg);
+    }
+  }
+
+  return merged.length > 0 ? merged : undefined;
 }

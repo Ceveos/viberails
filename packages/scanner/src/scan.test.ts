@@ -61,6 +61,17 @@ describe('scan', () => {
     expect(deserialized).toEqual(result);
   });
 
+  it('returns a single package for single-package projects', async () => {
+    const result = await scan(join(fixturesDir, 'nextjs-15'));
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.packages[0].relativePath).toBe('');
+    expect(result.packages[0].stack).toEqual(result.stack);
+    expect(result.packages[0].structure).toEqual(result.structure);
+    expect(result.packages[0].conventions).toEqual(result.conventions);
+    expect(result.packages[0].statistics).toEqual(result.statistics);
+  });
+
   describe('monorepo with Next.js + Expo fixture', () => {
     it('detects Next.js as primary framework from workspace packages', async () => {
       const result = await scan(join(fixturesDir, 'monorepo-nextjs-expo'));
@@ -125,6 +136,26 @@ describe('scan', () => {
       const names = result.workspace?.packages.map((p) => p.name).sort();
       expect(names).toEqual(['@app/mobile', '@app/shared', '@app/web']);
     });
+
+    it('returns per-package scan results', async () => {
+      const result = await scan(join(fixturesDir, 'monorepo-nextjs-expo'));
+      expect(result.packages).toHaveLength(3);
+
+      const web = result.packages.find((p) => p.name === '@app/web');
+      const mobile = result.packages.find((p) => p.name === '@app/mobile');
+      const shared = result.packages.find((p) => p.name === '@app/shared');
+
+      expect(web).toBeDefined();
+      expect(web?.stack.framework?.name).toBe('nextjs');
+      expect(web?.relativePath).toBe('apps/web');
+
+      expect(mobile).toBeDefined();
+      expect(mobile?.stack.framework?.name).toBe('expo');
+      expect(mobile?.relativePath).toBe('apps/mobile');
+
+      expect(shared).toBeDefined();
+      expect(shared?.relativePath).toBe('packages/shared');
+    });
   });
 
   it('throws for non-existent project path', async () => {
@@ -134,8 +165,15 @@ describe('scan', () => {
   it('matches snapshot for nextjs-15 fixture', async () => {
     const result = await scan(join(fixturesDir, 'nextjs-15'));
 
-    // Replace root with a placeholder so snapshots are portable
-    const snapshot = { ...result, root: '<PROJECT_ROOT>' };
+    // Replace root paths with placeholders so snapshots are portable
+    const snapshot = {
+      ...result,
+      root: '<PROJECT_ROOT>',
+      packages: result.packages.map((pkg) => ({
+        ...pkg,
+        root: pkg.root.replace(result.root, '<PROJECT_ROOT>'),
+      })),
+    };
     expect(snapshot).toMatchSnapshot();
   });
 });

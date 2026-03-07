@@ -1,6 +1,6 @@
 {
   "name": "@viberails/context",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI context file generation for viberails",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

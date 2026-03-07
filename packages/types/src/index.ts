@@ -10,6 +10,7 @@ export type {
   ConfigStack,
   ConfigStructure,
   ConventionValue,
+  PackageConfigOverrides,
   ViberailsConfig,
   WorkspaceConfig,
 } from './config.js';
@@ -34,6 +35,7 @@ export type {
   DirectoryInfo,
   DirectoryRole,
   FileStatistic,
+  PackageScanResult,
   ScanResult,
   StackItem,
 } from './scan-result.js';

@@ -14,6 +14,11 @@ const IGNORED_DIRS = new Set([
   '.turbo',
   '.cache',
   '.output',
+  '.expo',
+  'android',
+  'ios',
+  'Pods',
+  '.gradle',
 ]);
 
 /** Source file extensions to count. */
@@ -68,7 +73,9 @@ export async function walkDirectory(
   }
 
   while (queue.length > 0) {
-    const { absolutePath, depth } = queue.shift()!;
+    const item = queue.shift();
+    if (!item) break;
+    const { absolutePath, depth } = item;
     const sourceFileNames: string[] = [];
 
     try {

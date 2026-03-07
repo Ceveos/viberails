@@ -23,6 +23,34 @@ export interface ScanResult {
 
   /** Detected workspace information for monorepo projects (V1.1+). */
   workspace?: DetectedWorkspace;
+
+  /**
+   * Per-package scan results. Always has at least one entry.
+   * For single-package projects, contains one entry identical to the top-level fields.
+   * For monorepos, contains one entry per workspace package.
+   */
+  packages: PackageScanResult[];
+}
+
+/**
+ * Scan results for a single package within a workspace,
+ * or the root of a single-package project.
+ */
+export interface PackageScanResult {
+  /** Package name from package.json. */
+  name: string;
+  /** Absolute path to this package's root directory. */
+  root: string;
+  /** Path relative to the workspace root. Empty string for single-package projects. */
+  relativePath: string;
+  /** Detected technology stack for this package. */
+  stack: DetectedStack;
+  /** Detected directory structure within this package. */
+  structure: DetectedStructure;
+  /** Detected coding conventions for this package. */
+  conventions: Record<string, DetectedConvention>;
+  /** Quantitative statistics for this package. */
+  statistics: CodebaseStatistics;
 }
 
 /**
@@ -59,6 +87,9 @@ export interface DetectedStack {
 
   /** Linter in use (e.g. ESLint, Biome). */
   linter?: StackItem;
+
+  /** Formatter in use (e.g. Prettier, Biome). */
+  formatter?: StackItem;
 
   /** Test runner in use (e.g. Vitest, Jest). */
   testRunner?: StackItem;

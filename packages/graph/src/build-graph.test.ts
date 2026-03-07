@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
 import type { WorkspacePackage } from '@viberails/types';
+import { describe, expect, it } from 'vitest';
 import { buildImportGraph } from './build-graph.js';
 
 const FIXTURES = join(import.meta.dirname, '../../..', 'tests/fixtures');

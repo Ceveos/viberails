@@ -4,6 +4,18 @@ Guardrails for vibe coding.
 
 A CLI that scans your existing JavaScript or TypeScript project, detects conventions, infers architectural boundaries, and enforces them on every commit — based on what you've actually built, not a template.
 
+## Installation
+
+```bash
+# Run directly (no install needed)
+npx viberails
+
+# Or install as a dev dependency
+npm install -D viberails
+# or
+pnpm add -D viberails
+```
+
 ## Quick Start
 
 ```bash
@@ -43,6 +55,14 @@ Validates your project against the configured rules.
 
 **Checks:** file size limits, naming conventions, missing tests, and import boundary violations.
 
+### `viberails fix`
+
+Auto-fixes naming violations and generates missing test stubs.
+
+- `--dry-run` — Preview changes without applying them.
+- `--rule file-naming` — Fix only specific rule types.
+- `--yes` / `-y` — Apply fixes without confirmation.
+
 ### `viberails boundaries`
 
 Displays configured boundary rules and detected violations.
@@ -78,6 +98,26 @@ The hook runs in warn-only mode by default. Set `"enforcement": "enforce"` in `v
 | Low | < 70% | Omitted entirely |
 
 In `--yes` mode, only high-confidence conventions are included.
+
+## Programmatic API
+
+Each package can be used independently:
+
+```typescript
+import { scan } from '@viberails/scanner';
+import { generateConfig } from '@viberails/config';
+import { generateContext } from '@viberails/context';
+
+const result = await scan('./my-project');
+const config = generateConfig(result);
+const context = generateContext(config);
+```
+
+## Contributing
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
+Issues and pull requests welcome at [github.com/Ceveos/viberails](https://github.com/Ceveos/viberails).
 
 ## License
 

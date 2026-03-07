@@ -190,6 +190,82 @@ describe('mergeConfig', () => {
     });
   });
 
+  it('preserves existing package overrides and adds new ones', () => {
+    const existing = createExistingConfig();
+    existing.packages = [{ name: '@app/web', path: 'apps/web', stack: { framework: 'nextjs@15' } }];
+
+    const scanResult = createScanResult();
+    scanResult.workspace = {
+      patterns: ['apps/*'],
+      packages: [
+        { name: '@app/web', path: '/abs/apps/web', relativePath: 'apps/web', internalDeps: [] },
+        {
+          name: '@app/mobile',
+          path: '/abs/apps/mobile',
+          relativePath: 'apps/mobile',
+          internalDeps: [],
+        },
+      ],
+    };
+    scanResult.packages = [
+      {
+        name: '@app/web',
+        root: '/abs/apps/web',
+        relativePath: 'apps/web',
+        stack: {
+          language: { name: 'typescript' },
+          packageManager: { name: 'pnpm' },
+          framework: { name: 'nextjs', version: '15' },
+          libraries: [],
+        },
+        structure: { directories: [] },
+        conventions: {
+          fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+        },
+        statistics: {
+          totalFiles: 10,
+          totalLines: 500,
+          averageFileLines: 50,
+          largestFiles: [],
+          filesByExtension: {},
+        },
+      },
+      {
+        name: '@app/mobile',
+        root: '/abs/apps/mobile',
+        relativePath: 'apps/mobile',
+        stack: {
+          language: { name: 'typescript' },
+          packageManager: { name: 'pnpm' },
+          framework: { name: 'expo', version: '53' },
+          libraries: [],
+        },
+        structure: { directories: [] },
+        conventions: {
+          fileNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 30, consistency: 100 },
+        },
+        statistics: {
+          totalFiles: 10,
+          totalLines: 500,
+          averageFileLines: 50,
+          largestFiles: [],
+          filesByExtension: {},
+        },
+      },
+    ];
+
+    const merged = mergeConfig(existing, scanResult);
+
+    // Existing web override preserved (user may have edited it)
+    expect(merged.packages!.find((p) => p.path === 'apps/web')).toEqual({
+      name: '@app/web',
+      path: 'apps/web',
+      stack: { framework: 'nextjs@15' },
+    });
+    // New mobile override added
+    expect(merged.packages!.find((p) => p.path === 'apps/mobile')).toBeDefined();
+  });
+
   it('does not overwrite existing object-form conventions', () => {
     const existing = createExistingConfig();
     existing.conventions.componentNaming = {

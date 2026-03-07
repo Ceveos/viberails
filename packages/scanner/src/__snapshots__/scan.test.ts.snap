@@ -28,6 +28,143 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       "value": "@/*",
     },
   },
+  "packages": [
+    {
+      "conventions": {
+        "componentNaming": {
+          "confidence": "low",
+          "consistency": 0,
+          "sampleSize": 5,
+          "value": "camelCase",
+        },
+        "fileNaming": {
+          "confidence": "high",
+          "consistency": 100,
+          "sampleSize": 11,
+          "value": "kebab-case",
+        },
+        "hookNaming": {
+          "confidence": "high",
+          "consistency": 100,
+          "sampleSize": 3,
+          "value": "use-*",
+        },
+        "importAlias": {
+          "confidence": "high",
+          "consistency": 100,
+          "sampleSize": 1,
+          "value": "@/*",
+        },
+      },
+      "name": "fixture-nextjs",
+      "relativePath": "",
+      "root": "<PROJECT_ROOT>",
+      "stack": {
+        "framework": {
+          "name": "nextjs",
+          "version": "15",
+        },
+        "language": {
+          "name": "typescript",
+          "version": "5",
+        },
+        "libraries": [],
+        "linter": {
+          "name": "eslint",
+          "version": "9",
+        },
+        "packageManager": {
+          "name": "npm",
+        },
+        "styling": {
+          "name": "tailwindcss",
+          "version": "4",
+        },
+        "testRunner": {
+          "name": "vitest",
+          "version": "3",
+        },
+      },
+      "statistics": {
+        "averageFileLines": 41,
+        "filesByExtension": {
+          ".ts": 11,
+          ".tsx": 7,
+        },
+        "largestFiles": [
+          {
+            "lines": 302,
+            "path": "src/components/data-table.tsx",
+          },
+          {
+            "lines": 47,
+            "path": "src/components/nav-bar.tsx",
+          },
+          {
+            "lines": 42,
+            "path": "src/hooks/use-auth.ts",
+          },
+          {
+            "lines": 39,
+            "path": "src/components/base-button.tsx",
+          },
+          {
+            "lines": 36,
+            "path": "src/hooks/use-form.ts",
+          },
+        ],
+        "totalFiles": 18,
+        "totalLines": 733,
+      },
+      "structure": {
+        "directories": [
+          {
+            "confidence": "high",
+            "fileCount": 3,
+            "path": "__tests__",
+            "role": "tests",
+          },
+          {
+            "confidence": "high",
+            "fileCount": 2,
+            "path": "src/app",
+            "role": "pages",
+          },
+          {
+            "confidence": "high",
+            "fileCount": 5,
+            "path": "src/components",
+            "role": "components",
+          },
+          {
+            "confidence": "high",
+            "fileCount": 3,
+            "path": "src/hooks",
+            "role": "hooks",
+          },
+          {
+            "confidence": "high",
+            "fileCount": 3,
+            "path": "src/lib",
+            "role": "utils",
+          },
+          {
+            "confidence": "high",
+            "fileCount": 1,
+            "path": "src/app/api",
+            "role": "api",
+          },
+        ],
+        "srcDir": "src",
+        "testPattern": {
+          "confidence": "high",
+          "consistency": 100,
+          "sampleSize": 3,
+          "value": "*.test.ts",
+        },
+      },
+    },
+  ],
   "root": "<PROJECT_ROOT>",
   "stack": {
     "framework": {
@@ -133,6 +270,5 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
       "value": "*.test.ts",
     },
   },
-  "workspace": undefined,
 }
 `;

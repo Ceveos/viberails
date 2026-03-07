@@ -2,10 +2,11 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { boundariesCommand } from './commands/boundaries.js';
 import { checkCommand } from './commands/check.js';
+import { fixCommand } from './commands/fix.js';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 const program = new Command();
 
@@ -50,6 +51,23 @@ program
         ...options,
         noBoundaries: options.boundaries === false,
       });
+      process.exit(exitCode);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`${chalk.red('Error:')} ${message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('fix')
+  .description('Auto-fix file naming violations and generate missing test stubs')
+  .option('--dry-run', 'Show planned fixes without applying them')
+  .option('--rule <rules...>', 'Fix only specific rules (file-naming, missing-test)')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .action(async (options: { dryRun?: boolean; rule?: string[]; yes?: boolean }) => {
+    try {
+      const exitCode = await fixCommand(options);
       process.exit(exitCode);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
