@@ -59,6 +59,7 @@ export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
 
   const styling = packages.find((p) => p.stack.styling)?.stack.styling;
   const backend = packages.find((p) => p.stack.backend)?.stack.backend;
+  const orm = packages.find((p) => p.stack.orm)?.stack.orm;
   const linter = packages.find((p) => p.stack.linter)?.stack.linter;
   const formatter = packages.find((p) => p.stack.formatter)?.stack.formatter;
   const testRunner = packages.find((p) => p.stack.testRunner)?.stack.testRunner;
@@ -70,6 +71,7 @@ export function aggregateStacks(packages: PackageScanResult[]): DetectedStack {
     libraries: [...libraryMap.values()],
     styling,
     backend,
+    orm,
     linter,
     formatter,
     testRunner,

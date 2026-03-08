@@ -19,6 +19,7 @@ function mergeStack(existing: ConfigStack, fresh: ConfigStack): ConfigStack {
     framework: existing.framework ?? fresh.framework,
     styling: existing.styling ?? fresh.styling,
     backend: existing.backend ?? fresh.backend,
+    orm: existing.orm ?? fresh.orm,
     linter: existing.linter ?? fresh.linter,
     formatter: existing.formatter ?? fresh.formatter,
     testRunner: existing.testRunner ?? fresh.testRunner,

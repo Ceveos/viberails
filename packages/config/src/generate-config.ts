@@ -33,6 +33,7 @@ function mapStack(scanResult: ScanResult): ConfigStack {
   if (stack.framework) config.framework = formatStackItem(stack.framework);
   if (stack.styling) config.styling = formatStackItem(stack.styling);
   if (stack.backend) config.backend = formatStackItem(stack.backend);
+  if (stack.orm) config.orm = formatStackItem(stack.orm);
   if (stack.linter) config.linter = formatStackItem(stack.linter);
   if (stack.formatter) config.formatter = formatStackItem(stack.formatter);
   if (stack.testRunner) config.testRunner = formatStackItem(stack.testRunner);

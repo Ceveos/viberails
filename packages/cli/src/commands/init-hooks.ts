@@ -59,8 +59,91 @@ function writeGitHookPreCommit(hooksDir: string): void {
 function addLefthookPreCommit(lefthookPath: string): void {
   const content = fs.readFileSync(lefthookPath, 'utf-8');
   if (content.includes('viberails')) return;
-  const addition = ['', '  viberails:', '    run: npx viberails check --staged'].join('\n');
-  fs.writeFileSync(lefthookPath, `${content.trimEnd()}\n${addition}\n`);
+
+  const hasPreCommit = /^pre-commit:/m.test(content);
+  if (hasPreCommit) {
+    // Append under existing pre-commit section. This appends at the end of the file,
+    // which works when pre-commit is the last section. A full YAML parser would handle
+    // arbitrary section ordering, but we avoid that dependency to stay lightweight.
+    const commandBlock = ['', '    viberails:', '      run: npx viberails check --staged'].join(
+      '\n',
+    );
+    const updated = `${content.trimEnd()}\n${commandBlock}\n`;
+    fs.writeFileSync(lefthookPath, updated);
+  } else {
+    // Add new pre-commit section
+    const section = [
+      '',
+      'pre-commit:',
+      '  commands:',
+      '    viberails:',
+      '      run: npx viberails check --staged',
+    ].join('\n');
+    fs.writeFileSync(lefthookPath, `${content.trimEnd()}\n${section}\n`);
+  }
+}
+
+/**
+ * Detect which pre-commit hook manager is present.
+ * Returns a label like "Lefthook", "Husky", "git hook", or undefined if no .git.
+ */
+export function detectHookManager(projectRoot: string): string | undefined {
+  if (fs.existsSync(path.join(projectRoot, 'lefthook.yml'))) return 'Lefthook';
+  if (fs.existsSync(path.join(projectRoot, '.husky'))) return 'Husky';
+  if (fs.existsSync(path.join(projectRoot, '.git'))) return 'git hook';
+  return undefined;
+}
+
+/**
+ * Set up a Claude Code PostToolUse hook that checks files after edit/write.
+ * Writes to .claude/settings.json (project-level, team-shared).
+ */
+export function setupClaudeCodeHook(projectRoot: string): void {
+  const claudeDir = path.join(projectRoot, '.claude');
+  if (!fs.existsSync(claudeDir)) {
+    fs.mkdirSync(claudeDir, { recursive: true });
+  }
+
+  const settingsPath = path.join(claudeDir, 'settings.json');
+  let settings: Record<string, unknown> = {};
+
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    } catch {
+      // If the file is invalid JSON, start fresh
+      settings = {};
+    }
+  }
+
+  const hooks = (settings.hooks ?? {}) as Record<string, unknown[]>;
+
+  // Check if viberails hook already exists
+  const existing = hooks.PostToolUse ?? [];
+  if (existing.some((h) => JSON.stringify(h).includes('viberails'))) return;
+
+  // The hook command reads the tool input from stdin, extracts file_path, and checks it.
+  // `; exit 0` ensures warn-mode (always exit 0) while still showing check output.
+  // Using `|| true` would mask errors from jq or viberails itself.
+  const hookCommand =
+    'FILE=$(cat | jq -r \'.tool_input.file_path // empty\') && [ -n "$FILE" ] && npx viberails check --files "$FILE" --format json; exit 0';
+
+  hooks.PostToolUse = [
+    ...existing,
+    {
+      matcher: 'Edit|Write',
+      hooks: [
+        {
+          type: 'command',
+          command: hookCommand,
+        },
+      ],
+    },
+  ];
+
+  settings.hooks = hooks;
+  fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
+  console.log(`  ${chalk.green('✓')} .claude/settings.json — added viberails PostToolUse hook`);
 }
 
 function writeHuskyPreCommit(huskyDir: string): void {

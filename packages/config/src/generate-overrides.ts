@@ -65,6 +65,7 @@ export function generatePackageOverrides(
       'framework',
       'styling',
       'backend',
+      'orm',
       'linter',
       'formatter',
       'testRunner',

@@ -4,12 +4,12 @@ import { generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { ConfigConventions, ConventionValue } from '@viberails/types';
 import chalk from 'chalk';
-import { displayScanResults } from '../display.js';
+import { displayRulesPreview, displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
-import { confirm } from '../utils/prompt.js';
+import { confirm, selectIntegrations } from '../utils/prompt.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
-import { setupPreCommitHook } from './init-hooks.js';
+import { detectHookManager, setupClaudeCodeHook, setupPreCommitHook } from './init-hooks.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 
@@ -65,10 +65,16 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
   console.log(chalk.dim('Scanning project...'));
   const scanResult = await scan(projectRoot);
 
-  // 4. Display results
+  // 4. Generate config early so we can show rules preview
+  const config = generateConfig(scanResult);
+  if (options.yes) {
+    config.conventions = filterHighConfidence(config.conventions);
+  }
+
+  // 5. Display scan results
   displayScanResults(scanResult);
 
-  // 5. Sparse project notice
+  // 6. Sparse project notice
   if (scanResult.statistics.totalFiles === 0) {
     console.log(
       chalk.yellow('!') +
@@ -79,22 +85,19 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
     );
   }
 
-  // 6. Interactive confirmation
+  // 7. Show rules preview
+  displayRulesPreview(config);
+
+  // 8. Interactive confirmation
   if (!options.yes) {
-    const accepted = await confirm('Does this look right?');
+    const accepted = await confirm('Proceed with these settings?');
     if (!accepted) {
       console.log('Aborted.');
       return;
     }
   }
 
-  // 7. Generate config
-  const config = generateConfig(scanResult);
-  if (options.yes) {
-    config.conventions = filterHighConfidence(config.conventions);
-  }
-
-  // 7b. Infer boundary rules for workspace projects
+  // 9. Infer boundary rules for workspace projects
   if (config.workspace && config.workspace.packages.length > 0) {
     let shouldInfer = options.yes;
     if (!options.yes) {
@@ -115,27 +118,48 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
     }
   }
 
+  // 10. Select integrations
+  const hookManager = detectHookManager(projectRoot);
+  let integrations = { preCommitHook: true, claudeCodeHook: true };
+  if (!options.yes) {
+    console.log('');
+    integrations = await selectIntegrations(hookManager);
+  }
+
+  // 11. Write config
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
-  // 8. Generate context and scan-result.json
+  // 12. Generate context and scan-result.json
   writeGeneratedFiles(projectRoot, config, scanResult);
 
-  // 9. Update .gitignore
+  // 13. Update .gitignore
   updateGitignore(projectRoot);
 
-  // 10. Set up pre-commit hook
-  setupPreCommitHook(projectRoot);
-
-  // 11. Print summary
+  // 14. Set up hooks based on selection
   console.log(`\n${chalk.bold('Created:')}`);
   console.log(`  ${chalk.green('✓')} ${CONFIG_FILE}`);
   console.log(`  ${chalk.green('✓')} .viberails/context.md`);
   console.log(`  ${chalk.green('✓')} .viberails/scan-result.json`);
+
+  if (integrations.preCommitHook) {
+    setupPreCommitHook(projectRoot);
+  }
+  if (integrations.claudeCodeHook) {
+    setupClaudeCodeHook(projectRoot);
+  }
+
+  // 15. Print next steps
+  const filesToCommit = [
+    `${chalk.cyan('viberails.config.json')}`,
+    chalk.cyan('.viberails/context.md'),
+  ];
+  if (integrations.claudeCodeHook) {
+    filesToCommit.push(chalk.cyan('.claude/settings.json'));
+  }
+
   console.log(`\n${chalk.bold('Next steps:')}`);
   console.log(`  1. Review ${chalk.cyan('viberails.config.json')} and adjust rules`);
-  console.log(
-    `  2. Commit ${chalk.cyan('viberails.config.json')} and ${chalk.cyan('.viberails/context.md')}`,
-  );
+  console.log(`  2. Commit ${filesToCommit.join(', ')}`);
   console.log(`  3. Run ${chalk.cyan('viberails check')} to verify your project passes`);
 }
 
@@ -154,6 +178,7 @@ function updateGitignore(projectRoot: string): void {
 
   if (!content.includes('.viberails/scan-result.json')) {
     const block = '\n# viberails\n.viberails/scan-result.json\n';
-    fs.writeFileSync(gitignorePath, `${content.trimEnd()}\n${block}`);
+    const prefix = content.length === 0 ? '' : `${content.trimEnd()}\n`;
+    fs.writeFileSync(gitignorePath, `${prefix}${block}`);
   }
 }

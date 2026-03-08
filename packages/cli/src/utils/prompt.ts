@@ -20,3 +20,47 @@ export async function confirm(message: string): Promise<boolean> {
     });
   });
 }
+
+export interface IntegrationChoice {
+  preCommitHook: boolean;
+  claudeCodeHook: boolean;
+}
+
+/**
+ * Prompt the user to select which integrations to set up.
+ *
+ * @param hookManager - Detected hook manager name (e.g. "Husky", "Lefthook") or undefined
+ * @returns Object with selected integrations
+ */
+export async function selectIntegrations(
+  hookManager: string | undefined,
+): Promise<IntegrationChoice> {
+  const result: IntegrationChoice = { preCommitHook: true, claudeCodeHook: true };
+
+  const hookLabel = hookManager
+    ? `Pre-commit hook (detected: ${hookManager})`
+    : 'Pre-commit hook (git hook)';
+
+  console.log('Set up integrations:');
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const askYn = (label: string, defaultYes: boolean): Promise<boolean> =>
+    new Promise<boolean>((resolve) => {
+      const hint = defaultYes ? 'Y/n' : 'y/N';
+      rl.question(`  ${label}? (${hint}) `, (answer) => {
+        const trimmed = answer.trim().toLowerCase();
+        if (trimmed === '') resolve(defaultYes);
+        else resolve(trimmed === 'y' || trimmed === 'yes');
+      });
+    });
+
+  result.preCommitHook = await askYn(hookLabel, true);
+  result.claudeCodeHook = await askYn('Claude Code hook (check files on edit)', true);
+  rl.close();
+
+  return result;
+}

@@ -33,23 +33,31 @@ interface FrameworkMapping {
   dep: string;
   /** Name to use in the StackItem. */
   name: string;
-  /** If set, the dep must NOT be present for this rule to match. */
-  excludeDep?: string;
+  /** If any of these deps are present, skip this mapping. */
+  excludeDeps?: string[];
 }
 
 const FRAMEWORK_MAPPINGS: FrameworkMapping[] = [
   { dep: 'next', name: 'nextjs' },
   { dep: 'expo', name: 'expo' },
-  { dep: 'react-native', name: 'react-native', excludeDep: 'expo' },
+  { dep: 'react-native', name: 'react-native', excludeDeps: ['expo'] },
   { dep: '@angular/core', name: 'angular' },
   { dep: '@sveltejs/kit', name: 'sveltekit' },
-  { dep: 'svelte', name: 'svelte' },
+  { dep: 'svelte', name: 'svelte', excludeDeps: ['@sveltejs/kit', 'astro'] },
   { dep: 'astro', name: 'astro' },
   { dep: '@remix-run/react', name: 'remix' },
   { dep: 'nuxt', name: 'nuxt' },
-  { dep: 'vue', name: 'vue', excludeDep: 'nuxt' },
+  { dep: 'vue', name: 'vue', excludeDeps: ['nuxt'] },
   { dep: 'gatsby', name: 'gatsby' },
-  { dep: 'react', name: 'react', excludeDep: 'next' },
+  { dep: 'solid-js', name: 'solidjs' },
+  { dep: '@builder.io/qwik', name: 'qwik' },
+  { dep: 'electron', name: 'electron' },
+  { dep: '@tauri-apps/api', name: 'tauri' },
+  {
+    dep: 'react',
+    name: 'react',
+    excludeDeps: ['next', '@remix-run/react', 'gatsby', 'expo'],
+  },
 ];
 
 const BACKEND_MAPPINGS: Array<{ dep: string; name: string }> = [
@@ -60,9 +68,18 @@ const BACKEND_MAPPINGS: Array<{ dep: string; name: string }> = [
   { dep: 'hono', name: 'hono' },
   { dep: '@supabase/supabase-js', name: 'supabase' },
   { dep: 'firebase', name: 'firebase' },
+  { dep: 'convex', name: 'convex' },
+];
+
+const ORM_MAPPINGS: Array<{ dep: string; name: string }> = [
   { dep: '@prisma/client', name: 'prisma' },
   { dep: 'prisma', name: 'prisma' },
   { dep: 'drizzle-orm', name: 'drizzle' },
+  { dep: 'typeorm', name: 'typeorm' },
+  { dep: 'sequelize', name: 'sequelize' },
+  { dep: 'mongoose', name: 'mongoose' },
+  { dep: 'kysely', name: 'kysely' },
+  { dep: '@mikro-orm/core', name: 'mikro-orm' },
 ];
 
 const STYLING_MAPPINGS: Array<{ dep: string; name: string }> = [
@@ -70,12 +87,62 @@ const STYLING_MAPPINGS: Array<{ dep: string; name: string }> = [
   { dep: 'styled-components', name: 'styled-components' },
   { dep: '@emotion/react', name: 'emotion' },
   { dep: 'sass', name: 'sass' },
+  { dep: '@vanilla-extract/css', name: 'vanilla-extract' },
+  { dep: 'unocss', name: 'unocss' },
+  { dep: '@pandacss/dev', name: 'panda-css' },
+  { dep: 'nativewind', name: 'nativewind' },
 ];
 
 const LIBRARY_MAPPINGS: Array<{ deps: string[]; name: string }> = [
+  // Validation
   { deps: ['zod'], name: 'zod' },
-  { deps: ['@trpc/server', '@trpc/client'], name: 'trpc' },
+  // API
+  { deps: ['@trpc/server'], name: 'trpc' },
   { deps: ['@tanstack/react-query'], name: 'react-query' },
+  { deps: ['@apollo/client'], name: 'apollo' },
+  { deps: ['urql'], name: 'urql' },
+  { deps: ['graphql'], name: 'graphql' },
+  // State management
+  { deps: ['@reduxjs/toolkit'], name: 'redux-toolkit' },
+  { deps: ['zustand'], name: 'zustand' },
+  { deps: ['jotai'], name: 'jotai' },
+  { deps: ['recoil'], name: 'recoil' },
+  { deps: ['mobx'], name: 'mobx' },
+  { deps: ['xstate'], name: 'xstate' },
+  { deps: ['valtio'], name: 'valtio' },
+  // Forms
+  { deps: ['react-hook-form'], name: 'react-hook-form' },
+  { deps: ['formik'], name: 'formik' },
+  // HTTP
+  { deps: ['axios'], name: 'axios' },
+  // Auth
+  { deps: ['next-auth'], name: 'next-auth' },
+  { deps: ['@auth/core'], name: 'auth-js' },
+  { deps: ['@clerk/nextjs'], name: 'clerk' },
+  { deps: ['lucia'], name: 'lucia' },
+  // Dates
+  { deps: ['date-fns'], name: 'date-fns' },
+  { deps: ['dayjs'], name: 'dayjs' },
+  { deps: ['luxon'], name: 'luxon' },
+  // i18n
+  { deps: ['i18next'], name: 'i18next' },
+  { deps: ['next-i18next'], name: 'next-i18next' },
+  // Payments
+  { deps: ['stripe'], name: 'stripe' },
+  // Realtime
+  { deps: ['socket.io'], name: 'socket.io' },
+  // Testing utilities
+  { deps: ['@testing-library/react'], name: 'testing-library' },
+  { deps: ['msw'], name: 'msw' },
+  { deps: ['storybook', '@storybook/react'], name: 'storybook' },
+  // Bundlers
+  { deps: ['vite'], name: 'vite' },
+  { deps: ['webpack'], name: 'webpack' },
+  { deps: ['esbuild'], name: 'esbuild' },
+  { deps: ['@rspack/core'], name: 'rspack' },
+  // Monorepo
+  { deps: ['nx'], name: 'nx' },
+  { deps: ['lerna'], name: 'lerna' },
 ];
 
 const LOCK_FILE_MAP: Array<{ file: string; name: string }> = [
@@ -116,6 +183,7 @@ export async function detectStack(
   const language = await detectLanguage(projectPath, allDeps);
   const styling = detectFirst(allDeps, STYLING_MAPPINGS);
   const backend = detectFirst(allDeps, BACKEND_MAPPINGS);
+  const orm = detectFirst(allDeps, ORM_MAPPINGS);
   const packageManager = await detectPackageManager(projectPath);
   const linter = detectLinter(allDeps);
   const formatter = detectFormatter(allDeps);
@@ -127,6 +195,7 @@ export async function detectStack(
     language,
     ...(styling && { styling }),
     ...(backend && { backend }),
+    ...(orm && { orm }),
     packageManager,
     ...(linter && { linter }),
     ...(formatter && { formatter }),
@@ -142,7 +211,7 @@ export async function detectStack(
 function detectFramework(allDeps: Record<string, string>): StackItem | undefined {
   for (const mapping of FRAMEWORK_MAPPINGS) {
     if (!(mapping.dep in allDeps)) continue;
-    if (mapping.excludeDep && mapping.excludeDep in allDeps) continue;
+    if (mapping.excludeDeps?.some((dep) => dep in allDeps)) continue;
     return {
       name: mapping.name,
       version: extractMajorVersion(allDeps[mapping.dep]),

@@ -18,6 +18,7 @@ export type {
 export {
   FRAMEWORK_NAMES,
   LIBRARY_NAMES,
+  ORM_NAMES,
   ROLE_DESCRIPTIONS,
   STYLING_NAMES,
 } from './display-names.js';

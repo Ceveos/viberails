@@ -51,6 +51,10 @@ export const configSchema = {
           type: 'string',
           description: 'Backend framework (e.g. "express@5", "fastify").',
         },
+        orm: {
+          type: 'string',
+          description: 'ORM or database client (e.g. "prisma", "drizzle", "typeorm").',
+        },
         packageManager: {
           type: 'string',
           description: 'Package manager (e.g. "pnpm", "npm", "yarn").',
@@ -230,6 +234,7 @@ export const configSchema = {
               language: { type: 'string' },
               styling: { type: 'string' },
               backend: { type: 'string' },
+              orm: { type: 'string' },
               packageManager: { type: 'string' },
               linter: { type: 'string' },
               formatter: { type: 'string' },

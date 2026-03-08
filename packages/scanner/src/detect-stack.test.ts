@@ -162,6 +162,157 @@ describe('detectStack', () => {
     });
   });
 
+  describe('ORM detection', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-orm-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects Prisma from @prisma/client', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { '@prisma/client': '^5.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.orm).toEqual({ name: 'prisma', version: '5' });
+    });
+
+    it('detects Drizzle from drizzle-orm', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { 'drizzle-orm': '^0.30.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.orm).toEqual({ name: 'drizzle', version: '0' });
+    });
+
+    it('detects ORM separately from backend (Express + Prisma)', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { express: '^4.0.0', '@prisma/client': '^5.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.backend).toEqual({ name: 'express', version: '4' });
+      expect(result.orm).toEqual({ name: 'prisma', version: '5' });
+    });
+  });
+
+  describe('excludeDeps behavior', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-exclude-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('does not detect React when Remix is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { '@remix-run/react': '^2.0.0', react: '^18.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework?.name).toBe('remix');
+    });
+
+    it('does not detect React when Gatsby is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { gatsby: '^5.0.0', react: '^18.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework?.name).toBe('gatsby');
+    });
+
+    it('does not detect Svelte when Astro is present', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { astro: '^4.0.0', svelte: '^4.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework?.name).toBe('astro');
+    });
+  });
+
+  describe('new framework and library detection', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-newfw-'));
+      await writeFile(join(tempDir, 'pnpm-lock.yaml'), '');
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects Solid.js from solid-js', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { 'solid-js': '^1.8.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework).toEqual({ name: 'solidjs', version: '1' });
+    });
+
+    it('detects Electron', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          devDependencies: { electron: '^28.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.framework).toEqual({ name: 'electron', version: '28' });
+    });
+
+    it('detects tRPC from @trpc/server alone', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({
+          name: 'test',
+          dependencies: { '@trpc/server': '^11.0.0' },
+        }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.libraries.find((l) => l.name === 'trpc')).toEqual({
+        name: 'trpc',
+        version: '11',
+      });
+    });
+  });
+
   describe('formatter detection', () => {
     let tempDir: string;
 

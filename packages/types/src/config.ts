@@ -90,6 +90,9 @@ export interface ConfigStack {
   /** Backend framework (e.g. `"express@5"`, `"fastify"`). */
   backend?: string;
 
+  /** ORM or database client (e.g. `"prisma"`, `"drizzle"`, `"typeorm"`). */
+  orm?: string;
+
   /** Package manager (e.g. `"pnpm"`, `"npm"`, `"yarn"`). */
   packageManager: string;
 

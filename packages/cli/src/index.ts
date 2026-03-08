@@ -48,6 +48,7 @@ program
   .option('--no-boundaries', 'Skip boundary checking')
   .option('--quiet', 'Show only summary counts, not individual violations')
   .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
+  .option('--format <format>', 'Output format: text (default) or json')
   .action(
     async (options: {
       staged?: boolean;
@@ -55,11 +56,13 @@ program
       boundaries?: boolean;
       quiet?: boolean;
       limit?: number;
+      format?: string;
     }) => {
       try {
         const exitCode = await checkCommand({
           ...options,
           noBoundaries: options.boundaries === false,
+          format: options.format === 'json' ? 'json' : 'text',
         });
         process.exit(exitCode);
       } catch (err: unknown) {

@@ -116,6 +116,93 @@ describe('check command', () => {
     }
   });
 
+  describe('--format json', () => {
+    it('JSON output contains violations array and checkedFiles', async () => {
+      writeConfig(tmpDir, {
+        rules: {
+          maxFileLines: 300,
+          maxFunctionLines: 50,
+          requireTests: false,
+          enforceNaming: false,
+          enforceBoundaries: false,
+        },
+      });
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      const bigFile = Array.from({ length: 400 }, (_, i) => `const line${i} = ${i};`).join('\n');
+      fs.writeFileSync(path.join(tmpDir, 'src', 'big-file.ts'), bigFile);
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        await checkCommand({ format: 'json' }, tmpDir);
+        const output = logSpy.mock.calls.map((c) => c.join(' ')).join('');
+        const parsed = JSON.parse(output);
+        expect(parsed.violations).toBeInstanceOf(Array);
+        expect(parsed.violations.length).toBeGreaterThan(0);
+        expect(parsed.checkedFiles).toBeGreaterThan(0);
+        expect(parsed.enforcement).toBe('warn');
+      } finally {
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+      }
+    });
+
+    it('returns 0 in warn mode even with violations (JSON format)', async () => {
+      writeConfig(tmpDir, {
+        enforcement: 'warn',
+        rules: {
+          maxFileLines: 300,
+          maxFunctionLines: 50,
+          requireTests: false,
+          enforceNaming: false,
+          enforceBoundaries: false,
+        },
+      });
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      const bigFile = Array.from({ length: 400 }, (_, i) => `const line${i} = ${i};`).join('\n');
+      fs.writeFileSync(path.join(tmpDir, 'src', 'big-file.ts'), bigFile);
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        const exitCode = await checkCommand({ format: 'json' }, tmpDir);
+        expect(exitCode).toBe(0);
+      } finally {
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+      }
+    });
+
+    it('returns 1 in enforce mode with violations (JSON format)', async () => {
+      writeConfig(tmpDir, {
+        enforcement: 'enforce',
+        rules: {
+          maxFileLines: 300,
+          maxFunctionLines: 50,
+          requireTests: false,
+          enforceNaming: false,
+          enforceBoundaries: false,
+        },
+      });
+      fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+      const bigFile = Array.from({ length: 400 }, (_, i) => `const line${i} = ${i};`).join('\n');
+      fs.writeFileSync(path.join(tmpDir, 'src', 'big-file.ts'), bigFile);
+
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        const exitCode = await checkCommand({ format: 'json' }, tmpDir);
+        expect(exitCode).toBe(1);
+      } finally {
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+      }
+    });
+  });
+
   it('returns 0 with no files to check when staged', async () => {
     writeConfig(tmpDir);
 

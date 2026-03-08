@@ -82,6 +82,9 @@ export interface DetectedStack {
   /** Backend framework or runtime (e.g. Express, Fastify). */
   backend?: StackItem;
 
+  /** ORM or database client (e.g. Prisma, Drizzle, TypeORM). */
+  orm?: StackItem;
+
   /** Package manager used (e.g. pnpm, npm, yarn). */
   packageManager: StackItem;
 

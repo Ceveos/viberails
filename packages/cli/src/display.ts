@@ -1,5 +1,5 @@
-import type { DetectedConvention, ScanResult, StackItem } from '@viberails/types';
-import { FRAMEWORK_NAMES, LIBRARY_NAMES, STYLING_NAMES } from '@viberails/types';
+import type { DetectedConvention, ScanResult, StackItem, ViberailsConfig } from '@viberails/types';
+import { FRAMEWORK_NAMES, LIBRARY_NAMES, ORM_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
 import {
   formatExtensions,
@@ -112,6 +112,9 @@ export function displayScanResults(scanResult: ScanResult): void {
   if (stack.backend) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.backend, FRAMEWORK_NAMES)}`);
   }
+  if (stack.orm) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.orm, ORM_NAMES)}`);
+  }
   if (stack.linter) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
   }
@@ -141,5 +144,55 @@ export function displayScanResults(scanResult: ScanResult): void {
 
   displayConventions(scanResult);
   displaySummarySection(scanResult);
+  console.log('');
+}
+
+/**
+ * Extract the convention value string from a ConventionValue.
+ */
+function getConventionStr(
+  cv: string | { value: string; _confidence: string; _consistency: number },
+): string {
+  return typeof cv === 'string' ? cv : cv.value;
+}
+
+/**
+ * Display a preview of the rules that will be enforced.
+ */
+export function displayRulesPreview(config: ViberailsConfig): void {
+  console.log(`${chalk.bold('Rules:')}`);
+  console.log(`  ${chalk.dim('\u2022')} Max file size: ${config.rules.maxFileLines} lines`);
+
+  if (config.rules.requireTests && config.structure.testPattern) {
+    console.log(
+      `  ${chalk.dim('\u2022')} Require test files: yes (${config.structure.testPattern})`,
+    );
+  } else if (config.rules.requireTests) {
+    console.log(`  ${chalk.dim('\u2022')} Require test files: yes`);
+  } else {
+    console.log(`  ${chalk.dim('\u2022')} Require test files: no`);
+  }
+
+  if (config.rules.enforceNaming && config.conventions.fileNaming) {
+    console.log(
+      `  ${chalk.dim('\u2022')} Enforce file naming: ${getConventionStr(config.conventions.fileNaming)}`,
+    );
+  } else {
+    console.log(`  ${chalk.dim('\u2022')} Enforce file naming: no`);
+  }
+
+  console.log(
+    `  ${chalk.dim('\u2022')} Enforce boundaries: ${config.rules.enforceBoundaries ? 'yes' : 'no'}`,
+  );
+
+  console.log('');
+
+  if (config.enforcement === 'enforce') {
+    console.log(`${chalk.bold('Enforcement mode:')} enforce (violations will block commits)`);
+  } else {
+    console.log(
+      `${chalk.bold('Enforcement mode:')} warn (violations shown but won't block commits)`,
+    );
+  }
   console.log('');
 }

@@ -25,6 +25,7 @@ export interface CheckOptions {
   noBoundaries?: boolean;
   quiet?: boolean;
   limit?: number;
+  format?: 'text' | 'json';
 }
 
 /** Check if a file path looks like a test file. */
@@ -226,6 +227,17 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   // Output results
+  if (options.format === 'json') {
+    console.log(
+      JSON.stringify({
+        violations,
+        checkedFiles: filesToCheck.length,
+        enforcement: config.enforcement,
+      }),
+    );
+    return config.enforcement === 'enforce' && violations.length > 0 ? 1 : 0;
+  }
+
   if (violations.length === 0) {
     console.log(`${chalk.green('✓')} ${filesToCheck.length} files checked — no violations`);
     return 0;

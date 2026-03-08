@@ -1,6 +1,6 @@
-import type { PackageScanResult, ScanResult } from '@viberails/types';
+import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it, vi } from 'vitest';
-import { displayScanResults } from './display.js';
+import { displayRulesPreview, displayScanResults } from './display.js';
 
 function makeDefaultStats() {
   return {
@@ -305,6 +305,106 @@ function makeMonorepoScanResult(): ScanResult {
     packages: [webPkg, mobilePkg, sharedPkg],
   };
 }
+
+describe('displayRulesPreview', () => {
+  function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
+    return {
+      version: 1,
+      name: 'test',
+      enforcement: 'warn',
+      stack: { language: 'typescript', packageManager: 'pnpm' },
+      structure: {},
+      conventions: {},
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        maxFunctionLines: 50,
+        requireTests: false,
+        enforceNaming: false,
+        enforceBoundaries: false,
+      },
+      ignore: [],
+      ...overrides,
+    };
+  }
+
+  it('shows max file size line', () => {
+    const output = captureOutput(() => displayRulesPreview(makeConfig()));
+    expect(output).toContain('Max file size: 300 lines');
+  });
+
+  it('shows require tests with pattern', () => {
+    const output = captureOutput(() =>
+      displayRulesPreview(
+        makeConfig({
+          rules: {
+            maxFileLines: 300,
+            maxTestFileLines: 0,
+            maxFunctionLines: 50,
+            requireTests: true,
+            enforceNaming: false,
+            enforceBoundaries: false,
+          },
+          structure: { testPattern: '*.test.ts' },
+        }),
+      ),
+    );
+    expect(output).toContain('Require test files: yes');
+    expect(output).toContain('*.test.ts');
+  });
+
+  it('shows enforce naming with convention value', () => {
+    const output = captureOutput(() =>
+      displayRulesPreview(
+        makeConfig({
+          rules: {
+            maxFileLines: 300,
+            maxTestFileLines: 0,
+            maxFunctionLines: 50,
+            requireTests: false,
+            enforceNaming: true,
+            enforceBoundaries: false,
+          },
+          conventions: { fileNaming: 'kebab-case' },
+        }),
+      ),
+    );
+    expect(output).toContain('Enforce file naming: kebab-case');
+  });
+
+  it('shows enforcement mode warn', () => {
+    const output = captureOutput(() => displayRulesPreview(makeConfig()));
+    expect(output).toContain('Enforcement mode:');
+    expect(output).toContain('warn');
+  });
+
+  it('shows enforcement mode enforce', () => {
+    const output = captureOutput(() => displayRulesPreview(makeConfig({ enforcement: 'enforce' })));
+    expect(output).toContain('enforce');
+    expect(output).toContain('violations will block commits');
+  });
+
+  it('handles missing conventions gracefully', () => {
+    const output = captureOutput(() =>
+      displayRulesPreview(
+        makeConfig({
+          rules: {
+            maxFileLines: 300,
+            maxTestFileLines: 0,
+            maxFunctionLines: 50,
+            requireTests: true,
+            enforceNaming: true,
+            enforceBoundaries: false,
+          },
+          conventions: {},
+          structure: {},
+        }),
+      ),
+    );
+    expect(output).toContain('Enforce file naming: no');
+    expect(output).toContain('Require test files: yes');
+  });
+});
 
 describe('monorepo display', () => {
   it('shows package count in header', () => {

@@ -267,6 +267,28 @@ describe('mergeConfig', () => {
     expect(merged.packages?.find((p) => p.path === 'apps/mobile')).toBeDefined();
   });
 
+  it('preserves ORM field from existing config during merge', () => {
+    const existing = createExistingConfig();
+    existing.stack.orm = 'prisma';
+    const scanResult = createScanResult();
+    scanResult.stack.orm = { name: 'drizzle', version: '0' };
+
+    const merged = mergeConfig(existing, scanResult);
+
+    expect(merged.stack.orm).toBe('prisma'); // existing preserved
+  });
+
+  it('fills ORM field from fresh scan when missing in existing', () => {
+    const existing = createExistingConfig();
+    // existing has no orm
+    const scanResult = createScanResult();
+    scanResult.stack.orm = { name: 'prisma', version: '5' };
+
+    const merged = mergeConfig(existing, scanResult);
+
+    expect(merged.stack.orm).toBe('prisma@5');
+  });
+
   it('does not overwrite existing object-form conventions', () => {
     const existing = createExistingConfig();
     existing.conventions.componentNaming = {
