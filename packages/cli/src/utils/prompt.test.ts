@@ -65,7 +65,7 @@ describe('prompt utils', () => {
 
   it('promptIntegrations maps selected values to booleans', async () => {
     multiselectMock.mockResolvedValueOnce(['preCommit', 'claudeMd']);
-    const result = await promptIntegrations('Lefthook');
+    const result = await promptIntegrations('/tmp/test', 'Lefthook');
     expect(result).toEqual({
       preCommitHook: true,
       claudeCodeHook: false,
@@ -78,7 +78,7 @@ describe('prompt utils', () => {
 
   it('promptIntegrations shows typecheck option when TypeScript is detected', async () => {
     multiselectMock.mockResolvedValueOnce(['preCommit', 'typecheck']);
-    const result = await promptIntegrations('Husky', { isTypeScript: true });
+    const result = await promptIntegrations('/tmp/test', 'Husky', { isTypeScript: true });
     expect(result.typecheckHook).toBe(true);
     const options = multiselectMock.mock.calls[0][0].options;
     expect(options.some((o: { value: string }) => o.value === 'typecheck')).toBe(true);
@@ -86,7 +86,7 @@ describe('prompt utils', () => {
 
   it('promptIntegrations shows lint option when linter is detected', async () => {
     multiselectMock.mockResolvedValueOnce(['lint']);
-    const result = await promptIntegrations('Lefthook', { linter: 'eslint' });
+    const result = await promptIntegrations('/tmp/test', 'Lefthook', { linter: 'eslint' });
     expect(result.lintHook).toBe(true);
     const options = multiselectMock.mock.calls[0][0].options;
     expect(options.some((o: { value: string }) => o.value === 'lint')).toBe(true);

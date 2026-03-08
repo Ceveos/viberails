@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import * as clack from '@clack/prompts';
 import { assertNotCancelled } from './prompt.js';
 
@@ -13,20 +14,100 @@ export interface IntegrationChoice {
 export interface DetectedTools {
   isTypeScript?: boolean;
   linter?: string;
+  packageManager?: string;
+}
+
+/**
+ * Prompt the user to install Lefthook when no hook manager is detected.
+ * Returns the updated hook manager name, or undefined if the user declined.
+ */
+async function promptHookManagerInstall(
+  projectRoot: string,
+  packageManager: string,
+): Promise<string | undefined> {
+  const choice = await clack.select({
+    message: 'No git hook manager detected. Install Lefthook for shareable pre-commit hooks?',
+    options: [
+      {
+        value: 'install' as const,
+        label: 'Yes, install Lefthook',
+        hint: 'recommended — hooks are committed to the repo and shared with your team',
+      },
+      {
+        value: 'skip' as const,
+        label: 'No, skip',
+        hint: 'pre-commit hooks will be local-only (.git/hooks) and not shared',
+      },
+    ],
+  });
+  assertNotCancelled(choice);
+
+  if (choice !== 'install') return undefined;
+
+  const pm = packageManager || 'npm';
+  const installCmd =
+    pm === 'yarn'
+      ? 'yarn add -D lefthook'
+      : pm === 'pnpm'
+        ? 'pnpm add -D lefthook'
+        : 'npm install -D lefthook';
+
+  const s = clack.spinner();
+  s.start('Installing Lefthook...');
+  const result = spawnSync(installCmd, {
+    cwd: projectRoot,
+    shell: true,
+    encoding: 'utf-8',
+    stdio: 'pipe',
+  });
+
+  if (result.status === 0) {
+    // Create a minimal lefthook.yml so setupPreCommitHook detects it
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const lefthookPath = path.join(projectRoot, 'lefthook.yml');
+    if (!fs.existsSync(lefthookPath)) {
+      fs.writeFileSync(lefthookPath, '# Managed by viberails — https://viberails.sh\n');
+    }
+    s.stop('Installed Lefthook');
+    return 'Lefthook';
+  }
+
+  s.stop('Failed to install Lefthook');
+  clack.log.warn(`Install manually: ${installCmd}`);
+  return undefined;
 }
 
 /**
  * Prompt the user to select which integrations to set up.
  *
+ * @param projectRoot - Project root directory (needed for Lefthook install)
  * @param hookManager - Detected hook manager name (e.g. "Husky", "Lefthook") or undefined
  * @param tools - Detected project tools (TypeScript, linter) to conditionally show options
  * @returns Object with selected integrations
  */
 export async function promptIntegrations(
+  projectRoot: string,
   hookManager: string | undefined,
   tools?: DetectedTools,
 ): Promise<IntegrationChoice> {
-  const hookLabel = hookManager ? `Pre-commit hook (${hookManager})` : 'Pre-commit hook (git hook)';
+  let resolvedHookManager = hookManager;
+
+  // If no hook manager, offer to install Lefthook
+  if (!resolvedHookManager) {
+    resolvedHookManager = await promptHookManagerInstall(
+      projectRoot,
+      tools?.packageManager ?? 'npm',
+    );
+  }
+
+  const isBareHook = !resolvedHookManager;
+  const hookLabel = resolvedHookManager
+    ? `Pre-commit hook (${resolvedHookManager})`
+    : 'Pre-commit hook (git hook — local only)';
+  const hookHint = isBareHook
+    ? 'local only — will NOT be committed or shared with collaborators'
+    : 'runs viberails checks when you commit';
 
   type OptionValue = 'preCommit' | 'claude' | 'claudeMd' | 'githubAction' | 'typecheck' | 'lint';
 
@@ -34,7 +115,7 @@ export async function promptIntegrations(
     {
       value: 'preCommit',
       label: hookLabel,
-      hint: 'runs viberails checks when you commit',
+      hint: hookHint,
     },
   ];
 
@@ -73,7 +154,10 @@ export async function promptIntegrations(
     },
   );
 
-  const initialValues = options.map((o) => o.value);
+  // Default-disable pre-commit when using bare git hooks
+  const initialValues = isBareHook
+    ? options.filter((o) => o.value !== 'preCommit').map((o) => o.value)
+    : options.map((o) => o.value);
 
   const result = await clack.multiselect({
     message: 'Set up integrations?',

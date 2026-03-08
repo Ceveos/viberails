@@ -111,15 +111,15 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
 
   setupClaudeCodeHook(projectRoot);
   setupClaudeMdReference(projectRoot);
-  const preCommitTarget = setupPreCommitHook(projectRoot);
   const rootPkg = config.packages[0];
   const rootPkgPm = rootPkg?.stack?.packageManager ?? 'npm';
   const actionTarget = setupGithubAction(projectRoot, rootPkgPm);
 
-  const typecheckTarget =
-    rootPkg?.stack?.language === 'typescript' ? setupTypecheckHook(projectRoot) : undefined;
+  // Skip bare .git/hooks in --yes mode — they're local-only and won't be shared.
+  const hookManager = detectHookManager(projectRoot);
+  const hasHookManager = hookManager === 'Lefthook' || hookManager === 'Husky';
+  const preCommitTarget = hasHookManager ? setupPreCommitHook(projectRoot) : undefined;
   const linter = rootPkg?.stack?.linter?.split('@')[0];
-  const lintTarget = linter ? setupLintHook(projectRoot, linter) : undefined;
 
   const ok = chalk.green('\u2713');
   const created = [
@@ -128,11 +128,14 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
     `${ok} .viberails/scan-result.json`,
     `${ok} .claude/settings.json \u2014 added viberails hook`,
     `${ok} CLAUDE.md \u2014 added @.viberails/context.md reference`,
-    preCommitTarget ? `${ok} ${preCommitTarget}` : `${chalk.yellow('!')} pre-commit hook skipped`,
-    typecheckTarget ? `${ok} ${typecheckTarget} \u2014 added typecheck` : '',
-    lintTarget ? `${ok} ${lintTarget} \u2014 added lint check` : '',
+    preCommitTarget
+      ? `${ok} ${preCommitTarget}`
+      : `${chalk.yellow('!')} pre-commit hook skipped (install lefthook or husky)`,
     actionTarget ? `${ok} ${actionTarget} \u2014 blocks PRs on violations` : '',
   ].filter(Boolean);
+
+  if (hasHookManager && rootPkg?.stack?.language === 'typescript') setupTypecheckHook(projectRoot);
+  if (hasHookManager && linter) setupLintHook(projectRoot, linter);
   console.log(`\nCreated:\n${created.map((f) => `  ${f}`).join('\n')}`);
 }
 
@@ -260,9 +263,10 @@ async function initInteractive(
 
   const hookManager = detectHookManager(projectRoot);
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
-  const integrations = await promptIntegrations(hookManager, {
+  const integrations = await promptIntegrations(projectRoot, hookManager, {
     isTypeScript: rootPkgStack?.language === 'typescript',
     linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager: rootPkgStack?.packageManager,
   });
 
   const shouldWrite = await confirm('Write configuration and set up selected integrations?');
