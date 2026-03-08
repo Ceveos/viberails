@@ -72,11 +72,14 @@ export function formatConventionsText(scanResult: ScanResult): string[] {
  */
 export function formatRulesText(config: ViberailsConfig): string[] {
   const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const isMonorepo = config.packages.length > 1;
   const lines: string[] = [];
   lines.push(`Max file size: ${config.rules.maxFileLines} lines`);
 
   if (config.rules.testCoverage > 0) {
-    lines.push(`Test coverage target: ${config.rules.testCoverage}%`);
+    const label = isMonorepo ? 'Default coverage target' : 'Test coverage target';
+    const suffix = isMonorepo ? ' (per-package)' : '';
+    lines.push(`${label}: ${config.rules.testCoverage}%${suffix}`);
   } else {
     lines.push('Test coverage target: disabled');
   }

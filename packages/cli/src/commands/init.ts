@@ -4,8 +4,8 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayRulesPreview, displayScanResults } from '../display.js';
-import { formatRulesText, formatScanResultsText } from '../display-text.js';
+import { displayInitSummary, displayRulesPreview, displayScanResults } from '../display.js';
+import { formatScanResultsText } from '../display-text.js';
 import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import {
   checkCoveragePrereqs,
@@ -180,11 +180,8 @@ async function initInteractive(
 
   clack.note(formatScanResultsText(scanResult), 'Scan results');
 
-  const rulesLines = formatRulesText(config);
   const exemptedPkgs = getExemptedPackages(config);
-  if (exemptedPkgs.length > 0)
-    rulesLines.push(`Auto-exempted from coverage: ${exemptedPkgs.join(', ')} (types-only)`);
-  clack.note(rulesLines.join('\n'), 'Rules');
+  displayInitSummary(config, exemptedPkgs);
 
   const decision = await promptInitDecision();
 
