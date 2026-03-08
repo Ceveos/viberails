@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty')\nif [ -z \"$FILE\" ]; then exit 0; fi\nOUTPUT=$(node packages/cli/dist/index.js check --files \"$FILE\" --format json 2>&1)\nif echo \"$OUTPUT\" | jq -e '.violations | length > 0' >/dev/null 2>&1; then\n  echo \"$OUTPUT\" >&2\n  exit 2\nfi\nexit 0"
+            "command": "FILE=$(node -e \"try{process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).tool_input?.file_path??'')}catch{}\")\nif [ -z \"$FILE\" ]; then exit 0; fi\nOUTPUT=$(node packages/cli/dist/index.js check --files \"$FILE\" --format json 2>&1)\nif echo \"$OUTPUT\" | node -e \"process.exit(JSON.parse(require('fs').readFileSync(0,'utf8')).violations?.length?0:1)\" 2>/dev/null; then\n  echo \"$OUTPUT\" >&2\n  exit 2\nfi\nexit 0"
           }
         ]
       }
