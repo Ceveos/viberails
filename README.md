@@ -2,19 +2,11 @@
 
 Guardrails for vibe coding.
 
-A CLI that scans your existing JavaScript or TypeScript project, detects conventions, infers architectural boundaries, and enforces them on every commit — based on what you've actually built, not a template.
+viberails scans your existing JavaScript/TypeScript project, detects the conventions you're already following, and enforces them automatically — on every commit and every AI edit. Rules are derived from your actual codebase, not a template.
 
-## Installation
+## Why
 
-```bash
-# Run directly (no install needed)
-npx viberails
-
-# Or install as a dev dependency
-npm install -D viberails
-# or
-pnpm add -D viberails
-```
+AI coding tools are fast but inconsistent. They'll use camelCase in one file and kebab-case in another, create 500-line files, and ignore your project's import boundaries. viberails catches this automatically by learning your conventions and enforcing them where it matters: in pre-commit hooks and as real-time feedback to AI agents.
 
 ## Quick Start
 
@@ -23,90 +15,101 @@ cd your-project
 npx viberails
 ```
 
-viberails launches an interactive wizard that scans your project, shows detected conventions with confidence levels, and lets you customize rules before generating config. It also offers to set up pre-commit hooks and Claude Code integration.
+The interactive wizard scans your project, shows what it found with confidence levels, and lets you customize rules before generating config. It also sets up pre-commit hooks and Claude Code integration.
+
+## What It Does
+
+**Scans** your codebase to detect framework, language, styling, tooling, directory structure, and naming conventions — each scored by consistency across your files.
+
+**Enforces** four rules:
+- **File size** — files over 300 lines (configurable) are flagged
+- **Naming conventions** — detects your naming style (kebab-case, camelCase, PascalCase, snake_case) and enforces it
+- **Missing tests** — source files must have corresponding test files
+- **Import boundaries** — prevents packages from importing where they shouldn't (monorepos)
+
+**Fixes** violations automatically:
+- Renames files to match your convention and updates all imports via AST rewriting
+- Generates test stubs for missing test files
 
 ## What It Generates
 
 | File | Purpose |
 |------|---------|
-| `viberails.config.json` | Detected stack, conventions, boundary rules, and rule thresholds |
-| `.viberails/context.md` | AI context in natural language — enforced rules your AI tools can read |
+| `viberails.config.json` | Detected stack, conventions, boundary rules, and thresholds |
+| `.viberails/context.md` | Enforced rules in natural language for AI tools to follow |
 | `.viberails/scan-result.json` | Raw scan data (gitignored) |
+
+The generated `context.md` is designed to be referenced from your `CLAUDE.md`, `.cursorrules`, or similar AI context files so that AI tools automatically follow your project's conventions.
 
 ## Commands
 
-### `npx viberails` (or `viberails init`)
+### `npx viberails` / `viberails init`
 
-Scans your project, generates config and context files, and guides you through hook setup.
+Scans your project and generates config, context, and hooks.
 
-- `--yes` / `-y` — Non-interactive mode. Uses defaults, includes only high-confidence conventions. Skips hook installation.
-- `--force` / `-f` — Re-initialize from scratch, replacing the existing config. Use this when your project has changed significantly since the first init.
-
-### `viberails sync`
-
-Re-scans your project and regenerates context files. Preserves any manual edits to `viberails.config.json`. Reports specific changes: new stack detections, conventions, packages, and codebase size deltas.
+| Flag | Effect |
+|------|--------|
+| `--yes` / `-y` | Non-interactive. Uses defaults, high-confidence only, skips hooks. |
+| `--force` / `-f` | Re-initialize from scratch, replacing existing config. |
 
 ### `viberails check`
 
-Validates your project against the configured rules.
+Validates your project against configured rules.
 
-- `--staged` — Check only staged files (used by the pre-commit hook).
-
-**Checks:** file size limits, naming conventions, missing tests, and import boundary violations.
+| Flag | Effect |
+|------|--------|
+| `--staged` | Check only git-staged files (used by pre-commit hook). |
+| `--files <paths>` | Check specific files. |
+| `--format json` | Machine-readable output for tool integration. |
+| `--quiet` | Summary only. |
 
 ### `viberails fix`
 
 Auto-fixes naming violations and generates missing test stubs.
 
-- `--dry-run` — Preview changes without applying them.
-- `--rule file-naming` — Fix only specific rule types.
-- `--yes` / `-y` — Apply fixes without confirmation.
+| Flag | Effect |
+|------|--------|
+| `--dry-run` | Preview changes without applying them. |
+| `--rule <name>` | Fix only `file-naming` or `missing-test`. |
+| `--yes` / `-y` | Apply fixes without confirmation. |
+
+### `viberails sync`
+
+Re-scans and regenerates context files. Preserves manual edits to `viberails.config.json` and reports what changed.
 
 ### `viberails boundaries`
 
-Displays configured boundary rules and detected violations.
+Displays boundary rules and violations. Use `--infer` to re-infer rules from your current import graph.
 
-- `--infer` — Infer boundary rules from existing import patterns.
+## Hooks
 
-## How It Works
-
-1. **Scan** — Reads `package.json` to detect your framework, language, styling, and tooling. Walks your directory tree to map structure and analyze naming conventions.
-
-2. **Detect** — Each convention gets a confidence level based on consistency across your codebase. For monorepos, import boundaries are inferred from existing dependency patterns.
-
-3. **Generate** — Produces `viberails.config.json` with detected rules and `.viberails/context.md` with enforced rules in natural language.
-
-4. **Enforce** — Optional pre-commit hooks and Claude Code integration run `viberails check` automatically, catching violations before they land.
-
-## Hooks & Integrations
-
-In interactive mode (`viberails init`), you can choose which integrations to set up:
+During `viberails init`, you can set up automatic enforcement:
 
 ### Pre-commit hook
 
-Automatically detects your hook manager and integrates:
-
-- **Lefthook** — Appends a `viberails` command to `lefthook.yml`
-- **Husky** — Adds to `.husky/pre-commit`
-- **No hook manager** — Creates `.git/hooks/pre-commit` directly
-
-The hook runs `viberails check --staged` on every commit. It uses warn-only mode by default — set `"enforcement": "enforce"` in `viberails.config.json` to block commits with violations.
+Detects your hook manager (Lefthook, Husky, or bare git) and adds `viberails check --staged`. Violations warn by default — set `"enforcement": "enforce"` in config to block commits.
 
 ### Claude Code hook
 
-Sets up a PostToolUse hook in `.claude/settings.json` that runs `viberails check` after every file edit or write, giving AI agents real-time feedback on convention violations.
-
-> **Note:** `--yes` mode skips all hook installation. Run `viberails init` interactively to set up hooks, or configure them manually.
+Adds a PostToolUse hook to `.claude/settings.json` that runs `viberails check` after every file edit, giving Claude real-time feedback on convention violations.
 
 ## Confidence Model
 
+Not all conventions are equally consistent in a codebase. viberails scores each detection:
+
 | Level | Consistency | Behavior |
 |-------|-------------|----------|
-| High | ≥ 90% | Included and enforced by default |
-| Medium | 70–89% | Included as suggestion, not enforced |
-| Low | < 70% | Omitted entirely |
+| **High** | >= 90% | Enforced by default |
+| **Medium** | 70-89% | Included in config, not enforced |
+| **Low** | < 70% | Omitted entirely |
 
 In `--yes` mode, only high-confidence conventions are included.
+
+## Monorepo Support
+
+viberails detects workspaces (pnpm, npm, yarn), scans each package independently, and infers import boundaries from your existing dependency graph. Packages that don't import from each other get automatic deny rules — preventing accidental coupling before it starts.
+
+Per-package convention overrides are detected and displayed during setup.
 
 ## Programmatic API
 
@@ -124,9 +127,9 @@ const context = generateContext(config);
 
 ## Contributing
 
-See [CHANGELOG.md](./CHANGELOG.md) for version history.
-
 Issues and pull requests welcome at [github.com/Ceveos/viberails](https://github.com/Ceveos/viberails).
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 ## License
 
