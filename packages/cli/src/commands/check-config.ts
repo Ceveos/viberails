@@ -1,9 +1,15 @@
 import { BUILTIN_IGNORE } from '@viberails/config';
-import type { ConfigConventions, ConfigRules, ViberailsConfig } from '@viberails/types';
+import type {
+  ConfigConventions,
+  ConfigCoverage,
+  ConfigRules,
+  ViberailsConfig,
+} from '@viberails/types';
 
 export interface ResolvedConfig {
   rules: ConfigRules;
   conventions: ConfigConventions;
+  coverage: ConfigCoverage;
 }
 
 /**
@@ -20,6 +26,10 @@ export function resolveConfigForFile(relPath: string, config: ViberailsConfig): 
       return {
         rules: { ...config.rules, ...pkg.rules },
         conventions: pkg.conventions ?? {},
+        coverage: {
+          ...(config.defaults?.coverage ?? {}),
+          ...(pkg.coverage ?? {}),
+        },
       };
     }
   }
@@ -29,6 +39,10 @@ export function resolveConfigForFile(relPath: string, config: ViberailsConfig): 
   return {
     rules: { ...config.rules, ...root.rules },
     conventions: root.conventions ?? {},
+    coverage: {
+      ...(config.defaults?.coverage ?? {}),
+      ...(root.coverage ?? {}),
+    },
   };
 }
 

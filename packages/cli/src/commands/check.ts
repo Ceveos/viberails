@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
+import { checkCoverage } from './check-coverage.js';
 import {
   checkNaming,
   countFileLines,
@@ -54,7 +55,13 @@ function printGroupedViolations(violations: CheckViolation[], limit?: number): v
     groups.set(v.rule, existing);
   }
 
-  const ruleOrder = ['file-size', 'file-naming', 'missing-test', 'boundary-violation'];
+  const ruleOrder = [
+    'file-size',
+    'file-naming',
+    'missing-test',
+    'test-coverage',
+    'boundary-violation',
+  ];
   const sortedKeys = [...groups.keys()].sort(
     (a, b) =>
       (ruleOrder.indexOf(a) === -1 ? 99 : ruleOrder.indexOf(a)) -
@@ -184,12 +191,21 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   // Check 3: Missing tests (only on full project check, not staged/specific files)
-  if (config.rules.testCoverage > 0 && !options.staged && !options.files) {
+  if (!options.staged && !options.files) {
     const testViolations = checkMissingTests(projectRoot, config, severity);
     violations.push(...testViolations);
   }
 
-  // Check 4: Boundary violations
+  // Check 4: Test coverage threshold
+  if (!options.files) {
+    const coverageViolations = checkCoverage(projectRoot, config, filesToCheck, {
+      staged: options.staged,
+      enforce: options.enforce,
+    });
+    violations.push(...coverageViolations);
+  }
+
+  // Check 5: Boundary violations
   if (
     config.rules.enforceBoundaries &&
     config.boundaries &&

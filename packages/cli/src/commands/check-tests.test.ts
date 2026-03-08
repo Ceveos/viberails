@@ -57,4 +57,14 @@ describe('checkMissingTests', () => {
     expect(violations[0].file).toBe('apps/web/src/page.ts');
     expect(violations[0].rule).toBe('missing-test');
   });
+
+  it('skips missing-test checks for packages with testCoverage set to 0', () => {
+    const config = monorepoConfig();
+    config.packages[1].rules = { testCoverage: 0 };
+    fs.mkdirSync(path.join(tmpDir, 'apps/web/src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'apps/web/src/page.ts'), 'export const page = 1;\n');
+
+    const violations = checkMissingTests(tmpDir, config, 'warn');
+    expect(violations).toHaveLength(0);
+  });
 });

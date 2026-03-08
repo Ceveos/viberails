@@ -219,4 +219,110 @@ describe('check command', () => {
       errorSpy.mockRestore();
     }
   });
+
+  it('reports test-coverage violations in full check mode', async () => {
+    writeConfig(tmpDir, {
+      rules: {
+        maxFileLines: 999,
+        maxFunctionLines: 50,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+      },
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'mocha@10' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    });
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'hello.ts'), 'export const hello = 1;\n');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const exitCode = await checkCommand({}, tmpDir);
+      const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(exitCode).toBe(0);
+      expect(output).toContain('test-coverage');
+    } finally {
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('returns 1 in enforce mode when test-coverage violations exist', async () => {
+    writeConfig(tmpDir, {
+      rules: {
+        maxFileLines: 999,
+        maxFunctionLines: 50,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+      },
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'mocha@10' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    });
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'hello.ts'), 'export const hello = 1;\n');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const exitCode = await checkCommand({ enforce: true }, tmpDir);
+      expect(exitCode).toBe(1);
+    } finally {
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('skips test-coverage checks in --files mode', async () => {
+    writeConfig(tmpDir, {
+      rules: {
+        maxFileLines: 999,
+        maxFunctionLines: 50,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+      },
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'mocha@10' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    });
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'hello.ts'), 'export const hello = 1;\n');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const exitCode = await checkCommand({ files: ['src/hello.ts'] }, tmpDir);
+      const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(exitCode).toBe(0);
+      expect(output).not.toContain('test-coverage');
+    } finally {
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
 });

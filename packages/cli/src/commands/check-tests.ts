@@ -23,6 +23,9 @@ export function checkMissingTests(
 ): CheckViolation[] {
   const violations: CheckViolation[] = [];
   for (const pkg of config.packages) {
+    const effectiveRules = { ...config.rules, ...pkg.rules };
+    if (effectiveRules.testCoverage <= 0) continue;
+
     const testPattern = pkg.structure?.testPattern;
     const srcDir = pkg.structure?.srcDir;
     if (!testPattern || !srcDir) continue;

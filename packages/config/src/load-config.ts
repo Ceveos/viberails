@@ -36,6 +36,19 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
       const pkg = parsed.packages[i] as Record<string, unknown>;
       if (typeof pkg.name !== 'string') errors.push(`"packages[${i}].name" must be a string`);
       if (typeof pkg.path !== 'string') errors.push(`"packages[${i}].path" must be a string`);
+      if (pkg.coverage !== undefined) {
+        if (typeof pkg.coverage !== 'object' || pkg.coverage === null) {
+          errors.push(`"packages[${i}].coverage" must be an object`);
+        } else {
+          const coverage = pkg.coverage as Record<string, unknown>;
+          if (coverage.command !== undefined && typeof coverage.command !== 'string') {
+            errors.push(`"packages[${i}].coverage.command" must be a string`);
+          }
+          if (coverage.summaryPath !== undefined && typeof coverage.summaryPath !== 'string') {
+            errors.push(`"packages[${i}].coverage.summaryPath" must be a string`);
+          }
+        }
+      }
     }
   }
 
@@ -67,6 +80,28 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
   // Ignore validation
   if (parsed.ignore !== undefined && !Array.isArray(parsed.ignore)) {
     errors.push('"ignore" must be an array');
+  }
+
+  // Defaults validation
+  if (parsed.defaults !== undefined) {
+    if (typeof parsed.defaults !== 'object' || parsed.defaults === null) {
+      errors.push('"defaults" must be an object');
+    } else {
+      const defaults = parsed.defaults as Record<string, unknown>;
+      if (defaults.coverage !== undefined) {
+        if (typeof defaults.coverage !== 'object' || defaults.coverage === null) {
+          errors.push('"defaults.coverage" must be an object');
+        } else {
+          const coverage = defaults.coverage as Record<string, unknown>;
+          if (coverage.command !== undefined && typeof coverage.command !== 'string') {
+            errors.push('"defaults.coverage.command" must be a string');
+          }
+          if (coverage.summaryPath !== undefined && typeof coverage.summaryPath !== 'string') {
+            errors.push('"defaults.coverage.summaryPath" must be a string');
+          }
+        }
+      }
+    }
   }
 
   if (errors.length > 0) {

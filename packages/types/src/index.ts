@@ -7,6 +7,7 @@ export type { Confidence, DetectedConvention } from './confidence.js';
 export { confidenceFromConsistency } from './confidence.js';
 export type {
   ConfigConventions,
+  ConfigCoverage,
   ConfigDefaults,
   ConfigMeta,
   ConfigRules,

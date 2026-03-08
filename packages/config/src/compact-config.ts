@@ -1,5 +1,6 @@
 import type {
   ConfigConventions,
+  ConfigCoverage,
   ConfigDefaults,
   ConfigStack,
   ConfigStructure,
@@ -102,6 +103,29 @@ export function compactConfig(config: ViberailsConfig): ViberailsConfig {
       sharedConventions[key] = values[0];
     }
   }
+
+  // Extract shared coverage settings
+  const sharedCoverage: ConfigCoverage = {};
+  const coverageKeys: (keyof ConfigCoverage)[] = ['command', 'summaryPath'];
+  for (const key of coverageKeys) {
+    const values = packages.map((p) => p.coverage?.[key]);
+    if (values[0] !== undefined && values.every((v) => v === values[0])) {
+      sharedCoverage[key] = values[0];
+    }
+  }
+  if (Object.keys(sharedCoverage).length > 0) {
+    defaults.coverage = sharedCoverage;
+    for (const pkg of packages) {
+      const pkgCoverage = pkg.coverage ?? {};
+      const sparse: ConfigCoverage = {};
+      for (const key of coverageKeys) {
+        if (pkgCoverage[key] !== undefined && pkgCoverage[key] !== sharedCoverage[key]) {
+          sparse[key] = pkgCoverage[key];
+        }
+      }
+      pkg.coverage = sparse;
+    }
+  }
   if (Object.keys(sharedConventions).length > 0) {
     defaults.conventions = sharedConventions;
     for (const pkg of packages) {
@@ -126,6 +150,9 @@ export function compactConfig(config: ViberailsConfig): ViberailsConfig {
     }
     if (pkg.conventions && Object.keys(pkg.conventions).length === 0) {
       delete pkg.conventions;
+    }
+    if (pkg.coverage && Object.keys(pkg.coverage).length === 0) {
+      delete pkg.coverage;
     }
   }
 
@@ -160,6 +187,12 @@ export function expandDefaults(config: ViberailsConfig): ViberailsConfig {
     expanded.stack = { ...(defaults?.stack ?? {}), ...(pkg.stack ?? {}) } as ConfigStack;
     expanded.structure = { ...(defaults?.structure ?? {}), ...(pkg.structure ?? {}) };
     expanded.conventions = { ...(defaults?.conventions ?? {}), ...(pkg.conventions ?? {}) };
+    const mergedCoverage = { ...(defaults?.coverage ?? {}), ...(pkg.coverage ?? {}) };
+    if (Object.keys(mergedCoverage).length > 0) {
+      expanded.coverage = mergedCoverage;
+    } else {
+      delete expanded.coverage;
+    }
 
     return expanded;
   });

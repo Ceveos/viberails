@@ -68,6 +68,21 @@ export const conventionsSchema = {
   additionalProperties: false,
 } as const;
 
+export const coverageSchema = {
+  type: 'object',
+  properties: {
+    command: {
+      type: 'string',
+      description: 'Command to generate coverage summary data for this package.',
+    },
+    summaryPath: {
+      type: 'string',
+      description: 'Path to coverage summary JSON relative to package root.',
+    },
+  },
+  additionalProperties: false,
+} as const;
+
 export const packageItemSchema = {
   type: 'object',
   required: ['name', 'path'],
@@ -77,6 +92,10 @@ export const packageItemSchema = {
     stack: { ...stackSchema, description: 'Technology stack for this package.' },
     structure: { ...structureSchema, description: 'Directory structure for this package.' },
     conventions: { ...conventionsSchema, description: 'Coding conventions for this package.' },
+    coverage: {
+      ...coverageSchema,
+      description: 'Coverage generation and summary settings for this package.',
+    },
     rules: {
       type: 'object',
       properties: {
@@ -109,6 +128,10 @@ export const defaultsSchema = {
     conventions: {
       ...conventionsSchema,
       description: 'Default conventions inherited by all packages.',
+    },
+    coverage: {
+      ...coverageSchema,
+      description: 'Default coverage settings inherited by all packages.',
     },
   },
   additionalProperties: false,

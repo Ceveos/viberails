@@ -86,7 +86,7 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
 
   // Compute test stubs
   const testStubs: TestStubRecord[] = [];
-  if (shouldFixTests && config.rules.testCoverage > 0) {
+  if (shouldFixTests) {
     const testViolations = checkMissingTests(projectRoot, config, 'warn');
     for (const v of testViolations) {
       const stub = generateTestStub(v.file, config, projectRoot);

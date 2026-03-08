@@ -30,6 +30,7 @@ describe('resolveConfigForFile', () => {
     const resolved = resolveConfigForFile('src/utils.ts', baseConfig);
     expect(resolved.rules).toEqual(baseConfig.rules);
     expect(resolved.conventions).toEqual({ fileNaming: 'kebab-case' });
+    expect(resolved.coverage).toEqual({});
   });
 
   it('returns merged config for file matching a package path', () => {
@@ -50,6 +51,7 @@ describe('resolveConfigForFile', () => {
     expect(resolved.rules.maxFileLines).toBe(500);
     // Non-overridden fields preserved from global
     expect(resolved.rules.testCoverage).toBe(80);
+    expect(resolved.coverage).toEqual({});
   });
 
   it('matches the most specific (longest) package path', () => {
@@ -76,6 +78,32 @@ describe('resolveConfigForFile', () => {
     const resolved = resolveConfigForFile('lib/helper.ts', config);
     expect(resolved.conventions.fileNaming).toBe('kebab-case');
     expect(resolved.rules).toEqual(baseConfig.rules);
+    expect(resolved.coverage).toEqual({});
+  });
+
+  it('merges defaults.coverage with package coverage overrides', () => {
+    const config: ViberailsConfig = {
+      ...baseConfig,
+      defaults: {
+        coverage: {
+          command: 'npm test -- --coverage',
+          summaryPath: 'coverage/coverage-summary.json',
+        },
+      },
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          coverage: {
+            summaryPath: 'custom/summary.json',
+          },
+        },
+      ],
+    };
+    const resolved = resolveConfigForFile('src/utils.ts', config);
+    expect(resolved.coverage).toEqual({
+      command: 'npm test -- --coverage',
+      summaryPath: 'custom/summary.json',
+    });
   });
 });
 

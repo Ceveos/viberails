@@ -45,7 +45,8 @@ export const configSchema = {
         testCoverage: {
           type: 'number',
           default: 80,
-          description: 'Minimum test coverage target. 0 to disable, >0 to require test files.',
+          description:
+            'Minimum line coverage target. 0 disables both coverage and missing-test checks.',
         },
         enforceNaming: {
           type: 'boolean',

@@ -179,6 +179,36 @@ describe('configSchema validation', () => {
     expect(valid).toBe(true);
   });
 
+  it('validates defaults.coverage and package coverage overrides', () => {
+    const ajv = new Ajv();
+    const validate = ajv.compile(configSchema);
+    const config = generateConfig(makeMinimalScanResult());
+
+    const withCoverage = {
+      ...config,
+      defaults: {
+        coverage: {
+          command: 'pnpm test:coverage',
+          summaryPath: 'coverage/coverage-summary.json',
+        },
+      },
+      packages: [
+        {
+          ...config.packages[0],
+          coverage: {
+            summaryPath: 'custom/coverage-summary.json',
+          },
+        },
+      ],
+    };
+
+    const valid = validate(withCoverage);
+    if (!valid) {
+      console.error('Validation errors:', validate.errors);
+    }
+    expect(valid).toBe(true);
+  });
+
   it('rejects config with additional properties', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);

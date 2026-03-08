@@ -159,6 +159,59 @@ describe('loadConfig', () => {
       '"packages" must contain at least one package',
     );
   });
+
+  it('throws when defaults.coverage fields have wrong types', async () => {
+    const configPath = path.join(tmpDir, 'bad-defaults-coverage.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [{ name: 'test', path: '.' }],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+        defaults: {
+          coverage: {
+            command: 123,
+          },
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('"defaults.coverage.command"');
+  });
+
+  it('throws when packages coverage fields have wrong types', async () => {
+    const configPath = path.join(tmpDir, 'bad-package-coverage.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [
+          {
+            name: 'test',
+            path: '.',
+            coverage: {
+              summaryPath: 123,
+            },
+          },
+        ],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('"packages[0].coverage.summaryPath"');
+  });
 });
 
 describe('loadConfigSafe', () => {

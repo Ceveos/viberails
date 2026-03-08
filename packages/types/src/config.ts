@@ -66,6 +66,9 @@ export interface PackageConfig {
   /** Override rules for this package (only differences from global). */
   rules?: Partial<ConfigRules>;
 
+  /** Coverage command/path overrides for this package. */
+  coverage?: ConfigCoverage;
+
   /** Additional ignore patterns for this package (appended to global). */
   ignore?: string[];
 
@@ -94,6 +97,21 @@ export interface ConfigDefaults {
   structure?: Partial<ConfigStructure>;
   /** Default coding conventions, inherited by all packages. */
   conventions?: ConfigConventions;
+
+  /** Default coverage command/path inherited by all packages. */
+  coverage?: ConfigCoverage;
+}
+
+/**
+ * Coverage collection configuration.
+ * If omitted, viberails falls back to supported test runner defaults.
+ */
+export interface ConfigCoverage {
+  /** Command used to generate coverage summary data. */
+  command?: string;
+
+  /** Relative path to coverage summary JSON (from package root). */
+  summaryPath?: string;
 }
 
 /**
@@ -223,7 +241,8 @@ export interface ConfigRules {
   maxTestFileLines: number;
 
   /**
-   * Minimum test coverage target (0 = disabled, >0 = require test files).
+   * Minimum line coverage target percentage.
+   * 0 disables both coverage threshold checks and missing-test checks.
    * @default 80
    */
   testCoverage: number;

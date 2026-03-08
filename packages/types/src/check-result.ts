@@ -1,7 +1,12 @@
 /**
  * The type of rule that was violated.
  */
-export type CheckRule = 'file-size' | 'file-naming' | 'missing-test' | 'boundary-violation';
+export type CheckRule =
+  | 'file-size'
+  | 'file-naming'
+  | 'missing-test'
+  | 'test-coverage'
+  | 'boundary-violation';
 
 /**
  * A single rule violation detected by `viberails check`.
