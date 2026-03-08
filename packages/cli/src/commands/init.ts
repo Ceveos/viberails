@@ -1,12 +1,18 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as clack from '@clack/prompts';
 import { generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
-import type { ConfigConventions, ConventionValue } from '@viberails/types';
+import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
 import { displayRulesPreview, displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
-import { confirm, selectIntegrations } from '../utils/prompt.js';
+import {
+  confirm,
+  promptInitDecision,
+  promptIntegrations,
+  promptRuleCustomization,
+} from '../utils/prompt.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 import { detectHookManager, setupClaudeCodeHook, setupPreCommitHook } from './init-hooks.js';
@@ -27,6 +33,24 @@ function filterHighConfidence(conventions: ConfigConventions): ConfigConventions
     }
   }
   return filtered;
+}
+
+/**
+ * Extract the string value from a ConventionValue.
+ */
+function getConventionStr(
+  cv: string | { value: string; _confidence: string; _consistency: number } | undefined,
+): string | undefined {
+  if (!cv) return undefined;
+  return typeof cv === 'string' ? cv : cv.value;
+}
+
+/**
+ * Check if a monorepo config has per-package convention overrides.
+ */
+function hasConventionOverrides(config: ViberailsConfig): boolean {
+  if (!config.packages || config.packages.length === 0) return false;
+  return config.packages.some((pkg) => pkg.conventions && Object.keys(pkg.conventions).length > 0);
 }
 
 /**
@@ -52,11 +76,8 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
   const configPath = path.join(projectRoot, CONFIG_FILE);
   if (fs.existsSync(configPath)) {
     console.log(
-      chalk.yellow('!') +
-        ' viberails is already initialized in this project.\n' +
-        '  Run ' +
-        chalk.cyan('viberails sync') +
-        ' to update the generated files.',
+      `${chalk.yellow('!')} viberails is already initialized in this project.\n` +
+        `  Run ${chalk.cyan('viberails sync')} to update the generated files.`,
     );
     return;
   }
@@ -77,54 +98,103 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
   // 6. Sparse project notice
   if (scanResult.statistics.totalFiles === 0) {
     console.log(
-      chalk.yellow('!') +
-        ' No source files detected. viberails will generate context with minimal content.\n' +
-        '  Run ' +
-        chalk.cyan('viberails sync') +
-        ' after adding source files.\n',
+      `${chalk.yellow('!')} No source files detected. viberails will generate context with minimal content.\n` +
+        `  Run ${chalk.cyan('viberails sync')} after adding source files.\n`,
     );
   }
 
   // 7. Show rules preview
   displayRulesPreview(config);
 
-  // 8. Interactive confirmation
+  // 8. Interactive flow
+  let integrations = { preCommitHook: true, claudeCodeHook: true };
+
   if (!options.yes) {
-    const accepted = await confirm('Proceed with these settings?');
-    if (!accepted) {
-      console.log('Aborted.');
-      return;
-    }
-  }
+    clack.intro(chalk.inverse(' viberails setup '));
 
-  // 9. Infer boundary rules for workspace projects
-  if (config.workspace && config.workspace.packages.length > 0) {
-    let shouldInfer = options.yes;
-    if (!options.yes) {
-      console.log(chalk.dim('  Scans imports between packages to suggest dependency rules'));
-      shouldInfer = await confirm('Infer boundary rules from import patterns?');
-    }
+    // 8a. Accept or Customize
+    const decision = await promptInitDecision();
 
-    if (shouldInfer) {
-      console.log(chalk.dim('Building import graph...'));
-      const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-      const packages = resolveWorkspacePackages(projectRoot, config.workspace);
-      const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
-      const inferred = inferBoundaries(graph);
-      if (inferred.length > 0) {
-        config.boundaries = inferred;
-        config.rules.enforceBoundaries = true;
-        console.log(`  ${chalk.green('✓')} Inferred ${inferred.length} boundary rules`);
+    // 8b. Customize rules if requested
+    if (decision === 'customize') {
+      clack.note(
+        'Rules control what viberails checks for.\nYou can change these later in viberails.config.json.',
+        'Rules',
+      );
+
+      const overrides = await promptRuleCustomization({
+        maxFileLines: config.rules.maxFileLines,
+        requireTests: config.rules.requireTests,
+        enforceNaming: config.rules.enforceNaming,
+        enforcement: config.enforcement,
+        fileNamingValue: getConventionStr(config.conventions.fileNaming),
+      });
+
+      config.rules.maxFileLines = overrides.maxFileLines;
+      config.rules.requireTests = overrides.requireTests;
+      config.rules.enforceNaming = overrides.enforceNaming;
+      config.enforcement = overrides.enforcement;
+
+      if (config.workspace?.packages && config.workspace.packages.length > 0) {
+        clack.note(
+          'These rules apply to all packages. To set different\n' +
+            'rules per package (e.g. different naming for packages/api),\n' +
+            'edit the "packages" section in viberails.config.json.',
+          'Per-package overrides',
+        );
       }
     }
   }
 
-  // 10. Select integrations
-  const hookManager = detectHookManager(projectRoot);
-  let integrations = { preCommitHook: true, claudeCodeHook: true };
+  // 9. Boundary inference (monorepo only — runs in both interactive and --yes modes)
+  if (config.workspace?.packages && config.workspace.packages.length > 0) {
+    let shouldInfer = !!options.yes;
+    if (!options.yes) {
+      clack.note(
+        'Boundary rules prevent packages from importing where they\n' +
+          "shouldn't. viberails scans your existing imports and creates\n" +
+          "rules based on what's already working.",
+        'Boundaries',
+      );
+      shouldInfer = await confirm('Infer boundary rules from import patterns?');
+    }
+
+    if (shouldInfer) {
+      const s = clack.spinner();
+      s.start('Building import graph...');
+      const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
+      const packages = resolveWorkspacePackages(projectRoot, config.workspace);
+      const graph = await buildImportGraph(projectRoot, {
+        packages,
+        ignore: config.ignore,
+      });
+      const inferred = inferBoundaries(graph);
+      if (inferred.length > 0) {
+        config.boundaries = inferred;
+        config.rules.enforceBoundaries = true;
+        s.stop(`Inferred ${inferred.length} boundary rules`);
+      } else {
+        s.stop('No boundary rules inferred');
+      }
+    }
+  }
+
   if (!options.yes) {
-    console.log('');
-    integrations = await selectIntegrations(hookManager);
+    // 10. Integration selection
+    const hookManager = detectHookManager(projectRoot);
+    integrations = await promptIntegrations(hookManager);
+
+    // Note about per-package convention differences
+    if (hasConventionOverrides(config)) {
+      clack.note(
+        'Some packages use different conventions. Per-package\n' +
+          'overrides have been saved in viberails.config.json —\n' +
+          'review and adjust as needed.',
+        'Per-package conventions',
+      );
+    }
+
+    clack.outro('Setup complete!');
   }
 
   // 11. Write config

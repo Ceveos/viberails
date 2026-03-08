@@ -31,6 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@clack/prompts": "^1.1.0",
     "@viberails/config": "workspace:*",
     "@viberails/context": "workspace:*",
     "@viberails/graph": "workspace:*",
