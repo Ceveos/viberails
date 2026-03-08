@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
-import { promptPackageCoverageOverrides } from './prompt-package-overrides.js';
 import { assertNotCancelled } from './prompt.js';
+import { promptPackageCoverageOverrides } from './prompt-package-overrides.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {

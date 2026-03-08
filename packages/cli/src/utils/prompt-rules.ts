@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
-import { buildMenuOptions, clonePackages, handleMenuChoice } from './prompt-menu-handlers.js';
 import { assertNotCancelled } from './prompt.js';
+import { buildMenuOptions, clonePackages, handleMenuChoice } from './prompt-menu-handlers.js';
 
 export interface RuleOverrides {
   maxFileLines: number;

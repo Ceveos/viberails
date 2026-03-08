@@ -6,6 +6,11 @@ import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
 import { displayRulesPreview, displayScanResults } from '../display.js';
 import { formatRulesText, formatScanResultsText } from '../display-text.js';
+import {
+  checkCoveragePrereqs,
+  displayMissingPrereqs,
+  promptMissingPrereqs,
+} from '../utils/check-prerequisites.js';
 import { filterHighConfidence } from '../utils/filter-confidence.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import {
@@ -18,11 +23,6 @@ import {
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
-import {
-  checkCoveragePrereqs,
-  displayMissingPrereqs,
-  promptMissingPrereqs,
-} from '../utils/check-prerequisites.js';
 import {
   detectHookManager,
   setupClaudeCodeHook,

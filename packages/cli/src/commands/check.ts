@@ -8,13 +8,13 @@ import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
 import { checkCoverage } from './check-coverage.js';
 import {
-  SOURCE_EXTS,
   checkNaming,
   countFileLines,
   getAllSourceFiles,
   getDiffFiles,
   getStagedFiles,
   isIgnored,
+  SOURCE_EXTS,
 } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
 

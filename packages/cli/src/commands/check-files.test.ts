@@ -1,8 +1,8 @@
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
-import { execSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { checkNaming, getAllSourceFiles, getDiffFiles, isIgnored } from './check-files.js';
 

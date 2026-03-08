@@ -102,8 +102,8 @@ function runCoverageCommand(pkgRoot: string, command: string): { ok: boolean; de
   }
 
   // Strip ANSI codes from error output
-  // eslint-disable-next-line no-control-regex
-  const detail = raw.replace(new RegExp('\\x1B\\[[0-9;]*m', 'g'), '');
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ANSI escape sequences
+  const detail = raw.replace(/\x1B\[[0-9;]*m/g, '');
   return { ok: false, detail };
 }
 
