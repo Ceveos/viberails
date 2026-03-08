@@ -47,6 +47,7 @@ program
   .description('Check files against enforced rules')
   .option('--staged', 'Check only staged files (for pre-commit hooks)')
   .option('--files <files...>', 'Check specific files')
+  .option('--diff-base <ref>', 'Only check files changed since <ref> (for CI on PRs)')
   .option('--no-boundaries', 'Skip boundary checking')
   .option('--quiet', 'Show only summary counts, not individual violations')
   .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
@@ -57,6 +58,7 @@ program
     async (options: {
       staged?: boolean;
       files?: string[];
+      diffBase?: string;
       boundaries?: boolean;
       quiet?: boolean;
       limit?: number;
@@ -71,6 +73,7 @@ program
         }
         const exitCode = await checkCommand({
           ...options,
+          diffBase: options.diffBase,
           enforce: options.enforce,
           noBoundaries: options.boundaries === false,
           format: options.format === 'json' ? 'json' : 'text',

@@ -111,6 +111,31 @@ export function getStagedFiles(projectRoot: string): string[] {
   }
 }
 
+/** Get files changed between a base ref and HEAD. */
+export function getDiffFiles(
+  projectRoot: string,
+  base: string,
+): { all: string[]; added: string[] } {
+  try {
+    const allOutput = execSync(`git diff --name-only --diff-filter=ACMR ${base}...HEAD`, {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const addedOutput = execSync(`git diff --name-only --diff-filter=A ${base}...HEAD`, {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return {
+      all: allOutput.trim().split('\n').filter(Boolean),
+      added: addedOutput.trim().split('\n').filter(Boolean),
+    };
+  } catch {
+    return { all: [], added: [] };
+  }
+}
+
 /** Get all source files in the project. */
 export function getAllSourceFiles(projectRoot: string, config: ViberailsConfig): string[] {
   const effectiveIgnore = [...BUILTIN_IGNORE, ...(config.ignore ?? [])];

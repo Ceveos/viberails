@@ -202,6 +202,8 @@ export function setupGithubAction(projectRoot: string, packageManager: string): 
     '    runs-on: ubuntu-latest',
     '    steps:',
     '      - uses: actions/checkout@v4',
+    '        with:',
+    '          fetch-depth: 0',
     '',
   ];
 
@@ -216,7 +218,7 @@ export function setupGithubAction(projectRoot: string, packageManager: string): 
     pm !== 'npm' ? `          cache: ${pm}` : '',
     '',
     `      - run: ${installCmd}`,
-    `      - run: ${runPrefix} viberails check --enforce`,
+    `      - run: ${runPrefix} viberails check --enforce --diff-base origin/\${{ github.event.pull_request.base.ref }}`,
     '',
   );
 

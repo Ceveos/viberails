@@ -11,6 +11,7 @@ import {
   checkNaming,
   countFileLines,
   getAllSourceFiles,
+  getDiffFiles,
   getStagedFiles,
   isIgnored,
 } from './check-files.js';
@@ -23,6 +24,7 @@ const CONFIG_FILE = 'viberails.config.json';
 export interface CheckOptions {
   files?: string[];
   staged?: boolean;
+  diffBase?: string;
   noBoundaries?: boolean;
   quiet?: boolean;
   limit?: number;
@@ -131,8 +133,13 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   // Determine which files to check
   let filesToCheck: string[];
+  let diffAddedFiles: Set<string> | null = null;
   if (options.staged) {
     filesToCheck = getStagedFiles(projectRoot);
+  } else if (options.diffBase) {
+    const diff = getDiffFiles(projectRoot, options.diffBase);
+    filesToCheck = diff.all;
+    diffAddedFiles = new Set(diff.added);
   } else if (options.files && options.files.length > 0) {
     filesToCheck = options.files;
   } else {
@@ -190,14 +197,18 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     }
   }
 
-  // Check 3: Missing tests (only on full project check, not staged/specific files)
+  // Check 3: Missing tests (full check or diff-base with added files only)
   if (!options.staged && !options.files) {
     const testViolations = checkMissingTests(projectRoot, config, severity);
-    violations.push(...testViolations);
+    if (diffAddedFiles) {
+      violations.push(...testViolations.filter((v) => diffAddedFiles.has(v.file)));
+    } else {
+      violations.push(...testViolations);
+    }
   }
 
-  // Check 4: Test coverage threshold (full check only)
-  if (!options.files && !options.staged) {
+  // Check 4: Test coverage threshold (full check only, skip in diff mode)
+  if (!options.files && !options.staged && !options.diffBase) {
     const coverageViolations = checkCoverage(projectRoot, config, filesToCheck, {
       staged: options.staged,
       enforce: options.enforce,
@@ -227,9 +238,9 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
     const boundaryViolations = checkBoundaries(graph, config.boundaries);
 
-    // In staged/files mode, only report violations in those files
+    // In staged/files/diff mode, only report violations in those files
     const filterSet =
-      options.staged || options.files
+      options.staged || options.files || options.diffBase
         ? new Set(filesToCheck.map((f) => path.resolve(projectRoot, f)))
         : null;
 
