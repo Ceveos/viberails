@@ -119,21 +119,26 @@ describe('getAllSourceFiles', () => {
   let tmpDir: string;
 
   const baseConfig: ViberailsConfig = {
-    version: 1,
+    version: 2,
     name: 'test',
     enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
       requireTests: true,
       enforceNaming: true,
       enforceBoundaries: false,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
   };
 
   beforeEach(() => {

@@ -6,20 +6,26 @@ import { syncCommand } from './sync.js';
 
 function writeMinimalConfig(dir: string, overrides: Record<string, unknown> = {}): void {
   const config = {
-    version: 1,
+    version: 2,
     name: 'test-project',
     enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
-      maxFunctionLines: 50,
+      maxTestFileLines: 0,
       requireTests: false,
       enforceNaming: false,
       enforceBoundaries: false,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
     ...overrides,
   };
   fs.writeFileSync(path.join(dir, 'viberails.config.json'), JSON.stringify(config, null, 2));

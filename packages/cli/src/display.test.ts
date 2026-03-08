@@ -309,21 +309,26 @@ function makeMonorepoScanResult(): ScanResult {
 describe('displayRulesPreview', () => {
   function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
     return {
-      version: 1,
+      version: 2,
       name: 'test',
       enforcement: 'warn',
-      stack: { language: 'typescript', packageManager: 'pnpm' },
-      structure: {},
-      conventions: {},
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        maxFunctionLines: 50,
         requireTests: false,
         enforceNaming: false,
         enforceBoundaries: false,
       },
       ignore: [],
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
       ...overrides,
     };
   }
@@ -340,12 +345,19 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
             requireTests: true,
             enforceNaming: false,
             enforceBoundaries: false,
           },
-          structure: { testPattern: '*.test.ts' },
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: { testPattern: '*.test.ts' },
+              conventions: {},
+            },
+          ],
         }),
       ),
     );
@@ -360,12 +372,19 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
             requireTests: false,
             enforceNaming: true,
             enforceBoundaries: false,
           },
-          conventions: { fileNaming: 'kebab-case' },
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: {},
+              conventions: { fileNaming: 'kebab-case' },
+            },
+          ],
         }),
       ),
     );
@@ -391,13 +410,19 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
             requireTests: true,
             enforceNaming: true,
             enforceBoundaries: false,
           },
-          conventions: {},
-          structure: {},
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: {},
+              conventions: {},
+            },
+          ],
         }),
       ),
     );

@@ -19,30 +19,46 @@ describe('check command with boundary enforcement', () => {
 
   function writeConfig(overrides: Record<string, unknown> = {}): void {
     const config = {
-      version: 1,
+      version: 2,
       name: 'monorepo-violations',
       enforcement: 'warn',
-      stack: { language: 'typescript', packageManager: 'npm' },
-      structure: {},
-      conventions: {},
       rules: {
         maxFileLines: 0,
-        maxFunctionLines: 0,
+        maxTestFileLines: 0,
         requireTests: false,
         enforceNaming: false,
         enforceBoundaries: true,
       },
-      ignore: ['**/*.d.ts', 'dist/**', 'node_modules/**'],
-      workspace: {
-        packages: ['packages/ui', 'packages/api', 'packages/shared'],
-        isMonorepo: true,
-      },
+      ignore: [],
       boundaries: {
         deny: {
           '@mv/ui': ['@mv/api'],
           '@mv/api': ['@mv/ui'],
         },
       },
+      packages: [
+        {
+          name: '@mv/ui',
+          path: 'packages/ui',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+        {
+          name: '@mv/api',
+          path: 'packages/api',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+        {
+          name: '@mv/shared',
+          path: 'packages/shared',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
       ...overrides,
     };
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), JSON.stringify(config, null, 2));

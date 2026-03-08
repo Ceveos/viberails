@@ -44,70 +44,75 @@ function createNextjs15ScanResult(): ScanResult {
 }
 
 describe('generateConfig', () => {
-  it('generates a complete config from a Next.js 15 scan result', () => {
+  it('generates a complete V2 config from a Next.js 15 scan result', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.$schema).toBe('https://viberails.sh/schema/v1.json');
-    expect(config.version).toBe(1);
+    expect(config.$schema).toBe('https://viberails.sh/schema/v2.json');
+    expect(config.version).toBe(2);
     expect(config.name).toBe('my-app');
     expect(config.enforcement).toBe('warn');
 
-    expect(config.stack.framework).toBe('nextjs@15');
-    expect(config.stack.language).toBe('typescript');
-    expect(config.stack.styling).toBe('tailwindcss@4');
-    expect(config.stack.packageManager).toBe('pnpm');
-    expect(config.stack.linter).toBe('eslint@9');
-    expect(config.stack.testRunner).toBe('vitest');
+    // V2: stack lives inside packages[0]
+    expect(config.packages).toHaveLength(1);
+    const pkg = config.packages[0];
+    expect(pkg.name).toBe('my-app');
+    expect(pkg.path).toBe('.');
+    expect(pkg.stack?.framework).toBe('nextjs@15');
+    expect(pkg.stack?.language).toBe('typescript');
+    expect(pkg.stack?.styling).toBe('tailwindcss@4');
+    expect(pkg.stack?.packageManager).toBe('pnpm');
+    expect(pkg.stack?.linter).toBe('eslint@9');
+    expect(pkg.stack?.testRunner).toBe('vitest');
 
-    expect(config.structure.srcDir).toBe('src');
-    expect(config.structure.pages).toBe('src/app');
-    expect(config.structure.components).toBe('src/components');
-    expect(config.structure.hooks).toBe('src/hooks');
-    expect(config.structure.utils).toBe('src/lib');
-    expect(config.structure.types).toBe('src/types');
-    expect(config.structure.tests).toBe('__tests__');
-    expect(config.structure.testPattern).toBe('*.test.ts');
+    expect(pkg.structure?.srcDir).toBe('src');
+    expect(pkg.structure?.pages).toBe('src/app');
+    expect(pkg.structure?.components).toBe('src/components');
+    expect(pkg.structure?.hooks).toBe('src/hooks');
+    expect(pkg.structure?.utils).toBe('src/lib');
+    expect(pkg.structure?.types).toBe('src/types');
+    expect(pkg.structure?.tests).toBe('__tests__');
+    expect(pkg.structure?.testPattern).toBe('*.test.ts');
   });
 
-  it('maps formatter from scan result to config', () => {
+  it('maps formatter from scan result to package config', () => {
     const scanResult = createNextjs15ScanResult();
     scanResult.stack.formatter = { name: 'prettier', version: '3' };
     const config = generateConfig(scanResult);
-    expect(config.stack.formatter).toBe('prettier@3');
+    expect(config.packages[0].stack?.formatter).toBe('prettier@3');
   });
 
   it('omits formatter when not detected', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
-    expect(config.stack.formatter).toBeUndefined();
+    expect(config.packages[0].stack?.formatter).toBeUndefined();
   });
 
-  it('includes high-confidence conventions with metadata', () => {
+  it('includes high-confidence conventions as plain strings in packages', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.conventions.fileNaming).toEqual({
-      value: 'kebab-case',
-      _confidence: 'high',
-      _consistency: 97,
-    });
-    expect(config.conventions.componentNaming).toEqual({
-      value: 'PascalCase',
-      _confidence: 'high',
-      _consistency: 94,
-    });
+    const pkg = config.packages[0];
+    // V2: conventions are plain strings
+    expect(pkg.conventions?.fileNaming).toBe('kebab-case');
+    expect(pkg.conventions?.componentNaming).toBe('PascalCase');
   });
 
-  it('includes medium-confidence conventions with annotations', () => {
+  it('stores convention metadata in _meta', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.conventions.hookNaming).toEqual({
-      value: 'useXxx',
-      _confidence: 'medium',
-      _consistency: 78,
-    });
+    const meta = config._meta?.packages?.['.']?.conventions;
+    expect(meta?.fileNaming).toEqual({ confidence: 'high', consistency: 97 });
+    expect(meta?.componentNaming).toEqual({ confidence: 'high', consistency: 94 });
+    expect(meta?.hookNaming).toEqual({ confidence: 'medium', consistency: 78 });
+  });
+
+  it('includes medium-confidence conventions as plain strings', () => {
+    const scanResult = createNextjs15ScanResult();
+    const config = generateConfig(scanResult);
+
+    expect(config.packages[0].conventions?.hookNaming).toBe('useXxx');
   });
 
   it('omits low-confidence conventions', () => {
@@ -120,7 +125,7 @@ describe('generateConfig', () => {
     };
 
     const config = generateConfig(scanResult);
-    expect(config.conventions.fileNaming).toBeUndefined();
+    expect(config.packages[0].conventions?.fileNaming).toBeUndefined();
   });
 
   it('applies default rules', () => {
@@ -150,7 +155,7 @@ describe('generateConfig', () => {
     scanResult.stack.framework = { name: 'nextjs' };
 
     const config = generateConfig(scanResult);
-    expect(config.stack.framework).toBe('nextjs');
+    expect(config.packages[0].stack?.framework).toBe('nextjs');
   });
 
   it('handles missing optional stack fields', () => {
@@ -162,13 +167,14 @@ describe('generateConfig', () => {
     delete scanResult.stack.testRunner;
 
     const config = generateConfig(scanResult);
-    expect(config.stack.framework).toBeUndefined();
-    expect(config.stack.styling).toBeUndefined();
-    expect(config.stack.backend).toBeUndefined();
-    expect(config.stack.linter).toBeUndefined();
-    expect(config.stack.testRunner).toBeUndefined();
-    expect(config.stack.language).toBe('typescript');
-    expect(config.stack.packageManager).toBe('pnpm');
+    const pkg = config.packages[0];
+    expect(pkg.stack?.framework).toBeUndefined();
+    expect(pkg.stack?.styling).toBeUndefined();
+    expect(pkg.stack?.backend).toBeUndefined();
+    expect(pkg.stack?.linter).toBeUndefined();
+    expect(pkg.stack?.testRunner).toBeUndefined();
+    expect(pkg.stack?.language).toBe('typescript');
+    expect(pkg.stack?.packageManager).toBe('pnpm');
   });
 
   it('produces valid JSON that round-trips correctly', () => {
@@ -185,10 +191,10 @@ describe('generateConfig', () => {
     scanResult.conventions = {};
 
     const config = generateConfig(scanResult);
-    expect(config.conventions).toEqual({});
+    expect(config.packages[0].conventions).toEqual({});
   });
 
-  it('includes workspace config when scan result has workspace', () => {
+  it('generates per-package configs for monorepo with workspace', () => {
     const scanResult = createNextjs15ScanResult();
     scanResult.workspace = {
       patterns: ['packages/*'],
@@ -207,21 +213,31 @@ describe('generateConfig', () => {
         },
       ],
     };
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@mono/core',
+        relativePath: 'packages/core',
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      }),
+      createPackageScanResult({
+        name: '@mono/api',
+        relativePath: 'packages/api',
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
+      }),
+    ];
 
     const config = generateConfig(scanResult);
 
-    expect(config.workspace).toEqual({
-      packages: ['packages/core', 'packages/api'],
-      isMonorepo: true,
-    });
+    // Monorepo generates boundaries
     expect(config.boundaries).toEqual({ deny: {} });
+    // packages should be generated from the workspace scan
+    expect(config.packages.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('omits workspace and boundaries when scan result has no workspace', () => {
+  it('omits boundaries when scan result has no workspace', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.workspace).toBeUndefined();
     expect(config.boundaries).toBeUndefined();
   });
 
@@ -233,32 +249,9 @@ describe('generateConfig', () => {
     ];
 
     const config = generateConfig(scanResult);
-    expect(config.structure.components).toBe('src/components');
+    expect(config.packages[0].structure?.components).toBe('src/components');
   });
 });
-
-function createMonorepoScanResult(): ScanResult {
-  const base = createNextjs15ScanResult();
-  base.workspace = {
-    patterns: ['apps/*', 'packages/*'],
-    packages: [
-      { name: '@app/web', path: '/abs/apps/web', relativePath: 'apps/web', internalDeps: [] },
-      {
-        name: '@app/mobile',
-        path: '/abs/apps/mobile',
-        relativePath: 'apps/mobile',
-        internalDeps: [],
-      },
-      {
-        name: '@app/shared',
-        path: '/abs/packages/shared',
-        relativePath: 'packages/shared',
-        internalDeps: [],
-      },
-    ],
-  };
-  return base;
-}
 
 function createPackageScanResult(overrides: {
   name: string;
@@ -293,23 +286,39 @@ function createPackageScanResult(overrides: {
   };
 }
 
-describe('per-package overrides', () => {
-  it('generates no overrides for single-package project', () => {
-    const scanResult = createNextjs15ScanResult();
-    scanResult.packages = [
-      createPackageScanResult({
-        name: 'my-app',
-        relativePath: '.',
-        framework: { name: 'nextjs', version: '15' },
-        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 100, consistency: 97 },
-      }),
-    ];
+function createMonorepoScanResult(): ScanResult {
+  const base = createNextjs15ScanResult();
+  base.workspace = {
+    patterns: ['apps/*', 'packages/*'],
+    packages: [
+      { name: '@app/web', path: '/abs/apps/web', relativePath: 'apps/web', internalDeps: [] },
+      {
+        name: '@app/mobile',
+        path: '/abs/apps/mobile',
+        relativePath: 'apps/mobile',
+        internalDeps: [],
+      },
+      {
+        name: '@app/shared',
+        path: '/abs/packages/shared',
+        relativePath: 'packages/shared',
+        internalDeps: [],
+      },
+    ],
+  };
+  return base;
+}
 
+describe('per-package configs in monorepo', () => {
+  it('generates single package with path "." for non-monorepo project', () => {
+    const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
-    expect(config.packages).toBeUndefined();
+
+    expect(config.packages).toHaveLength(1);
+    expect(config.packages[0].path).toBe('.');
   });
 
-  it('generates overrides when package conventions differ', () => {
+  it('generates per-package configs when packages have different conventions', () => {
     const scanResult = createMonorepoScanResult();
     scanResult.packages = [
       createPackageScanResult({
@@ -327,40 +336,15 @@ describe('per-package overrides', () => {
     ];
 
     const config = generateConfig(scanResult);
-    expect(config.packages).toBeDefined();
-    expect(config.packages?.length).toBeGreaterThan(0);
+    expect(config.packages.length).toBeGreaterThan(0);
 
-    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
-    expect(mobileOverride).toBeDefined();
-    expect(mobileOverride?.conventions?.fileNaming).toEqual({
-      value: 'PascalCase',
-      _confidence: 'high',
-      _consistency: 100,
-    });
+    const mobilePackage = config.packages.find((p) => p.path === 'apps/mobile');
+    expect(mobilePackage).toBeDefined();
+    // V2: conventions are plain strings
+    expect(mobilePackage?.conventions?.fileNaming).toBe('PascalCase');
   });
 
-  it('omits overrides for packages matching global conventions', () => {
-    const scanResult = createMonorepoScanResult();
-    scanResult.packages = [
-      createPackageScanResult({
-        name: '@app/web',
-        relativePath: 'apps/web',
-        framework: { name: 'nextjs', version: '15' },
-        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
-      }),
-      createPackageScanResult({
-        name: '@app/mobile',
-        relativePath: 'apps/mobile',
-        framework: { name: 'nextjs', version: '15' },
-        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
-      }),
-    ];
-
-    const config = generateConfig(scanResult);
-    expect(config.packages).toBeUndefined();
-  });
-
-  it('includes framework override when package framework differs from global', () => {
+  it('generates per-package configs when package framework differs', () => {
     const scanResult = createMonorepoScanResult();
     scanResult.packages = [
       createPackageScanResult({
@@ -378,14 +362,14 @@ describe('per-package overrides', () => {
     ];
 
     const config = generateConfig(scanResult);
-    expect(config.packages).toBeDefined();
+    expect(config.packages.length).toBeGreaterThan(0);
 
-    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
-    expect(mobileOverride).toBeDefined();
-    expect(mobileOverride?.stack?.framework).toBe('expo@53');
+    const mobilePackage = config.packages.find((p) => p.path === 'apps/mobile');
+    expect(mobilePackage).toBeDefined();
+    expect(mobilePackage?.stack?.framework).toBe('expo@53');
   });
 
-  it('includes styling override when package styling differs from global', () => {
+  it('generates per-package configs with styling differences', () => {
     const scanResult = createMonorepoScanResult();
     scanResult.packages = [
       createPackageScanResult({
@@ -412,12 +396,10 @@ describe('per-package overrides', () => {
     ];
 
     const config = generateConfig(scanResult);
-    expect(config.packages).toBeDefined();
+    expect(config.packages.length).toBeGreaterThan(0);
 
-    const mobileOverride = config.packages?.find((p) => p.path === 'apps/mobile');
-    expect(mobileOverride).toBeDefined();
-    expect(mobileOverride?.stack?.styling).toBe('nativewind@4');
-    // Framework matches global, so it should not be in the override
-    expect(mobileOverride?.stack?.framework).toBeUndefined();
+    const mobilePackage = config.packages.find((p) => p.path === 'apps/mobile');
+    expect(mobilePackage).toBeDefined();
+    expect(mobilePackage?.stack?.styling).toBe('nativewind@4');
   });
 });

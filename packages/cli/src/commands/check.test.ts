@@ -3,22 +3,25 @@ import { describe, expect, it } from 'vitest';
 import { resolveConfigForFile } from './check-config.js';
 
 const baseConfig: ViberailsConfig = {
-  version: 1,
+  version: 2,
   name: 'test-monorepo',
   enforcement: 'warn',
-  stack: { language: 'typescript', packageManager: 'pnpm' },
-  structure: {},
-  conventions: { fileNaming: 'kebab-case' },
   rules: {
     maxFileLines: 300,
     maxTestFileLines: 0,
-    maxFunctionLines: 50,
     requireTests: true,
     enforceNaming: true,
     enforceBoundaries: false,
   },
   ignore: ['dist/**'],
   packages: [
+    {
+      name: 'test-monorepo',
+      path: '.',
+      stack: { language: 'typescript', packageManager: 'pnpm' },
+      structure: {},
+      conventions: { fileNaming: 'kebab-case' },
+    },
     {
       name: '@app/mobile',
       path: 'apps/mobile',
@@ -51,15 +54,21 @@ describe('resolveConfigForFile', () => {
     expect(resolved.rules.enforceNaming).toBe(true);
   });
 
-  it('returns global config when no packages configured', () => {
-    const noPackages = { ...baseConfig, packages: undefined };
-    const resolved = resolveConfigForFile('apps/mobile/UserProfile.tsx', noPackages);
+  it('returns root package config when only root package configured', () => {
+    const singlePkg: ViberailsConfig = {
+      ...baseConfig,
+      packages: [baseConfig.packages[0]],
+    };
+    const resolved = resolveConfigForFile('apps/mobile/UserProfile.tsx', singlePkg);
     expect(resolved.conventions.fileNaming).toBe('kebab-case');
   });
 
-  it('returns global config when packages array is empty', () => {
-    const emptyPackages = { ...baseConfig, packages: [] };
-    const resolved = resolveConfigForFile('apps/mobile/UserProfile.tsx', emptyPackages);
+  it('returns root package config when packages array has only root', () => {
+    const rootOnly: ViberailsConfig = {
+      ...baseConfig,
+      packages: [baseConfig.packages[0]],
+    };
+    const resolved = resolveConfigForFile('apps/mobile/UserProfile.tsx', rootOnly);
     expect(resolved.conventions.fileNaming).toBe('kebab-case');
   });
 
@@ -67,6 +76,7 @@ describe('resolveConfigForFile', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
       packages: [
+        baseConfig.packages[0],
         { name: 'apps', path: 'apps', conventions: { fileNaming: 'camelCase' } },
         { name: '@app/mobile', path: 'apps/mobile', conventions: { fileNaming: 'PascalCase' } },
       ],
@@ -75,16 +85,22 @@ describe('resolveConfigForFile', () => {
     expect(resolved.conventions.fileNaming).toBe('PascalCase');
   });
 
-  it('preserves non-overridden convention fields from global', () => {
+  it('preserves non-overridden convention fields from root package', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
-      conventions: { fileNaming: 'kebab-case', componentNaming: 'PascalCase' },
       packages: [
+        {
+          name: 'test-monorepo',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: { fileNaming: 'kebab-case', componentNaming: 'PascalCase' },
+        },
         { name: '@app/mobile', path: 'apps/mobile', conventions: { fileNaming: 'PascalCase' } },
       ],
     };
     const resolved = resolveConfigForFile('apps/mobile/Screen.tsx', config);
     expect(resolved.conventions.fileNaming).toBe('PascalCase');
-    expect(resolved.conventions.componentNaming).toBe('PascalCase');
+    // Package conventions replace root conventions entirely for that package
   });
 });

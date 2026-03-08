@@ -30,46 +30,45 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
 
   it('creates viberails.config.json with correct stack detection', () => {
     const config = readConfig();
-    expect(config.version).toBe(1);
-    expect(config.stack.framework).toBe('nextjs@15');
-    expect(config.stack.language).toMatch(/^typescript/);
-    expect(config.stack.styling).toMatch(/^tailwindcss/);
-    expect(config.stack.linter).toMatch(/^eslint/);
-    expect(config.stack.testRunner).toMatch(/^vitest/);
-    expect(config.stack.packageManager).toBe('npm');
+    expect(config.version).toBe(2);
+    expect(config.packages).toBeDefined();
+    expect(config.packages.length).toBeGreaterThan(0);
+    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    expect(root.stack?.framework).toBe('nextjs@15');
+    expect(root.stack?.language).toMatch(/^typescript/);
+    expect(root.stack?.styling).toMatch(/^tailwindcss/);
+    expect(root.stack?.linter).toMatch(/^eslint/);
+    expect(root.stack?.testRunner).toMatch(/^vitest/);
+    expect(root.stack?.packageManager).toBe('npm');
   });
 
   it('detects correct directory structure', () => {
     const config = readConfig();
-    expect(config.structure.srcDir).toBe('src');
-    expect(config.structure.pages).toBe('src/app');
-    expect(config.structure.components).toBe('src/components');
-    expect(config.structure.hooks).toBe('src/hooks');
-    expect(config.structure.utils).toBe('src/lib');
-    expect(config.structure.tests).toBe('__tests__');
-    expect(config.structure.testPattern).toBe('*.test.ts');
+    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    expect(root.structure?.srcDir).toBe('src');
+    expect(root.structure?.pages).toBe('src/app');
+    expect(root.structure?.components).toBe('src/components');
+    expect(root.structure?.hooks).toBe('src/hooks');
+    expect(root.structure?.utils).toBe('src/lib');
+    expect(root.structure?.tests).toBe('__tests__');
+    expect(root.structure?.testPattern).toBe('*.test.ts');
   });
 
   it('detects kebab-case naming at high confidence', () => {
     const config = readConfig();
-    expect(config.conventions.fileNaming).toBeDefined();
-    const fileNaming = config.conventions.fileNaming as { value: string; _confidence: string };
-    expect(fileNaming.value).toBe('kebab-case');
-    expect(fileNaming._confidence).toBe('high');
+    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    expect(root.conventions?.fileNaming).toBe('kebab-case');
   });
 
   it('detects import alias from tsconfig paths', () => {
     const config = readConfig();
-    expect(config.conventions.importAlias).toBeDefined();
-    const alias = config.conventions.importAlias;
-    const value = typeof alias === 'string' ? alias : (alias as { value: string }).value;
-    expect(value).toBe('@/*');
+    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    expect(root.conventions?.importAlias).toBe('@/*');
   });
 
   it('has default rules', () => {
     const config = readConfig();
     expect(config.rules.maxFileLines).toBe(300);
-    expect(config.rules.maxFunctionLines).toBe(50);
     expect(config.rules.requireTests).toBe(true);
     expect(config.rules.enforceNaming).toBe(true);
     expect(config.rules.enforceBoundaries).toBe(false);
@@ -145,8 +144,10 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
     // Config rules preserved across sync
     const configAfter = readConfig();
     expect(configAfter.version).toBe(configBefore.version);
-    expect(configAfter.stack.framework).toBe(configBefore.stack.framework);
+    const rootBefore =
+      configBefore.packages.find((p) => p.path === '.') ?? configBefore.packages[0];
+    const rootAfter = configAfter.packages.find((p) => p.path === '.') ?? configAfter.packages[0];
+    expect(rootAfter.stack?.framework).toBe(rootBefore.stack?.framework);
     expect(configAfter.rules.maxFileLines).toBe(configBefore.rules.maxFileLines);
-    expect(configAfter.rules.maxFunctionLines).toBe(configBefore.rules.maxFunctionLines);
   });
 });

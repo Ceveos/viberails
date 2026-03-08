@@ -6,20 +6,26 @@ import { fixCommand } from './fix.js';
 
 function writeConfig(dir: string, overrides: Record<string, unknown> = {}): void {
   const config = {
-    version: 1,
+    version: 2,
     name: 'test-project',
     enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: { fileNaming: 'kebab-case' },
     rules: {
       maxFileLines: 300,
-      maxFunctionLines: 50,
+      maxTestFileLines: 0,
       requireTests: false,
       enforceNaming: true,
       enforceBoundaries: false,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: { fileNaming: 'kebab-case' },
+      },
+    ],
     ...overrides,
   };
   fs.writeFileSync(path.join(dir, 'viberails.config.json'), JSON.stringify(config, null, 2));

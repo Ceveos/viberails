@@ -18,20 +18,26 @@ describe('boundaries command', () => {
   function writeConfig(overrides: Record<string, unknown> = {}): void {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
     const config = {
-      version: 1,
+      version: 2,
       name: 'test-project',
       enforcement: 'warn',
-      stack: { language: 'typescript', packageManager: 'pnpm' },
-      structure: {},
-      conventions: {},
       rules: {
         maxFileLines: 300,
-        maxFunctionLines: 50,
+        maxTestFileLines: 0,
         requireTests: false,
         enforceNaming: false,
         enforceBoundaries: false,
       },
       ignore: [],
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
       ...overrides,
     };
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), JSON.stringify(config, null, 2));
@@ -79,26 +85,42 @@ describe('boundaries command', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-boundaries-'));
     fs.cpSync(fixtureSrc, tmpDir, { recursive: true });
 
-    // Write config with workspace
+    // Write config with packages
     const config = {
-      version: 1,
+      version: 2,
       name: 'monorepo-basic',
       enforcement: 'warn',
-      stack: { language: 'typescript', packageManager: 'npm' },
-      structure: {},
-      conventions: {},
       rules: {
         maxFileLines: 300,
-        maxFunctionLines: 50,
+        maxTestFileLines: 0,
         requireTests: false,
         enforceNaming: false,
         enforceBoundaries: false,
       },
       ignore: [],
-      workspace: {
-        packages: ['packages/core', 'packages/api', 'packages/web'],
-        isMonorepo: true,
-      },
+      packages: [
+        {
+          name: 'core',
+          path: 'packages/core',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+        {
+          name: 'api',
+          path: 'packages/api',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+        {
+          name: 'web',
+          path: 'packages/web',
+          stack: { language: 'typescript', packageManager: 'npm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
     };
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), JSON.stringify(config, null, 2));
 

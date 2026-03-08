@@ -1,37 +1,43 @@
 import type { ViberailsConfig } from '@viberails/types';
+import { BUILTIN_IGNORE } from '@viberails/config';
 import { describe, expect, it } from 'vitest';
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
 
 const baseConfig: ViberailsConfig = {
-  version: 1,
+  version: 2,
   name: 'test-project',
   enforcement: 'warn',
-  stack: { language: 'typescript', packageManager: 'pnpm' },
-  structure: {},
-  conventions: { fileNaming: 'kebab-case' },
   rules: {
     maxFileLines: 300,
     maxTestFileLines: 0,
-    maxFunctionLines: 50,
     requireTests: true,
     enforceNaming: true,
     enforceBoundaries: false,
   },
-  ignore: ['dist/**', 'node_modules/**'],
+  ignore: ['generated/**'],
+  packages: [
+    {
+      name: 'test-project',
+      path: '.',
+      stack: { language: 'typescript', packageManager: 'pnpm' },
+      structure: {},
+      conventions: { fileNaming: 'kebab-case' },
+    },
+  ],
 };
 
 describe('resolveConfigForFile', () => {
-  it('returns global config when no packages defined', () => {
-    const config = { ...baseConfig, packages: undefined };
-    const resolved = resolveConfigForFile('src/utils.ts', config);
+  it('returns root package config when no other packages match', () => {
+    const resolved = resolveConfigForFile('src/utils.ts', baseConfig);
     expect(resolved.rules).toEqual(baseConfig.rules);
-    expect(resolved.conventions).toEqual(baseConfig.conventions);
+    expect(resolved.conventions).toEqual({ fileNaming: 'kebab-case' });
   });
 
   it('returns merged config for file matching a package path', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
       packages: [
+        ...baseConfig.packages,
         {
           name: '@app/web',
           path: 'apps/web',
@@ -51,6 +57,7 @@ describe('resolveConfigForFile', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
       packages: [
+        ...baseConfig.packages,
         { name: 'apps', path: 'apps', conventions: { fileNaming: 'camelCase' } },
         { name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } },
       ],
@@ -59,10 +66,13 @@ describe('resolveConfigForFile', () => {
     expect(resolved.conventions.fileNaming).toBe('PascalCase');
   });
 
-  it('falls back to global config for unmatched files', () => {
+  it('falls back to root package config for unmatched files', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
-      packages: [{ name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } }],
+      packages: [
+        ...baseConfig.packages,
+        { name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } },
+      ],
     };
     const resolved = resolveConfigForFile('lib/helper.ts', config);
     expect(resolved.conventions.fileNaming).toBe('kebab-case');
@@ -71,16 +81,16 @@ describe('resolveConfigForFile', () => {
 });
 
 describe('resolveIgnoreForFile', () => {
-  it('returns global ignore when no packages defined', () => {
-    const config = { ...baseConfig, packages: undefined };
-    const result = resolveIgnoreForFile('src/utils.ts', config);
-    expect(result).toEqual(['dist/**', 'node_modules/**']);
+  it('returns builtin + global ignore when no package-specific patterns', () => {
+    const result = resolveIgnoreForFile('src/utils.ts', baseConfig);
+    expect(result).toEqual([...BUILTIN_IGNORE, 'generated/**']);
   });
 
   it('appends package-specific ignore patterns', () => {
     const config: ViberailsConfig = {
       ...baseConfig,
       packages: [
+        ...baseConfig.packages,
         {
           name: '@app/web',
           path: 'apps/web',
@@ -89,6 +99,6 @@ describe('resolveIgnoreForFile', () => {
       ],
     };
     const result = resolveIgnoreForFile('apps/web/src/page.ts', config);
-    expect(result).toEqual(['dist/**', 'node_modules/**', '.next/**', 'out/**']);
+    expect(result).toEqual([...BUILTIN_IGNORE, 'generated/**', '.next/**', 'out/**']);
   });
 });

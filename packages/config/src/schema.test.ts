@@ -105,22 +105,22 @@ describe('configSchema validation', () => {
     const validate = ajv.compile(configSchema);
 
     expect(validate({})).toBe(false);
-    expect(validate({ version: 1 })).toBe(false);
-    expect(validate({ version: 1, name: 'test' })).toBe(false);
+    expect(validate({ version: 2 })).toBe(false);
+    expect(validate({ version: 2, name: 'test' })).toBe(false);
   });
 
   it('rejects config with invalid version', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
 
+    // V2 schema only accepts version: 2
     expect(
       validate({
-        version: 2,
+        version: 1,
         name: 'test',
-        stack: { language: 'typescript', packageManager: 'npm' },
+        packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 300,
-          maxFunctionLines: 50,
           requireTests: true,
           enforceNaming: true,
           enforceBoundaries: false,
@@ -129,7 +129,7 @@ describe('configSchema validation', () => {
     ).toBe(false);
   });
 
-  it('validates a config with boundaries and workspace', () => {
+  it('validates a config with boundaries and packages', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
     const config = generateConfig(makeMinimalScanResult());
@@ -140,10 +140,6 @@ describe('configSchema validation', () => {
         deny: {
           '@mono/web': ['@mono/api'],
         },
-      },
-      workspace: {
-        packages: ['packages/web', 'packages/api', 'packages/core'],
-        isMonorepo: true,
       },
     };
 

@@ -33,10 +33,10 @@ describe('resolveWorkspacePackages', () => {
   });
 
   it('resolves package names and absolute paths', () => {
-    const result = resolveWorkspacePackages(tmpDir, {
-      packages: ['packages/core', 'packages/web'],
-      isMonorepo: true,
-    });
+    const result = resolveWorkspacePackages(tmpDir, [
+      { name: 'core', path: 'packages/core' },
+      { name: 'web', path: 'packages/web' },
+    ]);
 
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe('@test/core');
@@ -46,34 +46,33 @@ describe('resolveWorkspacePackages', () => {
   });
 
   it('filters internalDeps to workspace-only packages', () => {
-    const result = resolveWorkspacePackages(tmpDir, {
-      packages: ['packages/core', 'packages/web'],
-      isMonorepo: true,
-    });
+    const result = resolveWorkspacePackages(tmpDir, [
+      { name: 'core', path: 'packages/core' },
+      { name: 'web', path: 'packages/web' },
+    ]);
 
     const web = result.find((p) => p.name === '@test/web');
     expect(web).toBeDefined();
     expect(web?.internalDeps).toEqual(['@test/core']);
     // react should be filtered out
-    expect(web.internalDeps).not.toContain('react');
+    expect(web!.internalDeps).not.toContain('react');
   });
 
   it('skips packages without package.json', () => {
     fs.mkdirSync(path.join(tmpDir, 'packages/missing'), { recursive: true });
-    const result = resolveWorkspacePackages(tmpDir, {
-      packages: ['packages/core', 'packages/missing'],
-      isMonorepo: true,
-    });
+    const result = resolveWorkspacePackages(tmpDir, [
+      { name: 'core', path: 'packages/core' },
+      { name: 'missing', path: 'packages/missing' },
+    ]);
 
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('@test/core');
   });
 
   it('returns empty array for no valid packages', () => {
-    const result = resolveWorkspacePackages(tmpDir, {
-      packages: ['packages/nonexistent'],
-      isMonorepo: true,
-    });
+    const result = resolveWorkspacePackages(tmpDir, [
+      { name: 'nonexistent', path: 'packages/nonexistent' },
+    ]);
     expect(result).toEqual([]);
   });
 });

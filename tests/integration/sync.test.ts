@@ -34,8 +34,8 @@ describe('sync command', () => {
 
     // Config should still be valid JSON with expected structure
     const updatedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    expect(updatedConfig.version).toBe(1);
-    expect(updatedConfig.stack).toBeDefined();
+    expect(updatedConfig.version).toBe(2);
+    expect(updatedConfig.packages).toBeDefined();
     expect(updatedConfig.rules).toBeDefined();
 
     // Context should be regenerated with rules format

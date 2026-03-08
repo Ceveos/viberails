@@ -8,21 +8,26 @@ import { generateTestStub, writeTestStub } from './fix-tests.js';
 let tmpDir: string;
 
 const baseConfig: ViberailsConfig = {
-  version: 1,
+  version: 2,
   name: 'test-project',
   enforcement: 'warn',
-  stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest' },
-  structure: { testPattern: '*.test.ts' },
-  conventions: {},
   rules: {
     maxFileLines: 300,
     maxTestFileLines: 0,
-    maxFunctionLines: 50,
     requireTests: true,
     enforceNaming: true,
     enforceBoundaries: false,
   },
   ignore: [],
+  packages: [
+    {
+      name: 'test-project',
+      path: '.',
+      stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest' },
+      structure: { testPattern: '*.test.ts' },
+      conventions: {},
+    },
+  ],
 };
 
 beforeEach(() => {
@@ -51,7 +56,10 @@ describe('generateTestStub', () => {
   });
 
   it('returns null when no test pattern configured', () => {
-    const config = { ...baseConfig, structure: {} };
+    const config: ViberailsConfig = {
+      ...baseConfig,
+      packages: [{ ...baseConfig.packages[0], structure: {} }],
+    };
     const stub = generateTestStub('src/utils.ts', config, tmpDir);
     expect(stub).toBeNull();
   });
@@ -73,9 +81,14 @@ describe('writeTestStub', () => {
   });
 
   it('writes a jest stub file without import', () => {
-    const jestConfig = {
+    const jestConfig: ViberailsConfig = {
       ...baseConfig,
-      stack: { ...baseConfig.stack, testRunner: 'jest' },
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          stack: { ...baseConfig.packages[0].stack!, testRunner: 'jest' },
+        },
+      ],
     };
     const stub = {
       path: 'src/utils.test.ts',

@@ -17,20 +17,25 @@ afterEach(async () => {
 
 function validConfig(): ViberailsConfig {
   return {
-    $schema: 'https://viberails.sh/schema/v1.json',
-    version: 1,
+    $schema: 'https://viberails.sh/schema/v2.json',
+    version: 2,
     name: 'test-project',
     enforcement: 'warn',
-    stack: {
-      language: 'typescript',
-      packageManager: 'pnpm',
-    },
-    structure: {},
-    conventions: {},
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: {
+          language: 'typescript',
+          packageManager: 'pnpm',
+        },
+        structure: {},
+        conventions: {},
+      },
+    ],
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
       requireTests: true,
       enforceNaming: true,
       enforceBoundaries: false,
@@ -65,25 +70,24 @@ describe('loadConfig', () => {
 
   it('throws when required fields are missing', async () => {
     const configPath = path.join(tmpDir, 'incomplete.json');
-    await fs.writeFile(configPath, JSON.stringify({ version: 1 }));
+    await fs.writeFile(configPath, JSON.stringify({ version: 2 }));
 
     await expect(loadConfig(configPath)).rejects.toThrow('missing required field(s)');
     await expect(loadConfig(configPath)).rejects.toThrow('name');
-    await expect(loadConfig(configPath)).rejects.toThrow('stack');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages');
     await expect(loadConfig(configPath)).rejects.toThrow('rules');
   });
 
-  it('throws when stack is missing required fields', async () => {
-    const configPath = path.join(tmpDir, 'bad-stack.json');
+  it('throws when packages have missing required fields', async () => {
+    const configPath = path.join(tmpDir, 'bad-packages.json');
     await fs.writeFile(
       configPath,
       JSON.stringify({
-        version: 1,
+        version: 2,
         name: 'test',
-        stack: {},
+        packages: [{}],
         rules: {
           maxFileLines: 300,
-          maxFunctionLines: 50,
           requireTests: true,
           enforceNaming: true,
           enforceBoundaries: false,
@@ -91,8 +95,8 @@ describe('loadConfig', () => {
       }),
     );
 
-    await expect(loadConfig(configPath)).rejects.toThrow('stack.language');
-    await expect(loadConfig(configPath)).rejects.toThrow('stack.packageManager');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages[0].name');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages[0].path');
   });
 
   it('throws when rules have wrong types', async () => {
@@ -100,12 +104,11 @@ describe('loadConfig', () => {
     await fs.writeFile(
       configPath,
       JSON.stringify({
-        version: 1,
+        version: 2,
         name: 'test',
-        stack: { language: 'typescript', packageManager: 'pnpm' },
+        packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 'not-a-number',
-          maxFunctionLines: 50,
           requireTests: true,
           enforceNaming: true,
           enforceBoundaries: false,
