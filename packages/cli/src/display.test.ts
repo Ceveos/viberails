@@ -497,6 +497,28 @@ describe('displayInitSummary', () => {
     expect(output).toContain('2 packages scanned');
   });
 
+  it('finds file naming from child package when root has none', () => {
+    const config = makeConfig({
+      rules: { ...makeConfig().rules, enforceNaming: true },
+      packages: [
+        {
+          name: 'root',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+        },
+        {
+          name: 'web',
+          path: 'apps/web',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          conventions: { fileNaming: 'kebab-case' },
+        },
+      ],
+    });
+    const output = captureOutput(() => displayInitSummary(config, []));
+    expect(output).toContain('kebab-case');
+    expect(output).not.toContain('not enforced');
+  });
+
   it('shows exempted packages', () => {
     const output = captureOutput(() => displayInitSummary(makeConfig(), ['packages/types']));
     expect(output).toContain('packages/types');

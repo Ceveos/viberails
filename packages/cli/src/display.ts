@@ -203,16 +203,22 @@ export function displayInitSummary(config: ViberailsConfig, exemptedPackages: st
   // Max file size
   console.log(`  ${ok} Max file size: ${chalk.cyan(`${config.rules.maxFileLines} lines`)}`);
 
-  // File naming
-  if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
-    console.log(`  ${ok} File naming: ${chalk.cyan(root.conventions.fileNaming)}`);
+  // File naming — check root first, then any package
+  const fileNaming =
+    root?.conventions?.fileNaming ??
+    config.packages.find((p) => p.conventions?.fileNaming)?.conventions?.fileNaming;
+  if (config.rules.enforceNaming && fileNaming) {
+    console.log(`  ${ok} File naming: ${chalk.cyan(fileNaming)}`);
   } else {
     console.log(`  ${off} File naming: ${chalk.dim('not enforced')}`);
   }
 
-  // Missing tests
-  if (config.rules.enforceMissingTests && root?.structure?.testPattern) {
-    console.log(`  ${ok} Missing tests: ${chalk.cyan(`enforced (${root.structure.testPattern})`)}`);
+  // Missing tests — check root first, then any package
+  const testPattern =
+    root?.structure?.testPattern ??
+    config.packages.find((p) => p.structure?.testPattern)?.structure?.testPattern;
+  if (config.rules.enforceMissingTests && testPattern) {
+    console.log(`  ${ok} Missing tests: ${chalk.cyan(`enforced (${testPattern})`)}`);
   } else if (config.rules.enforceMissingTests) {
     console.log(`  ${ok} Missing tests: ${chalk.cyan('enforced')}`);
   } else {
