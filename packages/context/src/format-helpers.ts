@@ -1,4 +1,4 @@
-import type { ConventionValue, PackageConfigOverrides, ViberailsConfig } from '@viberails/types';
+import type { PackageConfig, ViberailsConfig } from '@viberails/types';
 
 /** Naming convention examples for directive formatting. */
 export const NAMING_EXAMPLES: Record<string, string> = {
@@ -9,10 +9,10 @@ export const NAMING_EXAMPLES: Record<string, string> = {
 };
 
 /**
- * Extract the effective value from a ConventionValue (string or object).
+ * Get the root package from a config (path === "." or first package).
  */
-export function conventionValue(cv: ConventionValue): string {
-  return typeof cv === 'string' ? cv : cv.value;
+export function getRootPackage(config: ViberailsConfig): PackageConfig {
+  return config.packages.find((p) => p.path === '.') ?? config.packages[0];
 }
 
 /**
@@ -20,7 +20,9 @@ export function conventionValue(cv: ConventionValue): string {
  * formatter and linter, with guidance on enabling format-on-save.
  */
 export function formatDevelopmentSetup(config: ViberailsConfig): string[] {
-  const { linter, formatter } = config.stack;
+  const root = getRootPackage(config);
+  const linter = root.stack?.linter;
+  const formatter = root.stack?.formatter;
   if (!linter && !formatter) return [];
 
   const lines: string[] = [];
@@ -67,12 +69,12 @@ export function formatDevelopmentSetup(config: ViberailsConfig): string[] {
 }
 
 /**
- * Build the header for a package override section.
+ * Build the header for a package section.
  */
-export function packageHeader(pkg: PackageConfigOverrides): string {
+export function packageHeader(pkg: PackageConfig): string {
   const framework = pkg.stack?.framework;
   if (framework) {
-    const name = typeof framework === 'string' ? framework.split('@')[0] : framework;
+    const name = framework.split('@')[0];
     return `### ${pkg.path} (${name})`;
   }
   return `### ${pkg.path}`;
@@ -80,47 +82,40 @@ export function packageHeader(pkg: PackageConfigOverrides): string {
 
 /**
  * Build the per-package overrides section as markdown lines.
+ * Only shows packages that differ from the root package.
  */
 export function formatPackageOverrides(config: ViberailsConfig): string[] {
-  if (!config.packages || config.packages.length === 0) return [];
+  if (config.packages.length <= 1) return [];
 
   const lines: string[] = [];
   lines.push('## Per-package rules\n');
   lines.push('The following packages have rules that differ from the global defaults:\n');
 
   for (const pkg of config.packages) {
+    if (pkg.path === '.') continue;
     const pkgLines: string[] = [];
 
     if (pkg.conventions?.fileNaming) {
-      const val = conventionValue(pkg.conventions.fileNaming);
+      const val = pkg.conventions.fileNaming;
       const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
       pkgLines.push(`- Source files use **${val}**: ${examples}.`);
     }
 
     if (pkg.conventions?.componentNaming) {
-      const val = conventionValue(pkg.conventions.componentNaming);
-      pkgLines.push(`- Components use **${val}** naming.`);
+      pkgLines.push(`- Components use **${pkg.conventions.componentNaming}** naming.`);
     }
 
     if (pkg.conventions?.hookNaming) {
-      const val = conventionValue(pkg.conventions.hookNaming);
-      pkgLines.push(`- Hooks use **${val}** naming.`);
+      pkgLines.push(`- Hooks use **${pkg.conventions.hookNaming}** naming.`);
     }
 
     if (pkg.conventions?.importAlias) {
-      const val = conventionValue(pkg.conventions.importAlias);
-      pkgLines.push(`- Import alias: \`${val}\`.`);
+      pkgLines.push(`- Import alias: \`${pkg.conventions.importAlias}\`.`);
     }
 
     if (pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines > 0) {
       pkgLines.push(
         `- Files must not exceed **${pkg.rules.maxFileLines} lines**. Split into focused modules.`,
-      );
-    }
-
-    if (pkg.rules?.maxFunctionLines !== undefined && pkg.rules.maxFunctionLines > 0) {
-      pkgLines.push(
-        `- Functions must not exceed **${pkg.rules.maxFunctionLines} lines**. Extract helpers for complex logic.`,
       );
     }
 

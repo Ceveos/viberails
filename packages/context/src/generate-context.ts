@@ -1,8 +1,8 @@
 import type { ViberailsConfig } from '@viberails/types';
 import {
-  conventionValue,
   formatBoundaryRules,
   formatPackageOverrides,
+  getRootPackage,
   NAMING_EXAMPLES,
 } from './format-helpers.js';
 
@@ -10,7 +10,8 @@ import {
  * Build the list of enforced rules as markdown bullet points.
  */
 function formatEnforcedRules(config: ViberailsConfig): string[] {
-  const { rules, conventions, structure } = config;
+  const root = getRootPackage(config);
+  const { rules } = config;
   const lines: string[] = [];
 
   if (rules.maxFileLines > 0) {
@@ -19,20 +20,20 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
     );
   }
 
-  if (rules.enforceNaming && conventions.fileNaming) {
-    const val = conventionValue(conventions.fileNaming);
+  if (rules.enforceNaming && root.conventions?.fileNaming) {
+    const val = root.conventions.fileNaming;
     const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
     lines.push(`- Source files use **${val}**: ${examples}.`);
   }
 
-  if (rules.requireTests && structure.testPattern) {
-    if (structure.srcDir) {
+  if (rules.requireTests && root.structure?.testPattern) {
+    if (root.structure.srcDir) {
       lines.push(
-        `- Every source file in \`${structure.srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
+        `- Every source file in \`${root.structure.srcDir}/\` must have a corresponding \`${root.structure.testPattern}\` file.`,
       );
     } else {
       lines.push(
-        `- Every source file must have a corresponding \`${structure.testPattern}\` file.`,
+        `- Every source file must have a corresponding \`${root.structure.testPattern}\` file.`,
       );
     }
   }
