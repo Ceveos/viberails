@@ -84,6 +84,7 @@ describe('prompt utils', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -92,6 +93,7 @@ describe('prompt utils', () => {
     expect(result).toEqual({
       maxFileLines: 250,
       testCoverage: 90,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -109,6 +111,7 @@ describe('prompt utils', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -147,6 +150,7 @@ describe('prompt utils', () => {
     await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -172,6 +176,7 @@ describe('prompt utils', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -210,6 +215,7 @@ describe('prompt utils', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       coverageSummaryPath: 'coverage/coverage-summary.json',
       packageOverrides: packages,
@@ -231,6 +237,7 @@ describe('prompt utils', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',

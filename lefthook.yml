@@ -8,3 +8,6 @@ pre-commit:
     lint:
       glob: "{packages,tests}/**/*.{ts,tsx,js}"
       run: npx biome check {staged_files}
+    typecheck:
+      glob: "{packages,tests}/**/*.{ts,tsx}"
+      run: bash -c 'for p in packages/*/tsconfig.json; do pnpm exec tsc -p "$p" --noEmit || exit 1; done'

@@ -70,12 +70,12 @@ export async function promptPackageCoverageOverrides(
     if (!target) continue;
 
     while (true) {
-      const effectiveCoverage = target.rules?.testCoverage ?? defaults.testCoverage;
-      const effectiveSummary = target.coverage?.summaryPath ?? defaults.coverageSummaryPath;
-      const effectiveCommand =
+      const effectiveCoverage: number = target.rules?.testCoverage ?? defaults.testCoverage;
+      const effectiveSummary: string = target.coverage?.summaryPath ?? defaults.coverageSummaryPath;
+      const effectiveCommand: string =
         target.coverage?.command ?? defaults.coverageCommand ?? '(auto-detect)';
 
-      const choice = await clack.select({
+      const choice: string | symbol = await clack.select({
         message: `Edit coverage overrides for ${target.path}`,
         options: [
           { value: 'testCoverage', label: 'testCoverage', hint: String(effectiveCoverage) },
