@@ -20,7 +20,7 @@ Current shipped scope includes:
 - Config system: schema, defaults, generation from scan results, sync merge behavior
 - Context generator: `.viberails/context.md` from enforced config rules
 - CLI commands: `init`, `sync`, `check`, `fix`, `boundaries`
-- Integrations: pre-commit hook setup and Claude Code PostToolUse hook setup
+- Integrations: pre-commit hook setup, Claude Code PostToolUse hook setup, GitHub Actions CI workflow, optional typecheck and lint pre-commit hooks
 - Monorepo support: workspace detection, per-package scan/config, boundary inference
 - Programmatic API packages under `packages/*`
 

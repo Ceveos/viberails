@@ -63,6 +63,8 @@ Validates your project against configured rules.
 | `--format json` | Machine-readable output for tool integration. |
 | `--quiet` | Summary only. |
 | `--enforce` | Return exit code 1 when violations are found (CI mode). |
+| `--diff-base <ref>` | Check only files changed since a git ref (useful in CI). |
+| `--hook` | Output via stdin/stderr for Claude Code hook integration. |
 
 ### `viberails fix`
 
@@ -93,6 +95,14 @@ Detects your hook manager (Lefthook, Husky, or bare git) and adds `viberails che
 ### Claude Code hook
 
 Adds a PostToolUse hook to `.claude/settings.json` that runs `viberails check` after every file edit, giving Claude real-time feedback on convention violations.
+
+### GitHub Actions
+
+Generates a `.github/workflows/viberails.yml` workflow that runs `viberails check --enforce --diff-base` on pull requests, checking only files changed in the PR — not the entire repo.
+
+### Typecheck & lint hooks
+
+Optionally adds `tsc --noEmit` and your linter (Biome, ESLint) as pre-commit checks during `viberails init`.
 
 ## Confidence Model
 
