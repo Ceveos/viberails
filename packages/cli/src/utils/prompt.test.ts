@@ -70,6 +70,7 @@ describe('prompt utils', () => {
       preCommitHook: true,
       claudeCodeHook: false,
       claudeMdRef: true,
+      githubAction: false,
     });
   });
 

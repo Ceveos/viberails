@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { detectHookManager, setupClaudeCodeHook, setupPreCommitHook } from './init-hooks.js';
+import {
+  detectHookManager,
+  setupClaudeCodeHook,
+  setupGithubAction,
+  setupPreCommitHook,
+} from './init-hooks.js';
 
 describe('detectHookManager', () => {
   let tmpDir: string;
@@ -257,5 +262,49 @@ describe('setupClaudeCodeHook', () => {
     expect(command).toContain('viberails check --hook');
     expect(command).toContain('./node_modules/.bin/viberails');
     expect(command).toContain('npx viberails check --hook');
+  });
+});
+
+describe('setupGithubAction', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-action-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('creates workflow file for pnpm projects', () => {
+    const target = setupGithubAction(tmpDir, 'pnpm');
+    expect(target).toBe('.github/workflows/viberails.yml');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('pnpm install --frozen-lockfile');
+    expect(content).toContain('pnpm exec viberails check --enforce');
+    expect(content).toContain('pnpm/action-setup@v4');
+  });
+
+  it('creates workflow file for npm projects', () => {
+    setupGithubAction(tmpDir, 'npm');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('npm ci');
+    expect(content).toContain('npx viberails check --enforce');
+    expect(content).not.toContain('pnpm/action-setup');
+  });
+
+  it('creates workflow file for yarn projects', () => {
+    setupGithubAction(tmpDir, 'yarn');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('yarn install --frozen-lockfile');
+    expect(content).toContain('yarn exec viberails check --enforce');
+  });
+
+  it('skips if workflow already contains viberails', () => {
+    const workflowDir = path.join(tmpDir, '.github', 'workflows');
+    fs.mkdirSync(workflowDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowDir, 'viberails.yml'), 'name: viberails\n');
+    const target = setupGithubAction(tmpDir, 'pnpm');
+    expect(target).toBeUndefined();
   });
 });

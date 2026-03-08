@@ -5,6 +5,7 @@ export interface IntegrationChoice {
   preCommitHook: boolean;
   claudeCodeHook: boolean;
   claudeMdRef: boolean;
+  githubAction: boolean;
 }
 
 /**
@@ -36,8 +37,13 @@ export async function promptIntegrations(
         label: 'CLAUDE.md reference',
         hint: 'appends @.viberails/context.md so Claude loads rules automatically',
       },
+      {
+        value: 'githubAction' as const,
+        label: 'GitHub Actions workflow',
+        hint: 'blocks PRs that fail viberails check',
+      },
     ],
-    initialValues: ['preCommit', 'claude', 'claudeMd'],
+    initialValues: ['preCommit', 'claude', 'claudeMd', 'githubAction'],
     required: false,
   });
   assertNotCancelled(result);
@@ -46,5 +52,6 @@ export async function promptIntegrations(
     preCommitHook: result.includes('preCommit'),
     claudeCodeHook: result.includes('claude'),
     claudeMdRef: result.includes('claudeMd'),
+    githubAction: result.includes('githubAction'),
   };
 }

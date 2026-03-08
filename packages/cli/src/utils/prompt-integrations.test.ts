@@ -19,12 +19,13 @@ describe('promptIntegrations', () => {
   });
 
   it('maps selected values to booleans', async () => {
-    multiselectMock.mockResolvedValueOnce(['preCommit', 'claudeMd']);
+    multiselectMock.mockResolvedValueOnce(['preCommit', 'claudeMd', 'githubAction']);
     const result = await promptIntegrations('Lefthook');
     expect(result).toEqual({
       preCommitHook: true,
       claudeCodeHook: false,
       claudeMdRef: true,
+      githubAction: true,
     });
   });
 

@@ -27,6 +27,7 @@ import {
   detectHookManager,
   setupClaudeCodeHook,
   setupClaudeMdReference,
+  setupGithubAction,
   setupPreCommitHook,
 } from './init-hooks.js';
 
@@ -58,12 +59,7 @@ export async function initCommand(
     );
     return;
   }
-
-  if (options.yes) {
-    await initNonInteractive(projectRoot, configPath);
-    return;
-  }
-
+  if (options.yes) return initNonInteractive(projectRoot, configPath);
   await initInteractive(projectRoot, configPath, options);
 }
 
@@ -111,21 +107,20 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   setupClaudeCodeHook(projectRoot);
   setupClaudeMdReference(projectRoot);
   const preCommitTarget = setupPreCommitHook(projectRoot);
+  const rootPkgPm = config.packages[0]?.stack?.packageManager ?? 'npm';
+  const actionTarget = setupGithubAction(projectRoot, rootPkgPm);
 
-  console.log(`\nCreated:`);
-  console.log(`  ${chalk.green('\u2713')} ${path.basename(configPath)}`);
-  console.log(`  ${chalk.green('\u2713')} .viberails/context.md`);
-  console.log(`  ${chalk.green('\u2713')} .viberails/scan-result.json`);
-  console.log(`  ${chalk.green('\u2713')} .claude/settings.json \u2014 added viberails hook`);
-  console.log(`  ${chalk.green('\u2713')} CLAUDE.md \u2014 added @.viberails/context.md reference`);
-  if (preCommitTarget) {
-    console.log(`  ${chalk.green('\u2713')} ${preCommitTarget}`);
-  } else {
-    console.log(`  ${chalk.yellow('!')} pre-commit hook skipped (no .git / hook manager found)`);
-  }
-  console.log(
-    `\n${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
-  );
+  const ok = chalk.green('\u2713');
+  const created = [
+    `${ok} ${path.basename(configPath)}`,
+    `${ok} .viberails/context.md`,
+    `${ok} .viberails/scan-result.json`,
+    `${ok} .claude/settings.json \u2014 added viberails hook`,
+    `${ok} CLAUDE.md \u2014 added @.viberails/context.md reference`,
+    preCommitTarget ? `${ok} ${preCommitTarget}` : `${chalk.yellow('!')} pre-commit hook skipped`,
+    actionTarget ? `${ok} ${actionTarget} \u2014 blocks PRs on violations` : '',
+  ].filter(Boolean);
+  console.log(`\nCreated:\n${created.map((f) => `  ${f}`).join('\n')}`);
 }
 
 async function initInteractive(
@@ -285,6 +280,14 @@ async function initInteractive(
   if (integrations.claudeMdRef) {
     setupClaudeMdReference(projectRoot);
     createdFiles.push('CLAUDE.md \u2014 added @.viberails/context.md reference');
+  }
+  if (integrations.githubAction) {
+    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    const pm = rootPkg.stack?.packageManager ?? 'npm';
+    const target = setupGithubAction(projectRoot, pm);
+    if (target) {
+      createdFiles.push(`${target} \u2014 blocks PRs on violations`);
+    }
   }
 
   clack.log.success(`Created:\n${createdFiles.map((f) => `  ${f}`).join('\n')}`);

@@ -166,6 +166,65 @@ export function setupClaudeMdReference(projectRoot: string): void {
   console.log(`  ${chalk.green('✓')} CLAUDE.md — added @.viberails/context.md reference`);
 }
 
+/**
+ * Generate a GitHub Actions workflow that runs viberails check --enforce on PRs.
+ * Detects the project's package manager for correct install/run commands.
+ */
+export function setupGithubAction(projectRoot: string, packageManager: string): string | undefined {
+  const workflowDir = path.join(projectRoot, '.github', 'workflows');
+  const workflowPath = path.join(workflowDir, 'viberails.yml');
+
+  if (fs.existsSync(workflowPath)) {
+    const existing = fs.readFileSync(workflowPath, 'utf-8');
+    if (existing.includes('viberails')) return undefined;
+  }
+
+  fs.mkdirSync(workflowDir, { recursive: true });
+
+  const pm = packageManager || 'npm';
+  const installCmd =
+    pm === 'yarn'
+      ? 'yarn install --frozen-lockfile'
+      : pm === 'pnpm'
+        ? 'pnpm install --frozen-lockfile'
+        : 'npm ci';
+  const runPrefix = pm === 'npm' ? 'npx' : `${pm} exec`;
+
+  const lines = [
+    'name: viberails',
+    '',
+    'on:',
+    '  pull_request:',
+    '    branches: [main]',
+    '',
+    'jobs:',
+    '  check:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - uses: actions/checkout@v4',
+    '',
+  ];
+
+  if (pm === 'pnpm') {
+    lines.push('      - uses: pnpm/action-setup@v4', '');
+  }
+
+  lines.push(
+    '      - uses: actions/setup-node@v4',
+    '        with:',
+    '          node-version: 22',
+    pm !== 'npm' ? `          cache: ${pm}` : '',
+    '',
+    `      - run: ${installCmd}`,
+    `      - run: ${runPrefix} viberails check --enforce`,
+    '',
+  );
+
+  const content = lines.filter((l) => l !== undefined).join('\n');
+  fs.writeFileSync(workflowPath, content);
+  return '.github/workflows/viberails.yml';
+}
+
 function writeHuskyPreCommit(huskyDir: string): void {
   const hookPath = path.join(huskyDir, 'pre-commit');
   if (fs.existsSync(hookPath)) {
