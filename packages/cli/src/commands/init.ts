@@ -116,6 +116,7 @@ export async function initCommand(
     updateGitignore(projectRoot);
 
     // Set up integrations automatically in --yes mode
+    setupClaudeCodeHook(projectRoot);
     setupClaudeMdReference(projectRoot);
     setupPreCommitHook(projectRoot);
 
@@ -123,6 +124,7 @@ export async function initCommand(
     console.log(`  ${chalk.green('\u2713')} ${CONFIG_FILE}`);
     console.log(`  ${chalk.green('\u2713')} .viberails/context.md`);
     console.log(`  ${chalk.green('\u2713')} .viberails/scan-result.json`);
+    console.log(`  ${chalk.green('\u2713')} .claude/settings.json \u2014 added viberails hook`);
     console.log(
       `  ${chalk.green('\u2713')} CLAUDE.md \u2014 added @.viberails/context.md reference`,
     );

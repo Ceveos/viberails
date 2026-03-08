@@ -106,6 +106,33 @@ describe('writeTestStub', () => {
     expect(content).toContain("describe('utils'");
   });
 
+  it('treats versioned jest runner as jest', () => {
+    const jestConfig: ViberailsConfig = {
+      ...baseConfig,
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          stack: {
+            language: baseConfig.packages[0].stack?.language ?? 'typescript',
+            packageManager: baseConfig.packages[0].stack?.packageManager ?? 'pnpm',
+            ...(baseConfig.packages[0].stack ?? {}),
+            testRunner: 'jest@29',
+          },
+        },
+      ],
+    };
+    const stub = {
+      path: 'src/utils.test.ts',
+      absPath: path.join(tmpDir, 'src/utils.test.ts'),
+      moduleName: 'utils',
+    };
+    writeTestStub(stub, jestConfig);
+
+    const content = fs.readFileSync(stub.absPath, 'utf-8');
+    expect(content).not.toContain('vitest');
+    expect(content).toContain("describe('utils'");
+  });
+
   it('is idempotent — does not error on second call', () => {
     const stub = {
       path: 'src/utils.test.ts',

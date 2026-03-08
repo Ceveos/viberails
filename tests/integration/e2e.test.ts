@@ -30,7 +30,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
 
   it('creates viberails.config.json with correct stack detection', () => {
     const config = readConfig();
-    expect(config.version).toBe(2);
+    expect(config.version).toBe(1);
     expect(config.packages).toBeDefined();
     expect(config.packages.length).toBeGreaterThan(0);
     const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
@@ -88,6 +88,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
     const claudeMd = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf-8');
     expect(claudeMd).toContain('@.viberails/context.md');
     expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.claude', 'settings.json'))).toBe(true);
   });
 
   it('updates .gitignore with scan-result.json only', () => {

@@ -44,7 +44,8 @@ export function generateTestStub(
  */
 export function writeTestStub(stub: TestStubRecord, config: ViberailsConfig): void {
   const pkg = resolvePackageForFile(stub.path, config);
-  const runner = pkg?.stack?.testRunner === 'jest' ? 'jest' : 'vitest';
+  const testRunner = pkg?.stack?.testRunner ?? '';
+  const runner = testRunner.startsWith('jest') ? 'jest' : 'vitest';
   const importLine =
     runner === 'jest'
       ? '' // jest globals are available without import

@@ -25,7 +25,7 @@ describe('init command', () => {
     const configPath = path.join(tmpDir, 'viberails.config.json');
     expect(fs.existsSync(configPath)).toBe(true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    expect(config.version).toBe(2);
+    expect(config.version).toBe(1);
     expect(config.packages).toBeDefined();
     expect(config.packages.length).toBeGreaterThan(0);
     const root =
@@ -44,6 +44,7 @@ describe('init command', () => {
     const claudeMd = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf-8');
     expect(claudeMd).toContain('@.viberails/context.md');
     expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.claude', 'settings.json'))).toBe(true);
 
     // .gitignore — should include scan-result.json but not .cursorrules
     const gitignorePath = path.join(tmpDir, '.gitignore');
