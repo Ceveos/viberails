@@ -3,10 +3,10 @@ import * as path from 'node:path';
 import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
-import type { ConfigConventions } from '@viberails/types';
 import chalk from 'chalk';
 import { displayRulesPreview, displayScanResults } from '../display.js';
 import { formatRulesText, formatScanResultsText } from '../display-text.js';
+import { filterHighConfidence } from '../utils/filter-confidence.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import {
   confirm,
@@ -16,6 +16,7 @@ import {
   promptRuleMenu,
 } from '../utils/prompt.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
+import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 import {
   detectHookManager,
@@ -25,25 +26,6 @@ import {
 } from './init-hooks.js';
 
 const CONFIG_FILE = 'viberails.config.json';
-
-/**
- * Filter conventions to only include high-confidence entries (using _meta).
- */
-function filterHighConfidence(
-  conventions: ConfigConventions,
-  meta?: Record<string, { confidence: string }>,
-): ConfigConventions {
-  if (!meta) return conventions;
-  const filtered: ConfigConventions = {};
-  for (const [key, value] of Object.entries(conventions)) {
-    if (value === undefined) continue;
-    const convMeta = meta[key];
-    if (!convMeta || convMeta.confidence === 'high') {
-      filtered[key as keyof ConfigConventions] = value;
-    }
-  }
-  return filtered;
-}
 
 /**
  * Run the viberails init flow.
@@ -77,75 +59,76 @@ export async function initCommand(
     return;
   }
 
-  // === Non-interactive path: console.log only (no clack prompts) ===
   if (options.yes) {
-    console.log(chalk.dim('Scanning project...'));
-    const scanResult = await scan(projectRoot);
-    const config = generateConfig(scanResult);
-
-    // Filter to high-confidence conventions only in --yes mode (all packages)
-    for (const pkg of config.packages) {
-      const pkgMeta = config._meta?.packages?.[pkg.path]?.conventions;
-      pkg.conventions = filterHighConfidence(pkg.conventions ?? {}, pkgMeta);
-    }
-
-    displayScanResults(scanResult);
-    displayRulesPreview(config);
-
-    // Auto-infer boundaries for monorepos
-    if (config.packages.length > 1) {
-      console.log(chalk.dim('Building import graph...'));
-      const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-      const packages = resolveWorkspacePackages(projectRoot, config.packages);
-      const graph = await buildImportGraph(projectRoot, {
-        packages,
-        ignore: config.ignore,
-      });
-      const inferred = inferBoundaries(graph);
-      const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
-      if (denyCount > 0) {
-        config.boundaries = inferred;
-        config.rules.enforceBoundaries = true;
-        console.log(`  Inferred ${denyCount} boundary rules`);
-      }
-    }
-
-    // Write files (compact before writing)
-    const compacted = compactConfig(config);
-    fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
-    writeGeneratedFiles(projectRoot, config, scanResult);
-    updateGitignore(projectRoot);
-
-    // Set up integrations automatically in --yes mode
-    setupClaudeCodeHook(projectRoot);
-    setupClaudeMdReference(projectRoot);
-    const preCommitTarget = setupPreCommitHook(projectRoot);
-
-    console.log(`\nCreated:`);
-    console.log(`  ${chalk.green('\u2713')} ${CONFIG_FILE}`);
-    console.log(`  ${chalk.green('\u2713')} .viberails/context.md`);
-    console.log(`  ${chalk.green('\u2713')} .viberails/scan-result.json`);
-    console.log(`  ${chalk.green('\u2713')} .claude/settings.json \u2014 added viberails hook`);
-    console.log(
-      `  ${chalk.green('\u2713')} CLAUDE.md \u2014 added @.viberails/context.md reference`,
-    );
-    if (preCommitTarget) {
-      console.log(`  ${chalk.green('\u2713')} ${preCommitTarget}`);
-    } else {
-      console.log(`  ${chalk.yellow('!')} pre-commit hook skipped (no .git / hook manager found)`);
-    }
-    console.log(
-      `\n${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
-    );
+    await initNonInteractive(projectRoot, configPath);
     return;
   }
 
-  // === Interactive path: all clack ===
+  await initInteractive(projectRoot, configPath, options);
+}
+
+async function initNonInteractive(projectRoot: string, configPath: string): Promise<void> {
+  console.log(chalk.dim('Scanning project...'));
+  const scanResult = await scan(projectRoot);
+  const config = generateConfig(scanResult);
+
+  for (const pkg of config.packages) {
+    const pkgMeta = config._meta?.packages?.[pkg.path]?.conventions;
+    pkg.conventions = filterHighConfidence(pkg.conventions ?? {}, pkgMeta);
+  }
+
+  displayScanResults(scanResult);
+  displayRulesPreview(config);
+
+  if (config.packages.length > 1) {
+    console.log(chalk.dim('Building import graph...'));
+    const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
+    const packages = resolveWorkspacePackages(projectRoot, config.packages);
+    const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
+    const inferred = inferBoundaries(graph);
+    const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
+    if (denyCount > 0) {
+      config.boundaries = inferred;
+      config.rules.enforceBoundaries = true;
+      console.log(`  Inferred ${denyCount} boundary rules`);
+    }
+  }
+
+  const compacted = compactConfig(config);
+  fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
+  writeGeneratedFiles(projectRoot, config, scanResult);
+  updateGitignore(projectRoot);
+
+  setupClaudeCodeHook(projectRoot);
+  setupClaudeMdReference(projectRoot);
+  const preCommitTarget = setupPreCommitHook(projectRoot);
+
+  console.log(`\nCreated:`);
+  console.log(`  ${chalk.green('\u2713')} ${path.basename(configPath)}`);
+  console.log(`  ${chalk.green('\u2713')} .viberails/context.md`);
+  console.log(`  ${chalk.green('\u2713')} .viberails/scan-result.json`);
+  console.log(`  ${chalk.green('\u2713')} .claude/settings.json \u2014 added viberails hook`);
+  console.log(`  ${chalk.green('\u2713')} CLAUDE.md \u2014 added @.viberails/context.md reference`);
+  if (preCommitTarget) {
+    console.log(`  ${chalk.green('\u2713')} ${preCommitTarget}`);
+  } else {
+    console.log(`  ${chalk.yellow('!')} pre-commit hook skipped (no .git / hook manager found)`);
+  }
+  console.log(
+    `\n${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
+  );
+}
+
+async function initInteractive(
+  projectRoot: string,
+  configPath: string,
+  options: { force?: boolean },
+): Promise<void> {
   clack.intro('viberails');
 
   if (fs.existsSync(configPath) && options.force) {
     const replace = await confirmDangerous(
-      `${CONFIG_FILE} already exists and will be replaced. Continue?`,
+      `${path.basename(configPath)} already exists and will be replaced. Continue?`,
     );
     if (!replace) {
       clack.outro('Aborted. No files were written.');
@@ -153,53 +136,41 @@ export async function initCommand(
     }
   }
 
-  // 3. Scan with spinner
   const s = clack.spinner();
   s.start('Scanning project...');
   const scanResult = await scan(projectRoot);
   const config = generateConfig(scanResult);
   s.stop('Scan complete');
 
-  // 4. Sparse project warning
   if (scanResult.statistics.totalFiles === 0) {
     clack.log.warn(
-      'No source files detected. viberails will generate context\n' +
-        'with minimal content. Run viberails sync after adding files.',
+      'No source files detected. Try running from the project root,\n' +
+        'or check that source files exist. Run viberails sync after adding files.',
     );
   }
 
-  // 5. Show scan results and rules as separate note boxes
-  const resultsText = formatScanResultsText(scanResult);
-  clack.note(resultsText, 'Scan results');
+  clack.note(formatScanResultsText(scanResult), 'Scan results');
+  clack.note(formatRulesText(config).join('\n'), 'Rules');
 
-  const rulesText = formatRulesText(config).join('\n');
-  clack.note(rulesText, 'Rules');
-
-  // 6. Accept or Customize
   const decision = await promptInitDecision();
 
   if (decision === 'customize') {
-    const rootPkgBeforeCustomize =
-      config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
     const overrides = await promptRuleMenu({
       maxFileLines: config.rules.maxFileLines,
       testCoverage: config.rules.testCoverage,
       enforceNaming: config.rules.enforceNaming,
-      fileNamingValue: rootPkgBeforeCustomize.conventions?.fileNaming,
+      fileNamingValue: rootPkg.conventions?.fileNaming,
       coverageSummaryPath: 'coverage/coverage-summary.json',
       coverageCommand: undefined,
       packageOverrides: config.packages,
     });
 
-    if (overrides.packageOverrides) {
-      config.packages = overrides.packageOverrides;
-    }
-
+    if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
     config.rules.maxFileLines = overrides.maxFileLines;
     config.rules.testCoverage = overrides.testCoverage;
     config.rules.enforceNaming = overrides.enforceNaming;
 
-    // Seed package coverage defaults so compactConfig can extract shared defaults.coverage.
     for (const pkg of config.packages) {
       pkg.coverage = pkg.coverage ?? {};
       if (pkg.coverage.summaryPath === undefined) {
@@ -211,7 +182,6 @@ export async function initCommand(
     }
 
     if (overrides.fileNamingValue) {
-      const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
       const oldNaming = rootPkg.conventions?.fileNaming;
       rootPkg.conventions = rootPkg.conventions ?? {};
       rootPkg.conventions.fileNaming = overrides.fileNamingValue;
@@ -225,7 +195,6 @@ export async function initCommand(
     }
   }
 
-  // 7. Boundary inference (monorepo only)
   if (config.packages.length > 1) {
     clack.note(
       'Boundary rules prevent packages from importing where they\n' +
@@ -240,18 +209,13 @@ export async function initCommand(
       bs.start('Building import graph...');
       const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
       const packages = resolveWorkspacePackages(projectRoot, config.packages);
-      const graph = await buildImportGraph(projectRoot, {
-        packages,
-        ignore: config.ignore,
-      });
+      const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
       const inferred = inferBoundaries(graph);
       const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
       if (denyCount > 0) {
         config.boundaries = inferred;
         config.rules.enforceBoundaries = true;
         bs.stop(`Inferred ${denyCount} boundary rules`);
-
-        // Show inferred boundaries before saving
         const boundaryLines = Object.entries(inferred.deny)
           .map(([pkg, denied]) => `${pkg} must NOT import from: ${denied.join(', ')}`)
           .join('\n');
@@ -262,7 +226,6 @@ export async function initCommand(
     }
   }
 
-  // 8. Integration selection
   const hookManager = detectHookManager(projectRoot);
   const integrations = await promptIntegrations(hookManager);
 
@@ -272,19 +235,13 @@ export async function initCommand(
     return;
   }
 
-  // 9. Write config (compact before writing)
   const compacted = compactConfig(config);
   fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
-
-  // 11. Generate context and scan-result.json
   writeGeneratedFiles(projectRoot, config, scanResult);
-
-  // 12. Update .gitignore
   updateGitignore(projectRoot);
 
-  // 13. Set up hooks based on selection
   const createdFiles: string[] = [
-    CONFIG_FILE,
+    path.basename(configPath),
     '.viberails/context.md',
     '.viberails/scan-result.json',
   ];
@@ -306,31 +263,9 @@ export async function initCommand(
     createdFiles.push('CLAUDE.md \u2014 added @.viberails/context.md reference');
   }
 
-  // 14. Summary
   clack.log.success(`Created:\n${createdFiles.map((f) => `  ${f}`).join('\n')}`);
-
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +
       `  ${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
   );
-}
-
-/**
- * Append viberails entries to .gitignore if not already present.
- * Only scan-result.json is ignored — context.md should be committed
- * so AI agents can read the enforced rules.
- */
-function updateGitignore(projectRoot: string): void {
-  const gitignorePath = path.join(projectRoot, '.gitignore');
-  let content = '';
-
-  if (fs.existsSync(gitignorePath)) {
-    content = fs.readFileSync(gitignorePath, 'utf-8');
-  }
-
-  if (!content.includes('.viberails/scan-result.json')) {
-    const block = '\n# viberails\n.viberails/scan-result.json\n';
-    const prefix = content.length === 0 ? '' : `${content.trimEnd()}\n`;
-    fs.writeFileSync(gitignorePath, `${prefix}${block}`);
-  }
 }

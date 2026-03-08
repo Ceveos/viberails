@@ -8,16 +8,16 @@ import {
   promptRuleMenu,
 } from './prompt.js';
 
-const { selectMock, textMock, confirmMock, multiselectMock, noteMock, isCancelMock } = vi.hoisted(
-  () => ({
+const { selectMock, textMock, confirmMock, multiselectMock, noteMock, logMock, isCancelMock } =
+  vi.hoisted(() => ({
     selectMock: vi.fn(),
     textMock: vi.fn(),
     confirmMock: vi.fn(),
     multiselectMock: vi.fn(),
     noteMock: vi.fn(),
+    logMock: { info: vi.fn() },
     isCancelMock: vi.fn((value: unknown) => value === '__cancel__'),
-  }),
-);
+  }));
 
 vi.mock('@clack/prompts', () => ({
   select: selectMock,
@@ -25,6 +25,7 @@ vi.mock('@clack/prompts', () => ({
   confirm: confirmMock,
   multiselect: multiselectMock,
   note: noteMock,
+  log: logMock,
   cancel: vi.fn(),
   isCancel: isCancelMock,
 }));
@@ -36,12 +37,20 @@ describe('prompt utils', () => {
     confirmMock.mockReset();
     multiselectMock.mockReset();
     noteMock.mockReset();
+    logMock.info.mockReset();
     isCancelMock.mockClear();
   });
 
   it('promptInitDecision returns the selected choice', async () => {
     selectMock.mockResolvedValueOnce('customize');
     await expect(promptInitDecision()).resolves.toBe('customize');
+  });
+
+  it('promptInitDecision shows "Let me customize rules" label', async () => {
+    selectMock.mockResolvedValueOnce('accept');
+    await promptInitDecision();
+    const options = selectMock.mock.calls[0][0].options;
+    expect(options[1].label).toBe('Let me customize rules');
   });
 
   it('confirm and confirmDangerous use different default values', async () => {
@@ -209,5 +218,24 @@ describe('prompt utils', () => {
     expect(web?.rules?.testCoverage).toBe(0);
     expect(web?.coverage?.summaryPath).toBe('custom/coverage-summary.json');
     expect(web?.coverage?.command).toBe('pnpm --filter @app/web test:coverage');
+  });
+
+  it('promptRuleMenu resets to detected defaults', async () => {
+    selectMock
+      .mockResolvedValueOnce('maxFileLines')
+      .mockResolvedValueOnce('reset')
+      .mockResolvedValueOnce('done');
+    textMock.mockResolvedValueOnce('100');
+
+    const result = await promptRuleMenu({
+      maxFileLines: 300,
+      testCoverage: 80,
+      enforceNaming: true,
+      fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+    });
+
+    expect(result.maxFileLines).toBe(300);
+    expect(logMock.info).toHaveBeenCalledWith('Reset all rules to detected defaults.');
   });
 });
