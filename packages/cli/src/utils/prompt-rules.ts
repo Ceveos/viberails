@@ -6,6 +6,7 @@ import { assertNotCancelled } from './prompt.js';
 export interface RuleOverrides {
   maxFileLines: number;
   testCoverage: number;
+  enforceMissingTests: boolean;
   enforceNaming: boolean;
   fileNamingValue?: string;
   coverageSummaryPath: string;
@@ -28,6 +29,7 @@ function getRootPackage(packages: PackageConfig[]): PackageConfig {
 export async function promptRuleMenu(defaults: {
   maxFileLines: number;
   testCoverage: number;
+  enforceMissingTests: boolean;
   enforceNaming: boolean;
   fileNamingValue?: string;
   coverageSummaryPath: string;
@@ -56,6 +58,7 @@ export async function promptRuleMenu(defaults: {
   return {
     maxFileLines: state.maxFileLines,
     testCoverage: state.testCoverage,
+    enforceMissingTests: state.enforceMissingTests,
     enforceNaming: state.enforceNaming,
     fileNamingValue: state.fileNamingValue,
     coverageSummaryPath: state.coverageSummaryPath,

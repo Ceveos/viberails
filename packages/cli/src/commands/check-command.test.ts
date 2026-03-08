@@ -14,6 +14,7 @@ function writeConfig(dir: string, overrides: Record<string, unknown> = {}): void
       testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -49,6 +50,7 @@ describe('check command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
     });
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -73,6 +75,7 @@ describe('check command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
     });
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -99,6 +102,7 @@ describe('check command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
     });
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -125,6 +129,7 @@ describe('check command', () => {
           testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       });
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -155,6 +160,7 @@ describe('check command', () => {
           testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       });
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -180,6 +186,7 @@ describe('check command', () => {
           testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       });
       fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
@@ -221,6 +228,7 @@ describe('check command', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       packages: [
         {
@@ -256,6 +264,7 @@ describe('check command', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       packages: [
         {
@@ -289,6 +298,7 @@ describe('check command', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       packages: [
         {
@@ -324,6 +334,7 @@ describe('check command', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       packages: [
         {

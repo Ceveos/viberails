@@ -38,6 +38,7 @@ function validConfig(): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
   };
@@ -90,6 +91,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
@@ -111,6 +113,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
@@ -131,6 +134,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
@@ -151,6 +155,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
@@ -173,6 +178,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
         defaults: {
           coverage: {
@@ -206,6 +212,7 @@ describe('loadConfig', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );

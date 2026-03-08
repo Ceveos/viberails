@@ -27,6 +27,7 @@ describe('check command with boundary enforcement', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: true,
+        enforceMissingTests: true,
       },
       ignore: [],
       boundaries: {
@@ -100,6 +101,7 @@ describe('check command with boundary enforcement', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
     });
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});

@@ -127,6 +127,7 @@ describe('getAllSourceFiles', () => {
       testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [

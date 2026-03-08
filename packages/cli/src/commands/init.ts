@@ -19,6 +19,11 @@ import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js
 import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 import {
+  checkCoveragePrereqs,
+  displayMissingPrereqs,
+  promptMissingPrereqs,
+} from '../utils/check-prerequisites.js';
+import {
   detectHookManager,
   setupClaudeCodeHook,
   setupClaudeMdReference,
@@ -33,29 +38,18 @@ function getExemptedPackages(config: import('@viberails/types').ViberailsConfig)
     .map((pkg) => pkg.path);
 }
 
-/**
- * Run the viberails init flow.
- *
- * @param options - CLI options
- * @param cwd - Working directory override (for testing)
- */
+/** Run the viberails init flow. */
 export async function initCommand(
   options: { yes?: boolean; force?: boolean },
   cwd?: string,
 ): Promise<void> {
-  const startDir = cwd ?? process.cwd();
-
-  // 1. Find project root
-  const projectRoot = findProjectRoot(startDir);
+  const projectRoot = findProjectRoot(cwd ?? process.cwd());
   if (!projectRoot) {
     throw new Error(
-      'No package.json found in this directory or any parent.\n\n' +
-        'Make sure you are inside a JavaScript or TypeScript project, then run:\n' +
-        '  npx viberails',
+      'No package.json found. Make sure you are inside a JS/TS project, then run:\n  npx viberails',
     );
   }
 
-  // 2. Check for existing config (early exit — no clack)
   const configPath = path.join(projectRoot, CONFIG_FILE);
   if (fs.existsSync(configPath) && !options.force) {
     console.log(
@@ -82,6 +76,8 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
     const pkgMeta = config._meta?.packages?.[pkg.path]?.conventions;
     pkg.conventions = filterHighConfidence(pkg.conventions ?? {}, pkgMeta);
   }
+
+  displayMissingPrereqs(checkCoveragePrereqs(projectRoot, scanResult));
 
   displayScanResults(scanResult);
   displayRulesPreview(config);
@@ -155,6 +151,14 @@ async function initInteractive(
   const config = generateConfig(scanResult);
   s.stop('Scan complete');
 
+  const prereqResult = await promptMissingPrereqs(
+    projectRoot,
+    checkCoveragePrereqs(projectRoot, scanResult),
+  );
+  if (prereqResult.disableCoverage) {
+    config.rules.testCoverage = 0;
+  }
+
   if (scanResult.statistics.totalFiles === 0) {
     clack.log.warn(
       'No source files detected. Try running from the project root,\n' +
@@ -164,11 +168,10 @@ async function initInteractive(
 
   clack.note(formatScanResultsText(scanResult), 'Scan results');
 
-  const interactiveExempted = getExemptedPackages(config);
   const rulesLines = formatRulesText(config);
-  if (interactiveExempted.length > 0) {
-    rulesLines.push(`Auto-exempted from coverage: ${interactiveExempted.join(', ')} (types-only)`);
-  }
+  const exemptedPkgs = getExemptedPackages(config);
+  if (exemptedPkgs.length > 0)
+    rulesLines.push(`Auto-exempted from coverage: ${exemptedPkgs.join(', ')} (types-only)`);
   clack.note(rulesLines.join('\n'), 'Rules');
 
   const decision = await promptInitDecision();
@@ -178,6 +181,7 @@ async function initInteractive(
     const overrides = await promptRuleMenu({
       maxFileLines: config.rules.maxFileLines,
       testCoverage: config.rules.testCoverage,
+      enforceMissingTests: config.rules.enforceMissingTests,
       enforceNaming: config.rules.enforceNaming,
       fileNamingValue: rootPkg.conventions?.fileNaming,
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -188,6 +192,7 @@ async function initInteractive(
     if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
     config.rules.maxFileLines = overrides.maxFileLines;
     config.rules.testCoverage = overrides.testCoverage;
+    config.rules.enforceMissingTests = overrides.enforceMissingTests;
     config.rules.enforceNaming = overrides.enforceNaming;
 
     for (const pkg of config.packages) {

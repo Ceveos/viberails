@@ -29,7 +29,13 @@ export const configSchema = {
     },
     rules: {
       type: 'object',
-      required: ['maxFileLines', 'testCoverage', 'enforceNaming', 'enforceBoundaries'],
+      required: [
+        'maxFileLines',
+        'testCoverage',
+        'enforceNaming',
+        'enforceBoundaries',
+        'enforceMissingTests',
+      ],
       properties: {
         maxFileLines: {
           type: 'number',
@@ -46,7 +52,7 @@ export const configSchema = {
           type: 'number',
           default: 80,
           description:
-            'Minimum line coverage target. 0 disables both coverage and missing-test checks.',
+            'Minimum line coverage target percentage. 0 disables coverage threshold checks.',
         },
         enforceNaming: {
           type: 'boolean',
@@ -57,6 +63,11 @@ export const configSchema = {
           type: 'boolean',
           default: false,
           description: 'Whether to enforce module boundary rules.',
+        },
+        enforceMissingTests: {
+          type: 'boolean',
+          default: true,
+          description: 'Whether to enforce that every source file has a corresponding test file.',
         },
       },
       additionalProperties: false,

@@ -25,6 +25,7 @@ function makeConfig(): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     packages: [{ name: 'test', path: '.' }],
   };

@@ -8,6 +8,7 @@ describe('DEFAULT_RULES', () => {
     expect(DEFAULT_RULES.testCoverage).toBe(80);
     expect(DEFAULT_RULES.enforceNaming).toBe(true);
     expect(DEFAULT_RULES.enforceBoundaries).toBe(false);
+    expect(DEFAULT_RULES.enforceMissingTests).toBe(true);
   });
 });
 

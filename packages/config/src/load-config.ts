@@ -146,6 +146,9 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
   if (rules.maxTestFileLines === undefined) {
     rules.maxTestFileLines = 0;
   }
+  if (rules.enforceMissingTests === undefined) {
+    rules.enforceMissingTests = true;
+  }
 
   // Default ignore to [] if missing
   if (parsed.ignore === undefined) {

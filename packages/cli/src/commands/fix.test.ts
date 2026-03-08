@@ -14,6 +14,7 @@ function writeConfig(dir: string, overrides: Record<string, unknown> = {}): void
       testCoverage: 0,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -109,6 +110,7 @@ describe('fix command', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       packages: [
         {

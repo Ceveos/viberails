@@ -12,6 +12,7 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
       testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [

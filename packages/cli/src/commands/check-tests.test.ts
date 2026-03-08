@@ -25,6 +25,7 @@ function monorepoConfig(): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -58,9 +59,31 @@ describe('checkMissingTests', () => {
     expect(violations[0].rule).toBe('missing-test');
   });
 
-  it('skips missing-test checks for packages with testCoverage set to 0', () => {
+  it('skips missing-test checks for packages with enforceMissingTests set to false', () => {
     const config = monorepoConfig();
-    config.packages[1].rules = { testCoverage: 0 };
+    config.packages[1].rules = { enforceMissingTests: false };
+    fs.mkdirSync(path.join(tmpDir, 'apps/web/src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'apps/web/src/page.ts'), 'export const page = 1;\n');
+
+    const violations = checkMissingTests(tmpDir, config, 'warn');
+    expect(violations).toHaveLength(0);
+  });
+
+  it('uses enforceMissingTests independently from testCoverage', () => {
+    const config = monorepoConfig();
+    config.rules.testCoverage = 0;
+    config.rules.enforceMissingTests = true;
+    fs.mkdirSync(path.join(tmpDir, 'apps/web/src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'apps/web/src/page.ts'), 'export const page = 1;\n');
+
+    const violations = checkMissingTests(tmpDir, config, 'warn');
+    expect(violations).toHaveLength(1);
+  });
+
+  it('respects enforceMissingTests: false even when testCoverage > 0', () => {
+    const config = monorepoConfig();
+    config.rules.testCoverage = 80;
+    config.rules.enforceMissingTests = false;
     fs.mkdirSync(path.join(tmpDir, 'apps/web/src'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'apps/web/src/page.ts'), 'export const page = 1;\n');
 

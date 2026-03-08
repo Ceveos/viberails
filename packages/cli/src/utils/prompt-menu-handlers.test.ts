@@ -5,6 +5,7 @@ describe('buildMenuOptions', () => {
   const baseState = {
     maxFileLines: 300,
     testCoverage: 80,
+    enforceMissingTests: true,
     enforceNaming: true,
     fileNamingValue: 'kebab-case',
     coverageSummaryPath: 'coverage/coverage-summary.json',

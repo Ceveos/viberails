@@ -317,6 +317,7 @@ describe('displayRulesPreview', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       ignore: [],
       packages: [
@@ -347,6 +348,7 @@ describe('displayRulesPreview', () => {
             testCoverage: 80,
             enforceNaming: false,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
           packages: [
             {
@@ -374,6 +376,7 @@ describe('displayRulesPreview', () => {
             testCoverage: 0,
             enforceNaming: true,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
           packages: [
             {
@@ -400,6 +403,7 @@ describe('displayRulesPreview', () => {
             testCoverage: 80,
             enforceNaming: true,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
           packages: [
             {

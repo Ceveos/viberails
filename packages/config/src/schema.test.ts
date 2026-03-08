@@ -153,6 +153,7 @@ describe('configSchema validation', () => {
           testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     ).toBe(false);

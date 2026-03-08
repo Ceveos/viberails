@@ -12,6 +12,7 @@ function makeMonorepoConfig(): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -62,6 +63,7 @@ describe('compactConfig / expandDefaults coverage handling', () => {
         testCoverage: 80,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       ignore: [],
       defaults: {
@@ -100,5 +102,116 @@ describe('compactConfig / expandDefaults coverage handling', () => {
       command: 'pnpm test:coverage',
       summaryPath: 'custom/coverage-summary.json',
     });
+  });
+
+  it('preserves coverage settings for single-package projects', () => {
+    const config: ViberailsConfig = {
+      version: 1,
+      name: 'single-app',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      ignore: [],
+      defaults: {
+        coverage: {
+          command: 'npx vitest run --coverage',
+          summaryPath: 'coverage/coverage-summary.json',
+        },
+      },
+      packages: [
+        {
+          name: 'single-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    };
+
+    const compacted = compactConfig(config);
+    expect(compacted.defaults).toBeUndefined();
+    expect(compacted.packages[0].coverage).toEqual({
+      command: 'npx vitest run --coverage',
+      summaryPath: 'coverage/coverage-summary.json',
+    });
+  });
+
+  it('merges defaults.coverage with existing package coverage for single-package', () => {
+    const config: ViberailsConfig = {
+      version: 1,
+      name: 'single-app',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      ignore: [],
+      defaults: {
+        coverage: {
+          command: 'npx vitest run --coverage',
+        },
+      },
+      packages: [
+        {
+          name: 'single-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+          coverage: {
+            summaryPath: 'custom/summary.json',
+          },
+        },
+      ],
+    };
+
+    const compacted = compactConfig(config);
+    expect(compacted.packages[0].coverage).toEqual({
+      command: 'npx vitest run --coverage',
+      summaryPath: 'custom/summary.json',
+    });
+  });
+
+  it('moves defaults.stack to package for single-package projects', () => {
+    const config: ViberailsConfig = {
+      version: 1,
+      name: 'single-app',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      ignore: [],
+      defaults: {
+        stack: {
+          testRunner: 'vitest@3',
+        },
+      },
+      packages: [
+        {
+          name: 'single-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    };
+
+    const compacted = compactConfig(config);
+    expect(compacted.defaults).toBeUndefined();
+    expect(compacted.packages[0].stack?.testRunner).toBe('vitest@3');
   });
 });

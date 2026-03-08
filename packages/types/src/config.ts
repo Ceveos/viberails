@@ -242,7 +242,7 @@ export interface ConfigRules {
 
   /**
    * Minimum line coverage target percentage.
-   * 0 disables both coverage threshold checks and missing-test checks.
+   * 0 disables coverage threshold checks.
    * @default 80
    */
   testCoverage: number;
@@ -258,4 +258,10 @@ export interface ConfigRules {
    * @default false
    */
   enforceBoundaries: boolean;
+
+  /**
+   * Whether to enforce that every source file has a corresponding test file.
+   * @default true
+   */
+  enforceMissingTests: boolean;
 }

@@ -26,6 +26,7 @@ function makeConfig(overrides: Record<string, unknown> = {}): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [

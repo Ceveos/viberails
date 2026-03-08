@@ -78,10 +78,12 @@ export function buildMenuOptions(
   options.push({
     value: 'testCoverage',
     label: 'Test coverage target',
-    hint:
-      state.testCoverage === 0
-        ? '0 (disabled — skips coverage and missing-test checks)'
-        : `${state.testCoverage}%`,
+    hint: state.testCoverage === 0 ? '0 (disabled)' : `${state.testCoverage}%`,
+  });
+  options.push({
+    value: 'enforceMissingTests',
+    label: 'Enforce missing tests',
+    hint: state.enforceMissingTests ? 'yes' : 'no',
   });
 
   if (state.testCoverage > 0) {
@@ -143,6 +145,7 @@ export async function handleMenuChoice(
   if (choice === 'reset') {
     state.maxFileLines = defaults.maxFileLines;
     state.testCoverage = defaults.testCoverage;
+    state.enforceMissingTests = defaults.enforceMissingTests;
     state.enforceNaming = defaults.enforceNaming;
     state.fileNamingValue = defaults.fileNamingValue;
     state.coverageSummaryPath = defaults.coverageSummaryPath;
@@ -187,9 +190,18 @@ export async function handleMenuChoice(
     state.maxFileLines = Number.parseInt(result, 10);
   }
 
+  if (choice === 'enforceMissingTests') {
+    const result = await clack.confirm({
+      message: 'Require every source file to have a corresponding test file?',
+      initialValue: state.enforceMissingTests,
+    });
+    assertNotCancelled(result);
+    state.enforceMissingTests = result;
+  }
+
   if (choice === 'testCoverage') {
     const result = await clack.text({
-      message: 'Test coverage target (0 disables both coverage and missing-test checks)?',
+      message: 'Test coverage target (0 disables coverage checks)?',
       initialValue: String(state.testCoverage),
       validate: (v) => {
         if (typeof v !== 'string') return 'Enter a number between 0 and 100';

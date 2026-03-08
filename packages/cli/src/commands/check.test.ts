@@ -11,6 +11,7 @@ const baseConfig: ViberailsConfig = {
     testCoverage: 80,
     enforceNaming: true,
     enforceBoundaries: false,
+    enforceMissingTests: true,
   },
   ignore: ['dist/**'],
   packages: [

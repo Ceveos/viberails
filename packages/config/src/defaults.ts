@@ -10,6 +10,7 @@ export const DEFAULT_RULES: ConfigRules = {
   testCoverage: 80,
   enforceNaming: true,
   enforceBoundaries: false,
+  enforceMissingTests: true,
 };
 
 /**

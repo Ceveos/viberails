@@ -85,9 +85,25 @@ function runCoverageCommand(pkgRoot: string, command: string): { ok: boolean; de
     stdio: 'pipe',
   });
   if (result.status === 0) return { ok: true };
-  const stderr = result.stderr?.trim();
-  const stdout = result.stdout?.trim();
-  const detail = stderr || stdout || `exit code ${result.status ?? 1}`;
+  const stderr = result.stderr?.trim() ?? '';
+  const stdout = result.stdout?.trim() ?? '';
+  const raw = stderr || stdout || `exit code ${result.status ?? 1}`;
+
+  // Detect missing vitest coverage provider
+  if (
+    raw.includes('coverage-v8') ||
+    raw.includes('coverage-istanbul') ||
+    raw.includes('MISSING DEP')
+  ) {
+    return {
+      ok: false,
+      detail: 'Missing coverage provider. Install with: npm install -D @vitest/coverage-v8',
+    };
+  }
+
+  // Strip ANSI codes from error output
+  // eslint-disable-next-line no-control-regex
+  const detail = raw.replace(new RegExp('\\x1B\\[[0-9;]*m', 'g'), '');
   return { ok: false, detail };
 }
 

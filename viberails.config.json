@@ -7,7 +7,8 @@
     "maxTestFileLines": 0,
     "testCoverage": 80,
     "enforceNaming": true,
-    "enforceBoundaries": true
+    "enforceBoundaries": true,
+    "enforceMissingTests": true
   },
   "ignore": [
     "tests/fixtures/**"
@@ -109,19 +110,20 @@
       "name": "@viberails/types",
       "path": "packages/types",
       "rules": {
-        "testCoverage": 0
+        "testCoverage": 0,
+        "enforceMissingTests": false
       }
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-08T20:53:04.947Z",
+    "lastSync": "2026-03-08T21:22:44.381Z",
     "packages": {
       "packages/cli": {
         "conventions": {
           "fileNaming": {
             "value": "kebab-case",
             "confidence": "medium",
-            "consistency": 77
+            "consistency": 78
           }
         }
       },

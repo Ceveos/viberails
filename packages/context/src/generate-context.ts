@@ -27,7 +27,8 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
     lines.push(`- Source files use **${val}**: ${examples}.`);
   }
 
-  if (rules.testCoverage > 0 && root.structure?.testPattern) {
+  const enforceMissing = rules.enforceMissingTests ?? rules.testCoverage > 0;
+  if (enforceMissing && root.structure?.testPattern) {
     if (root.structure.srcDir) {
       lines.push(
         `- Every source file in \`${root.structure.srcDir}/\` must have a corresponding \`${root.structure.testPattern}\` file.`,
@@ -37,6 +38,10 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
         `- Every source file must have a corresponding \`${root.structure.testPattern}\` file.`,
       );
     }
+  }
+
+  if (rules.testCoverage > 0) {
+    lines.push(`- Test line coverage must meet **${rules.testCoverage}%** threshold.`);
   }
 
   return lines;

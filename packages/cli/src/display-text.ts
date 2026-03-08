@@ -75,16 +75,17 @@ export function formatRulesText(config: ViberailsConfig): string[] {
   const lines: string[] = [];
   lines.push(`Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {
-    lines.push(
-      `Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern}; also gates missing-test checks)`,
-    );
-  } else if (config.rules.testCoverage > 0) {
-    lines.push(
-      `Test coverage target: ${config.rules.testCoverage}% (also gates missing-test checks)`,
-    );
+  if (config.rules.testCoverage > 0) {
+    lines.push(`Test coverage target: ${config.rules.testCoverage}%`);
   } else {
-    lines.push('Test coverage target: disabled (coverage + missing-test checks off)');
+    lines.push('Test coverage target: disabled');
+  }
+
+  const enforceMissing = config.rules.enforceMissingTests ?? config.rules.testCoverage > 0;
+  if (enforceMissing && root?.structure?.testPattern) {
+    lines.push(`Enforce missing tests: yes (${root.structure.testPattern})`);
+  } else {
+    lines.push('Enforce missing tests: no');
   }
 
   if (config.rules.enforceNaming && root?.conventions?.fileNaming) {

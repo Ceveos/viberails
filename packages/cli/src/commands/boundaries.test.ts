@@ -26,6 +26,7 @@ describe('boundaries command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       ignore: [],
       packages: [
@@ -94,6 +95,7 @@ describe('boundaries command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       ignore: [],
       packages: [

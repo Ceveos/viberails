@@ -40,14 +40,41 @@ export const STRUCTURE_KEYS: (keyof ConfigStructure)[] = [
  */
 export function compactConfig(config: ViberailsConfig): ViberailsConfig {
   const pkgs = config.packages ?? [];
-  if (pkgs.length <= 1) {
-    // Single package — no defaults needed
-    const { defaults: _d, ...rest } = config;
-    return rest;
-  }
 
   const defaults: ConfigDefaults = {};
-  const packages = pkgs.map((p) => ({ ...p }));
+
+  // Start with copies; merge any existing defaults into each package first
+  // so the extraction logic below works uniformly for 1 or N packages.
+  const packages = pkgs.map((p) => {
+    const copy = { ...p };
+    if (config.defaults?.coverage) {
+      copy.coverage = { ...config.defaults.coverage, ...(copy.coverage ?? {}) };
+    }
+    if (config.defaults?.stack) {
+      copy.stack = { ...config.defaults.stack, ...(copy.stack ?? {}) } as ConfigStack;
+    }
+    if (config.defaults?.structure) {
+      copy.structure = { ...config.defaults.structure, ...(copy.structure ?? {}) };
+    }
+    if (config.defaults?.conventions) {
+      copy.conventions = { ...config.defaults.conventions, ...(copy.conventions ?? {}) };
+    }
+    return copy;
+  });
+
+  // For multi-package configs, extract shared values into defaults.
+  // Single-package configs keep everything on the package (no defaults needed).
+  if (packages.length <= 1) {
+    // Strip empty objects from the single package
+    for (const pkg of packages) {
+      if (pkg.stack && Object.keys(pkg.stack).length === 0) delete pkg.stack;
+      if (pkg.structure && Object.keys(pkg.structure).length === 0) delete pkg.structure;
+      if (pkg.conventions && Object.keys(pkg.conventions).length === 0) delete pkg.conventions;
+      if (pkg.coverage && Object.keys(pkg.coverage).length === 0) delete pkg.coverage;
+    }
+    const { defaults: _d, ...rest } = config;
+    return { ...rest, packages };
+  }
 
   // Extract shared stack fields
   const sharedStack: Partial<ConfigStack> = {};

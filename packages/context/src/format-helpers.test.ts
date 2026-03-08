@@ -18,6 +18,7 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
       testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -140,6 +141,7 @@ describe('formatBoundaryRules', () => {
         testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
+        enforceMissingTests: true,
       },
       boundaries: { deny: {} },
     });
@@ -154,6 +156,7 @@ describe('formatBoundaryRules', () => {
         testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
+        enforceMissingTests: true,
       },
       boundaries: { deny: { '@app/types': ['@app/db', '@app/api'] } },
     });

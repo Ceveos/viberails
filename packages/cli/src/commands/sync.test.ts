@@ -14,6 +14,7 @@ function writeMinimalConfig(dir: string, overrides: Record<string, unknown> = {}
       testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
     packages: [
@@ -69,6 +70,7 @@ describe('sync command', () => {
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
     });
 

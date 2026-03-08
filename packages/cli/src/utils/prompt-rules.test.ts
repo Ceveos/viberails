@@ -36,6 +36,7 @@ describe('promptRuleMenu', () => {
     const result = await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
@@ -52,6 +53,7 @@ describe('promptRuleMenu', () => {
     await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 0,
+      enforceMissingTests: true,
       enforceNaming: true,
       coverageSummaryPath: 'coverage/coverage-summary.json',
     });
@@ -67,6 +69,7 @@ describe('promptRuleMenu', () => {
     await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       coverageSummaryPath: 'coverage/coverage-summary.json',
     });
@@ -83,6 +86,7 @@ describe('promptRuleMenu', () => {
     await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
+      enforceMissingTests: true,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
       coverageSummaryPath: 'coverage/coverage-summary.json',
