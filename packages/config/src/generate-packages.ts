@@ -1,10 +1,4 @@
-import type {
-  ConfigConventions,
-  ConfigStack,
-  PackageConfig,
-  ScanResult,
-  ViberailsConfig,
-} from '@viberails/types';
+import type { ConfigConventions, ConfigStack, PackageConfig, ScanResult } from '@viberails/types';
 import { CONVENTION_KEYS, formatStackItem, mapStructure } from './generate-config.js';
 
 /**
@@ -51,10 +45,7 @@ function buildPackageConventions(
  *
  * Returns undefined for single-package projects.
  */
-export function generatePackages(
-  scanResult: ScanResult,
-  _globalConfig: ViberailsConfig,
-): PackageConfig[] | undefined {
+export function generatePackages(scanResult: ScanResult): PackageConfig[] | undefined {
   if (!scanResult.packages || scanResult.packages.length <= 1) return undefined;
 
   const packages: PackageConfig[] = [];

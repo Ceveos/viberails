@@ -186,6 +186,21 @@ describe('formatPackageOverrides', () => {
     expect(lines).toContain('### apps/web');
     expect(lines.some((l) => l.includes('**PascalCase**'))).toBe(true);
   });
+
+  it('returns empty when package conventions match root defaults', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          conventions: { fileNaming: 'kebab-case' },
+        },
+        { name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'kebab-case' } },
+      ],
+    });
+    expect(formatPackageOverrides(config)).toEqual([]);
+  });
 });
 
 describe('packageHeader', () => {

@@ -1,6 +1,7 @@
 import type { ViberailsConfig } from '@viberails/types';
 import {
   formatBoundaryRules,
+  formatDevelopmentSetup,
   formatPackageOverrides,
   getRootPackage,
   NAMING_EXAMPLES,
@@ -62,6 +63,12 @@ export function generateContext(config: ViberailsConfig): string {
   sections.push(
     'These rules are checked by viberails. Use `viberails check --enforce` to block commits on violation:\n',
   );
+
+  const setupLines = formatDevelopmentSetup(config);
+  if (setupLines.length > 0) {
+    sections.push(setupLines.join('\n'));
+    sections.push('');
+  }
 
   const ruleLines = formatEnforcedRules(config);
   if (ruleLines.length > 0) {

@@ -87,33 +87,50 @@ export function packageHeader(pkg: PackageConfig): string {
 export function formatPackageOverrides(config: ViberailsConfig): string[] {
   if (config.packages.length <= 1) return [];
 
+  const root = getRootPackage(config);
   const lines: string[] = [];
   lines.push('## Per-package rules\n');
-  lines.push('The following packages have rules that differ from the global defaults:\n');
+  lines.push('The following packages override global defaults:\n');
 
   for (const pkg of config.packages) {
     if (pkg.path === '.') continue;
     const pkgLines: string[] = [];
 
-    if (pkg.conventions?.fileNaming) {
+    if (
+      pkg.conventions?.fileNaming &&
+      pkg.conventions.fileNaming !== root.conventions?.fileNaming
+    ) {
       const val = pkg.conventions.fileNaming;
       const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
       pkgLines.push(`- Source files use **${val}**: ${examples}.`);
     }
 
-    if (pkg.conventions?.componentNaming) {
+    if (
+      pkg.conventions?.componentNaming &&
+      pkg.conventions.componentNaming !== root.conventions?.componentNaming
+    ) {
       pkgLines.push(`- Components use **${pkg.conventions.componentNaming}** naming.`);
     }
 
-    if (pkg.conventions?.hookNaming) {
+    if (
+      pkg.conventions?.hookNaming &&
+      pkg.conventions.hookNaming !== root.conventions?.hookNaming
+    ) {
       pkgLines.push(`- Hooks use **${pkg.conventions.hookNaming}** naming.`);
     }
 
-    if (pkg.conventions?.importAlias) {
+    if (
+      pkg.conventions?.importAlias &&
+      pkg.conventions.importAlias !== root.conventions?.importAlias
+    ) {
       pkgLines.push(`- Import alias: \`${pkg.conventions.importAlias}\`.`);
     }
 
-    if (pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines > 0) {
+    if (
+      pkg.rules?.maxFileLines !== undefined &&
+      pkg.rules.maxFileLines > 0 &&
+      pkg.rules.maxFileLines !== config.rules.maxFileLines
+    ) {
       pkgLines.push(
         `- Files must not exceed **${pkg.rules.maxFileLines} lines**. Split into focused modules.`,
       );
@@ -125,7 +142,7 @@ export function formatPackageOverrides(config: ViberailsConfig): string[] {
     }
   }
 
-  return lines;
+  return lines.length > 2 ? lines : [];
 }
 
 /**

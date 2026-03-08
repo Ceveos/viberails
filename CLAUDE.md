@@ -7,31 +7,22 @@ Guardrails for vibe coding. A CLI that scans your existing codebase, generates r
 viberails is a free, open-source CLI and library. It does three things:
 
 1. **Scans** an existing JS/TS project to detect stack, structure, conventions, and dependency graph
-2. **Generates** AI context files (CLAUDE.md, .cursorrules) derived from the actual codebase — not templates
-3. **Enforces** detected conventions via pre-commit hooks and checks (V1.1+)
+2. **Generates** AI context files derived from the actual codebase — not templates
+3. **Enforces** detected conventions via `check`, `fix`, hooks, and boundary rules
 
 viberails is not a framework, scaffold tool, or starter kit. It works on the project you already have.
 
 ## Current Version Scope
 
-**V1.0 — Scanner + AI Context Generation (what we're building now)**
+Current shipped scope includes:
 
-- Scanner: package.json detection, directory structure analysis, convention inference with confidence model
-- Config system: JSON schema, parser, defaults, generation from scan results
-- Context generator: `.viberails/context.md` from config + scan results
-- CLI: `npx viberails` interactive init flow, `viberails sync`
-- Programmatic API: all packages export clean public interfaces
-
-**NOT in V1.0 (deferred to V1.1+):**
-
-- Pre-commit hooks and Lefthook integration
-- `viberails check` and `viberails fix` commands
-- Boundary enforcement (ESLint plugin or custom checker)
-- Import graph / AST analysis
-- Monorepo support (workspace detection, per-project scanning)
-- CI check generation
-
-Build V1.0 fully before starting any V1.1 work.
+- Scanner: framework/tooling detection, structure analysis, convention inference with confidence model
+- Config system: schema, defaults, generation from scan results, sync merge behavior
+- Context generator: `.viberails/context.md` from enforced config rules
+- CLI commands: `init`, `sync`, `check`, `fix`, `boundaries`
+- Integrations: pre-commit hook setup and Claude Code PostToolUse hook setup
+- Monorepo support: workspace detection, per-package scan/config, boundary inference
+- Programmatic API packages under `packages/*`
 
 ## Repository Structure
 
@@ -42,6 +33,7 @@ viberails/
 │   ├── scanner/        # @viberails/scanner — project scanning (package.json, directory structure, conventions)
 │   ├── config/         # @viberails/config — config generation, loading, merging, JSON schema, defaults
 │   ├── context/        # @viberails/context — AI context file generation from config + scan results
+│   ├── graph/          # @viberails/graph — import graph analysis and boundary inference/checking
 │   └── cli/            # viberails — CLI tool, thin wrapper over the above packages
 ├── tests/
 │   ├── fixtures/       # Test fixture projects (various stacks, structures)
@@ -59,14 +51,14 @@ viberails/
 
 ```
 types ← scanner ← config ← context ← cli
-                                  ↗
-         types ← config ──────────
+types ← graph   ←────────────────── cli
 ```
 
 - `@viberails/types` depends on nothing — pure type definitions
 - `@viberails/scanner` depends on `@viberails/types`
 - `@viberails/config` depends on `@viberails/types`
 - `@viberails/context` depends on `@viberails/types`, `@viberails/config`
+- `@viberails/graph` depends on `@viberails/types`
 - `viberails` (cli) depends on all packages above
 
 No circular dependencies. No package may import from `cli`. The `types` package has zero runtime dependencies.
@@ -115,7 +107,7 @@ No circular dependencies. No package may import from `cli`. The `types` package 
 
 ### Dependencies
 - Minimize external runtime dependencies. The scanner should be fast and lightweight.
-- `typescript` is a peer dependency (used for AST analysis in V1.1+, needed for type resolution)
+- Keep heavyweight AST dependencies lazy-loaded in command paths that need them (`fix`, boundaries).
 - Do not add dependencies without clear justification
 
 ## Core Type Definitions
@@ -242,10 +234,11 @@ The top-level `scan()` function composes these and returns a unified ScanResult.
 Config is generated from ScanResult with smart defaults:
 - enforcement: "warn" (always starts in warn-only)
 - maxFileLines: 300
-- maxFunctionLines: 50
-- requireTests: true
+- maxTestFileLines: 0 (disabled by default)
+- testCoverage: 80 (used as a missing-test enforcement toggle)
 - enforceNaming: true
-- Only high-confidence conventions become enforced rules
+- enforceBoundaries: false (enabled when inferred/configured)
+- In `--yes` mode, only high-confidence conventions are retained
 
 ### Context Generation
 
@@ -262,7 +255,7 @@ The generated `.viberails/context.md` is the primary output. It must be:
 - No installation of linters, formatters, or test runners
 - No network requests (no telemetry, no update checks in V1)
 - No interactive prompts in library packages — only the CLI package prompts
-- No V1.1 features (hooks, guardrails, boundaries, fix command, monorepo support)
+- No hidden behavior outside documented commands and config
 
 ## Running viberails locally (dogfooding)
 

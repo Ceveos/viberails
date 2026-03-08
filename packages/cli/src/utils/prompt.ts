@@ -64,6 +64,72 @@ export interface RuleOverrides {
   maxFileLines: number;
   testCoverage: number;
   enforceNaming: boolean;
+  fileNamingValue?: string;
+}
+
+function getRootPackage(packages: PackageConfig[]): PackageConfig {
+  return packages.find((pkg) => pkg.path === '.') ?? packages[0];
+}
+
+function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
+  const diffs: string[] = [];
+
+  if (pkg.conventions?.fileNaming && pkg.conventions.fileNaming !== root.conventions?.fileNaming) {
+    diffs.push(`fileNaming: ${pkg.conventions.fileNaming}`);
+  }
+  if (
+    pkg.conventions?.componentNaming &&
+    pkg.conventions.componentNaming !== root.conventions?.componentNaming
+  ) {
+    diffs.push(`componentNaming: ${pkg.conventions.componentNaming}`);
+  }
+  if (pkg.conventions?.hookNaming && pkg.conventions.hookNaming !== root.conventions?.hookNaming) {
+    diffs.push(`hookNaming: ${pkg.conventions.hookNaming}`);
+  }
+  if (
+    pkg.conventions?.importAlias &&
+    pkg.conventions.importAlias !== root.conventions?.importAlias
+  ) {
+    diffs.push(`importAlias: ${pkg.conventions.importAlias}`);
+  }
+
+  if (pkg.stack?.framework && pkg.stack.framework !== root.stack?.framework) {
+    diffs.push(`framework: ${pkg.stack.framework}`);
+  }
+  if (pkg.stack?.language && pkg.stack.language !== root.stack?.language) {
+    diffs.push(`language: ${pkg.stack.language}`);
+  }
+  if (pkg.stack?.styling && pkg.stack.styling !== root.stack?.styling) {
+    diffs.push(`styling: ${pkg.stack.styling}`);
+  }
+  if (pkg.stack?.backend && pkg.stack.backend !== root.stack?.backend) {
+    diffs.push(`backend: ${pkg.stack.backend}`);
+  }
+  if (pkg.stack?.orm && pkg.stack.orm !== root.stack?.orm) {
+    diffs.push(`orm: ${pkg.stack.orm}`);
+  }
+  if (pkg.stack?.linter && pkg.stack.linter !== root.stack?.linter) {
+    diffs.push(`linter: ${pkg.stack.linter}`);
+  }
+  if (pkg.stack?.formatter && pkg.stack.formatter !== root.stack?.formatter) {
+    diffs.push(`formatter: ${pkg.stack.formatter}`);
+  }
+  if (pkg.stack?.testRunner && pkg.stack.testRunner !== root.stack?.testRunner) {
+    diffs.push(`testRunner: ${pkg.stack.testRunner}`);
+  }
+  if (pkg.stack?.packageManager && pkg.stack.packageManager !== root.stack?.packageManager) {
+    diffs.push(`packageManager: ${pkg.stack.packageManager}`);
+  }
+
+  if (
+    pkg.rules?.maxFileLines !== undefined &&
+    pkg.rules.maxFileLines !== root.rules?.maxFileLines &&
+    pkg.rules.maxFileLines > 0
+  ) {
+    diffs.push(`maxFileLines: ${pkg.rules.maxFileLines}`);
+  }
+
+  return diffs;
 }
 
 /**
@@ -82,6 +148,17 @@ export async function promptRuleMenu(defaults: {
   packageOverrides?: PackageConfig[];
 }): Promise<RuleOverrides> {
   const state = { ...defaults };
+  const root =
+    state.packageOverrides && state.packageOverrides.length > 0
+      ? getRootPackage(state.packageOverrides)
+      : undefined;
+  const packageDiffs =
+    root && state.packageOverrides
+      ? state.packageOverrides
+          .filter((pkg) => pkg.path !== root.path)
+          .map((pkg) => ({ pkg, diffs: getPackageDiffs(pkg, root) }))
+          .filter((entry) => entry.diffs.length > 0)
+      : [];
 
   while (true) {
     const namingHint = state.enforceNaming
@@ -97,9 +174,16 @@ export async function promptRuleMenu(defaults: {
       },
       { value: 'enforceNaming', label: 'Enforce file naming', hint: namingHint },
     ];
+    if (state.fileNamingValue) {
+      options.push({
+        value: 'fileNaming',
+        label: 'File naming convention',
+        hint: state.fileNamingValue,
+      });
+    }
 
-    if (state.packageOverrides && state.packageOverrides.length > 0) {
-      const count = state.packageOverrides.length;
+    if (packageDiffs.length > 0) {
+      const count = packageDiffs.length;
       options.push({
         value: 'packageOverrides',
         label: 'Per-package overrides',
@@ -117,21 +201,8 @@ export async function promptRuleMenu(defaults: {
 
     if (choice === 'done') break;
 
-    if (choice === 'packageOverrides' && state.packageOverrides) {
-      const lines = state.packageOverrides.map((pkg) => {
-        const diffs: string[] = [];
-        if (pkg.conventions) {
-          for (const [key, val] of Object.entries(pkg.conventions)) {
-            if (val) diffs.push(`${key}: ${val}`);
-          }
-        }
-        if (pkg.stack) {
-          for (const [key, val] of Object.entries(pkg.stack)) {
-            if (val) diffs.push(`${key}: ${val}`);
-          }
-        }
-        return `${pkg.path}\n  ${diffs.join(', ') || 'minor differences'}`;
-      });
+    if (choice === 'packageOverrides') {
+      const lines = packageDiffs.map((entry) => `${entry.pkg.path}\n  ${entry.diffs.join(', ')}`);
       clack.note(
         `${lines.join('\n\n')}\n\nEdit the "packages" section in viberails.config.json to adjust.`,
         'Per-package overrides',
@@ -177,12 +248,28 @@ export async function promptRuleMenu(defaults: {
       assertNotCancelled(result);
       state.enforceNaming = result;
     }
+
+    if (choice === 'fileNaming') {
+      const selected = await clack.select({
+        message: 'Which file naming convention should be enforced?',
+        options: [
+          { value: 'kebab-case', label: 'kebab-case' },
+          { value: 'camelCase', label: 'camelCase' },
+          { value: 'PascalCase', label: 'PascalCase' },
+          { value: 'snake_case', label: 'snake_case' },
+        ],
+        initialValue: state.fileNamingValue,
+      });
+      assertNotCancelled(selected);
+      state.fileNamingValue = selected;
+    }
   }
 
   return {
     maxFileLines: state.maxFileLines,
     testCoverage: state.testCoverage,
     enforceNaming: state.enforceNaming,
+    fileNamingValue: state.fileNamingValue,
   };
 }
 

@@ -305,10 +305,33 @@ describe('per-package rules', () => {
     expect(result).toContain('Hooks use **useXxx** naming');
     expect(result).toContain('Import alias: `~/*`');
   });
+
+  it('omits per-package section when packages match root defaults', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: { fileNaming: 'kebab-case' },
+          },
+          {
+            name: '@app/web',
+            path: 'apps/web',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            conventions: { fileNaming: 'kebab-case' },
+          },
+        ],
+      }),
+    );
+    expect(result).not.toContain('## Per-package rules');
+  });
 });
 
 describe('development setup section', () => {
-  it('does not include development setup section', () => {
+  it('includes development setup section when formatter/linter is detected', () => {
     const output = generateContext(
       makeConfig({
         packages: [
@@ -327,7 +350,8 @@ describe('development setup section', () => {
         ],
       }),
     );
-    expect(output).not.toContain('## Development setup');
+    expect(output).toContain('## Development setup');
+    expect(output).toContain('Biome');
   });
 });
 

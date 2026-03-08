@@ -1,36 +1,6 @@
-import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
+import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
 import { generatePackages } from './generate-packages.js';
-
-function makeGlobalConfig(): ViberailsConfig {
-  return {
-    version: 1,
-    name: 'mono',
-    rules: {
-      maxFileLines: 300,
-      maxTestFileLines: 0,
-      testCoverage: 0,
-      enforceNaming: true,
-      enforceBoundaries: false,
-    },
-    ignore: [],
-    packages: [
-      {
-        name: 'mono',
-        path: '.',
-        stack: {
-          language: 'typescript',
-          packageManager: 'pnpm',
-          framework: 'nextjs@15',
-        },
-        structure: {},
-        conventions: {
-          fileNaming: 'kebab-case',
-        },
-      },
-    ],
-  };
-}
 
 function makePackage(overrides: Partial<PackageScanResult> = {}): PackageScanResult {
   return {
@@ -91,15 +61,13 @@ describe('generatePackages', () => {
       },
     });
 
-    const globalConfig = makeGlobalConfig();
-
-    const result = generatePackages(makeScanResult([pkg, makePackage()]), globalConfig);
+    const result = generatePackages(makeScanResult([pkg, makePackage()]));
     const webPkg = result?.find((p) => p.path === 'packages/web');
     expect(webPkg?.stack?.orm).toBe('drizzle@0');
   });
 
   it('returns undefined for single-package scan results', () => {
-    const result = generatePackages(makeScanResult([makePackage()]), makeGlobalConfig());
+    const result = generatePackages(makeScanResult([makePackage()]));
     expect(result).toBeUndefined();
   });
 
@@ -120,7 +88,7 @@ describe('generatePackages', () => {
       },
     });
 
-    const result = generatePackages(makeScanResult([pkg1, pkg2]), makeGlobalConfig());
+    const result = generatePackages(makeScanResult([pkg1, pkg2]));
     expect(result).toBeDefined();
 
     const apiPkg = result?.find((p) => p.path === 'packages/api');

@@ -10,6 +10,7 @@ import { formatRulesText, formatScanResultsText } from '../display-text.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import {
   confirm,
+  confirmDangerous,
   promptInitDecision,
   promptIntegrations,
   promptRuleMenu,
@@ -138,6 +139,16 @@ export async function initCommand(
   // === Interactive path: all clack ===
   clack.intro('viberails');
 
+  if (fs.existsSync(configPath) && options.force) {
+    const replace = await confirmDangerous(
+      `${CONFIG_FILE} already exists and will be replaced. Continue?`,
+    );
+    if (!replace) {
+      clack.outro('Aborted. No files were written.');
+      return;
+    }
+  }
+
   // 3. Scan with spinner
   const s = clack.spinner();
   s.start('Scanning project...');
@@ -176,6 +187,18 @@ export async function initCommand(
     config.rules.maxFileLines = overrides.maxFileLines;
     config.rules.testCoverage = overrides.testCoverage;
     config.rules.enforceNaming = overrides.enforceNaming;
+    if (overrides.fileNamingValue) {
+      const oldNaming = rootPkg.conventions?.fileNaming;
+      rootPkg.conventions = rootPkg.conventions ?? {};
+      rootPkg.conventions.fileNaming = overrides.fileNamingValue;
+      if (oldNaming && oldNaming !== overrides.fileNamingValue) {
+        for (const pkg of config.packages) {
+          if (pkg.conventions?.fileNaming === oldNaming) {
+            pkg.conventions.fileNaming = overrides.fileNamingValue;
+          }
+        }
+      }
+    }
   }
 
   // 7. Boundary inference (monorepo only)
@@ -218,6 +241,12 @@ export async function initCommand(
   // 8. Integration selection
   const hookManager = detectHookManager(projectRoot);
   const integrations = await promptIntegrations(hookManager);
+
+  const shouldWrite = await confirm('Write configuration and set up selected integrations?');
+  if (!shouldWrite) {
+    clack.outro('Aborted. No files were written.');
+    return;
+  }
 
   // 9. Write config (compact before writing)
   const compacted = compactConfig(config);

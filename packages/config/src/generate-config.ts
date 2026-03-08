@@ -176,7 +176,7 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
 
   // Monorepo: generate per-package configs
   if (scanResult.workspace) {
-    const packages = generatePackages(scanResult, config);
+    const packages = generatePackages(scanResult);
     if (packages) {
       config.packages = packages;
       // Rebuild _meta for all packages
