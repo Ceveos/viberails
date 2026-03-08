@@ -73,25 +73,23 @@ export function formatConventionsText(scanResult: ScanResult): string[] {
 export function formatRulesText(config: ViberailsConfig): string[] {
   const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   const lines: string[] = [];
-  lines.push('');
-  lines.push('Rules:');
-  lines.push(`  \u2022 Max file size: ${config.rules.maxFileLines} lines`);
+  lines.push(`Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.requireTests && root?.structure?.testPattern) {
-    lines.push(`  \u2022 Require test files: yes (${root.structure.testPattern})`);
-  } else if (config.rules.requireTests) {
-    lines.push('  \u2022 Require test files: yes');
+  if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {
+    lines.push(
+      `Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern})`,
+    );
+  } else if (config.rules.testCoverage > 0) {
+    lines.push(`Test coverage target: ${config.rules.testCoverage}%`);
   } else {
-    lines.push('  \u2022 Require test files: no');
+    lines.push('Test coverage target: disabled');
   }
 
   if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
-    lines.push(`  \u2022 Enforce file naming: ${root.conventions.fileNaming}`);
+    lines.push(`Enforce file naming: ${root.conventions.fileNaming}`);
   } else {
-    lines.push('  \u2022 Enforce file naming: no');
+    lines.push('Enforce file naming: no');
   }
-
-  lines.push(`  \u2022 Enforcement mode: ${config.enforcement}`);
 
   return lines;
 }
@@ -104,9 +102,9 @@ export function formatRulesText(config: ViberailsConfig): string[] {
  * @param config - The generated config (for rules preview)
  * @returns Formatted multi-line string
  */
-export function formatScanResultsText(scanResult: ScanResult, config: ViberailsConfig): string {
+export function formatScanResultsText(scanResult: ScanResult): string {
   if (scanResult.packages.length > 1) {
-    return formatMonorepoResultsText(scanResult, config);
+    return formatMonorepoResultsText(scanResult);
   }
 
   const lines: string[] = [];
@@ -164,9 +162,6 @@ export function formatScanResultsText(scanResult: ScanResult, config: ViberailsC
   if (ext) {
     lines.push(ext);
   }
-
-  // Rules
-  lines.push(...formatRulesText(config));
 
   return lines.join('\n');
 }

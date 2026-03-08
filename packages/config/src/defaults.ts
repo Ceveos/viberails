@@ -7,7 +7,7 @@ import type { ConfigRules } from '@viberails/types';
 export const DEFAULT_RULES: ConfigRules = {
   maxFileLines: 300,
   maxTestFileLines: 0,
-  requireTests: true,
+  testCoverage: 80,
   enforceNaming: true,
   enforceBoundaries: false,
 };

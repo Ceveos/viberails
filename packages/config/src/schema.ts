@@ -27,15 +27,9 @@ export const configSchema = {
       type: 'string',
       description: 'Project name, typically from package.json.',
     },
-    enforcement: {
-      type: 'string',
-      enum: ['warn', 'enforce'],
-      default: 'warn',
-      description: 'Whether conventions are warned about or enforced as errors.',
-    },
     rules: {
       type: 'object',
-      required: ['maxFileLines', 'requireTests', 'enforceNaming', 'enforceBoundaries'],
+      required: ['maxFileLines', 'testCoverage', 'enforceNaming', 'enforceBoundaries'],
       properties: {
         maxFileLines: {
           type: 'number',
@@ -48,10 +42,10 @@ export const configSchema = {
           description:
             'Maximum number of lines allowed per test file. Set to 0 to exempt test files.',
         },
-        requireTests: {
-          type: 'boolean',
-          default: true,
-          description: 'Whether to require test files for source modules.',
+        testCoverage: {
+          type: 'number',
+          default: 80,
+          description: 'Minimum test coverage target. 0 to disable, >0 to require test files.',
         },
         enforceNaming: {
           type: 'boolean',

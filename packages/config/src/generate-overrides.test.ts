@@ -6,11 +6,10 @@ function makeGlobalConfig(): ViberailsConfig {
   return {
     version: 2,
     name: 'mono',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: false,
+      testCoverage: 0,
       enforceNaming: true,
       enforceBoundaries: false,
     },

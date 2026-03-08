@@ -51,6 +51,7 @@ program
   .option('--quiet', 'Show only summary counts, not individual violations')
   .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
   .option('--format <format>', 'Output format: text (default) or json')
+  .option('--enforce', 'Exit with error on violations (for CI)')
   .option('--hook', 'Claude Code hook mode: read file from stdin, output to stderr')
   .action(
     async (options: {
@@ -60,6 +61,7 @@ program
       quiet?: boolean;
       limit?: number;
       format?: string;
+      enforce?: boolean;
       hook?: boolean;
     }) => {
       try {
@@ -69,6 +71,7 @@ program
         }
         const exitCode = await checkCommand({
           ...options,
+          enforce: options.enforce,
           noBoundaries: options.boundaries === false,
           format: options.format === 'json' ? 'json' : 'text',
         });

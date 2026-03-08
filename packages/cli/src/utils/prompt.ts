@@ -1,5 +1,5 @@
 import * as clack from '@clack/prompts';
-import type { PackageConfigOverrides } from '@viberails/types';
+import type { PackageConfig } from '@viberails/types';
 
 /**
  * Assert that a clack prompt result was not cancelled (Ctrl+C).
@@ -62,9 +62,8 @@ export async function promptInitDecision(): Promise<'accept' | 'customize'> {
 
 export interface RuleOverrides {
   maxFileLines: number;
-  requireTests: boolean;
+  testCoverage: number;
   enforceNaming: boolean;
-  enforcement: 'warn' | 'enforce';
 }
 
 /**
@@ -77,11 +76,10 @@ export interface RuleOverrides {
  */
 export async function promptRuleMenu(defaults: {
   maxFileLines: number;
-  requireTests: boolean;
+  testCoverage: number;
   enforceNaming: boolean;
-  enforcement: 'warn' | 'enforce';
   fileNamingValue?: string;
-  packageOverrides?: PackageConfigOverrides[];
+  packageOverrides?: PackageConfig[];
 }): Promise<RuleOverrides> {
   const state = { ...defaults };
 
@@ -89,20 +87,15 @@ export async function promptRuleMenu(defaults: {
     const namingHint = state.enforceNaming
       ? `yes${state.fileNamingValue ? ` (${state.fileNamingValue})` : ''}`
       : 'no';
-    const enforcementHint =
-      state.enforcement === 'warn'
-        ? 'warn — violations shown but commits allowed'
-        : 'enforce — commits blocked on violation';
 
     const options: { value: string; label: string; hint?: string }[] = [
       { value: 'maxFileLines', label: 'Max file lines', hint: String(state.maxFileLines) },
       {
-        value: 'requireTests',
-        label: 'Require test files',
-        hint: state.requireTests ? 'yes' : 'no',
+        value: 'testCoverage',
+        label: 'Test coverage target',
+        hint: `${state.testCoverage}%`,
       },
       { value: 'enforceNaming', label: 'Enforce file naming', hint: namingHint },
-      { value: 'enforcement', label: 'Enforcement mode', hint: enforcementHint },
     ];
 
     if (state.packageOverrides && state.packageOverrides.length > 0) {
@@ -160,13 +153,17 @@ export async function promptRuleMenu(defaults: {
       state.maxFileLines = Number.parseInt(result, 10);
     }
 
-    if (choice === 'requireTests') {
-      const result = await clack.confirm({
-        message: 'Require matching test files for source files?',
-        initialValue: state.requireTests,
+    if (choice === 'testCoverage') {
+      const result = await clack.text({
+        message: 'Test coverage target (0 to disable)?',
+        initialValue: String(state.testCoverage),
+        validate: (v) => {
+          const n = Number.parseInt(v, 10);
+          if (Number.isNaN(n) || n < 0 || n > 100) return 'Enter a number between 0 and 100';
+        },
       });
       assertNotCancelled(result);
-      state.requireTests = result;
+      state.testCoverage = Number.parseInt(result, 10);
     }
 
     if (choice === 'enforceNaming') {
@@ -179,34 +176,12 @@ export async function promptRuleMenu(defaults: {
       assertNotCancelled(result);
       state.enforceNaming = result;
     }
-
-    if (choice === 'enforcement') {
-      const result = await clack.select({
-        message: 'Enforcement mode',
-        options: [
-          {
-            value: 'warn' as const,
-            label: 'warn',
-            hint: "show violations but don't block commits (recommended)",
-          },
-          {
-            value: 'enforce' as const,
-            label: 'enforce',
-            hint: 'block commits with violations',
-          },
-        ],
-        initialValue: state.enforcement,
-      });
-      assertNotCancelled(result);
-      state.enforcement = result;
-    }
   }
 
   return {
     maxFileLines: state.maxFileLines,
-    requireTests: state.requireTests,
+    testCoverage: state.testCoverage,
     enforceNaming: state.enforceNaming,
-    enforcement: state.enforcement,
   };
 }
 

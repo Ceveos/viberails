@@ -15,9 +15,6 @@ export interface ViberailsConfig {
   /** Project name, typically from package.json. */
   name: string;
 
-  /** Whether conventions are warned about or enforced as errors. */
-  enforcement: 'warn' | 'enforce';
-
   /** Rule thresholds and toggles for enforcement. */
   rules: ConfigRules;
 
@@ -226,10 +223,10 @@ export interface ConfigRules {
   maxTestFileLines: number;
 
   /**
-   * Whether to require test files for source modules.
-   * @default true
+   * Minimum test coverage target (0 = disabled, >0 = require test files).
+   * @default 80
    */
-  requireTests: boolean;
+  testCoverage: number;
 
   /**
    * Whether to enforce detected file naming conventions.

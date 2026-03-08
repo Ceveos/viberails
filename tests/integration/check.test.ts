@@ -42,15 +42,13 @@ describe('check command', () => {
   });
 
   it('returns exit code 1 in enforce mode with violations', async () => {
-    const configPath = path.join(tmpDir, 'viberails.config.json');
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    config.enforcement = 'enforce';
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-
     const bigFile = path.join(tmpDir, 'src', 'lib', 'big-module.ts');
     fs.writeFileSync(bigFile, Array(310).fill('const x = 1;').join('\n'));
 
-    const exitCode = await checkCommand({ files: ['src/lib/big-module.ts'] }, tmpDir);
+    const exitCode = await checkCommand(
+      { enforce: true, files: ['src/lib/big-module.ts'] },
+      tmpDir,
+    );
     expect(exitCode).toBe(1);
   });
 

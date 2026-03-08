@@ -22,14 +22,6 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
   // Type checks
   if (typeof parsed.version !== 'number') errors.push('"version" must be a number');
   if (typeof parsed.name !== 'string') errors.push('"name" must be a string');
-  if (
-    parsed.enforcement !== undefined &&
-    parsed.enforcement !== 'warn' &&
-    parsed.enforcement !== 'enforce'
-  ) {
-    errors.push('"enforcement" must be "warn" or "enforce"');
-  }
-
   // Packages validation
   if (!Array.isArray(parsed.packages)) {
     errors.push('"packages" must be an array');
@@ -48,8 +40,8 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
     const rules = parsed.rules as Record<string, unknown>;
     if (typeof rules.maxFileLines !== 'number')
       errors.push('"rules.maxFileLines" must be a number');
-    if (typeof rules.requireTests !== 'boolean')
-      errors.push('"rules.requireTests" must be a boolean');
+    if (typeof rules.testCoverage !== 'number')
+      errors.push('"rules.testCoverage" must be a number');
     if (typeof rules.enforceNaming !== 'boolean')
       errors.push('"rules.enforceNaming" must be a boolean');
     if (typeof rules.enforceBoundaries !== 'boolean')

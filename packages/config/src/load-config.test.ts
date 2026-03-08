@@ -20,7 +20,6 @@ function validConfig(): ViberailsConfig {
     $schema: 'https://viberails.sh/schema/v2.json',
     version: 2,
     name: 'test-project',
-    enforcement: 'warn',
     packages: [
       {
         name: 'test-project',
@@ -36,7 +35,7 @@ function validConfig(): ViberailsConfig {
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
     },
@@ -88,7 +87,7 @@ describe('loadConfig', () => {
         packages: [{}],
         rules: {
           maxFileLines: 300,
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
         },
@@ -109,7 +108,7 @@ describe('loadConfig', () => {
         packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 'not-a-number',
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
         },
@@ -117,15 +116,6 @@ describe('loadConfig', () => {
     );
 
     await expect(loadConfig(configPath)).rejects.toThrow('rules.maxFileLines');
-  });
-
-  it('throws when enforcement has invalid value', async () => {
-    const configPath = path.join(tmpDir, 'bad-enforcement.json');
-    const config = validConfig();
-    (config as Record<string, unknown>).enforcement = 'strict';
-    await fs.writeFile(configPath, JSON.stringify(config));
-
-    await expect(loadConfig(configPath)).rejects.toThrow('enforcement');
   });
 });
 

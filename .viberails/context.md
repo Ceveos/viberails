@@ -2,7 +2,7 @@
 
 # viberails enforced rules
 
-These rules are checked before commits. Violations will be **warned** but not blocked:
+These rules are checked by viberails. Use `viberails check --enforce` to block commits on violation:
 
 - Files must not exceed **300 lines**. Split into focused modules.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.

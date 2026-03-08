@@ -158,12 +158,14 @@ export function displayRulesPreview(config: ViberailsConfig): void {
   console.log(`${chalk.bold('Rules:')}`);
   console.log(`  ${chalk.dim('\u2022')} Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.requireTests && root?.structure?.testPattern) {
-    console.log(`  ${chalk.dim('\u2022')} Require test files: yes (${root.structure.testPattern})`);
-  } else if (config.rules.requireTests) {
-    console.log(`  ${chalk.dim('\u2022')} Require test files: yes`);
+  if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {
+    console.log(
+      `  ${chalk.dim('\u2022')} Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern})`,
+    );
+  } else if (config.rules.testCoverage > 0) {
+    console.log(`  ${chalk.dim('\u2022')} Test coverage target: ${config.rules.testCoverage}%`);
   } else {
-    console.log(`  ${chalk.dim('\u2022')} Require test files: no`);
+    console.log(`  ${chalk.dim('\u2022')} Test coverage target: disabled`);
   }
 
   if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
@@ -176,14 +178,5 @@ export function displayRulesPreview(config: ViberailsConfig): void {
     `  ${chalk.dim('\u2022')} Enforce boundaries: ${config.rules.enforceBoundaries ? 'yes' : 'no'}`,
   );
 
-  console.log('');
-
-  if (config.enforcement === 'enforce') {
-    console.log(`${chalk.bold('Enforcement mode:')} enforce (violations will block commits)`);
-  } else {
-    console.log(
-      `${chalk.bold('Enforcement mode:')} warn (violations shown but won't block commits)`,
-    );
-  }
   console.log('');
 }

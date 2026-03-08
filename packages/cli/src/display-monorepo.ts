@@ -1,7 +1,7 @@
-import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
+import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { FRAMEWORK_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
-import { formatConventionsText, formatRulesText } from './display-text.js';
+import { formatConventionsText } from './display-text.js';
 import { displayConventions, displaySummarySection, formatItem } from './display.js';
 import {
   formatExtensions,
@@ -100,7 +100,7 @@ function formatPackageSummaryPlain(pkg: PackageScanResult): string {
  * Build monorepo scan results as a multi-line string for clack.note().
  * Returns plain text without chalk colors.
  */
-export function formatMonorepoResultsText(scanResult: ScanResult, config: ViberailsConfig): string {
+export function formatMonorepoResultsText(scanResult: ScanResult): string {
   const lines: string[] = [];
   const { stack, packages } = scanResult;
 
@@ -152,9 +152,6 @@ export function formatMonorepoResultsText(scanResult: ScanResult, config: Vibera
   if (ext) {
     lines.push(ext);
   }
-
-  // Rules
-  lines.push(...formatRulesText(config));
 
   return lines.join('\n');
 }

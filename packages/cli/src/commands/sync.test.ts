@@ -8,11 +8,10 @@ function writeMinimalConfig(dir: string, overrides: Record<string, unknown> = {}
   const config = {
     version: 2,
     name: 'test-project',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: false,
+      testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
     },
@@ -63,7 +62,15 @@ describe('sync command', () => {
   });
 
   it('preserves existing config values on sync', async () => {
-    writeMinimalConfig(tmpDir, { enforcement: 'enforce' });
+    writeMinimalConfig(tmpDir, {
+      rules: {
+        maxFileLines: 500,
+        maxTestFileLines: 0,
+        testCoverage: 0,
+        enforceNaming: false,
+        enforceBoundaries: false,
+      },
+    });
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -73,7 +80,7 @@ describe('sync command', () => {
       const configContent = JSON.parse(
         fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'),
       );
-      expect(configContent.enforcement).toBe('enforce');
+      expect(configContent.rules.maxFileLines).toBe(500);
     } finally {
       logSpy.mockRestore();
     }

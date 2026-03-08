@@ -40,7 +40,6 @@ function createExistingConfig(): ViberailsConfig {
     $schema: 'https://viberails.sh/schema/v2.json',
     version: 2,
     name: 'my-app',
-    enforcement: 'warn',
     packages: [
       {
         name: 'my-app',
@@ -63,7 +62,7 @@ function createExistingConfig(): ViberailsConfig {
     rules: {
       maxFileLines: 500, // Developer override
       maxTestFileLines: 0,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
     },
@@ -118,14 +117,13 @@ describe('mergeConfig', () => {
     expect(merged.ignore).toEqual(['src/generated/**', '**/*.d.ts']);
   });
 
-  it('preserves existing name, enforcement, version, and schema', () => {
+  it('preserves existing name, version, and schema', () => {
     const existing = createExistingConfig();
     const scanResult = createScanResult();
 
     const merged = mergeConfig(existing, scanResult);
 
     expect(merged.name).toBe('my-app');
-    expect(merged.enforcement).toBe('warn');
     expect(merged.version).toBe(2);
     expect(merged.$schema).toBe('https://viberails.sh/schema/v2.json');
   });

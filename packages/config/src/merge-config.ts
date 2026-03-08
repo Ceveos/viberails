@@ -149,7 +149,6 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
     $schema: existing.$schema ?? fresh.$schema,
     version: existing.version,
     name: existing.name,
-    enforcement: existing.enforcement,
     rules: { ...existing.rules },
     ignore: [...(existing.ignore ?? [])],
     packages: mergedPackages,

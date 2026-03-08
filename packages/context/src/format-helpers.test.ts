@@ -12,11 +12,10 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 2,
     name: 'test-app',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
     },
@@ -138,7 +137,7 @@ describe('formatBoundaryRules', () => {
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        requireTests: true,
+        testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
       },
@@ -152,7 +151,7 @@ describe('formatBoundaryRules', () => {
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        requireTests: true,
+        testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
       },

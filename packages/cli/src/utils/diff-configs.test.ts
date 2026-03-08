@@ -6,11 +6,10 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 2,
     name: 'test',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: false,
+      testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
     },

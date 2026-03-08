@@ -26,7 +26,7 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
     lines.push(`- Source files use **${val}**: ${examples}.`);
   }
 
-  if (rules.requireTests && root.structure?.testPattern) {
+  if (rules.testCoverage > 0 && root.structure?.testPattern) {
     if (root.structure.srcDir) {
       lines.push(
         `- Every source file in \`${root.structure.srcDir}/\` must have a corresponding \`${root.structure.testPattern}\` file.`,
@@ -59,13 +59,9 @@ export function generateContext(config: ViberailsConfig): string {
   );
   sections.push('# viberails enforced rules\n');
 
-  if (config.enforcement === 'enforce') {
-    sections.push('Commits will be rejected if these rules are violated:\n');
-  } else {
-    sections.push(
-      'These rules are checked before commits. Violations will be **warned** but not blocked:\n',
-    );
-  }
+  sections.push(
+    'These rules are checked by viberails. Use `viberails check --enforce` to block commits on violation:\n',
+  );
 
   const ruleLines = formatEnforcedRules(config);
   if (ruleLines.length > 0) {

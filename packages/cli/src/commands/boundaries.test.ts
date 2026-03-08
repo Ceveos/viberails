@@ -20,11 +20,10 @@ describe('boundaries command', () => {
     const config = {
       version: 2,
       name: 'test-project',
-      enforcement: 'warn',
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },
@@ -89,11 +88,10 @@ describe('boundaries command', () => {
     const config = {
       version: 2,
       name: 'monorepo-basic',
-      enforcement: 'warn',
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },

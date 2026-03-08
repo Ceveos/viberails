@@ -8,11 +8,10 @@ function writeConfig(dir: string, overrides: Record<string, unknown> = {}): void
   const config = {
     version: 2,
     name: 'test-project',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: false,
+      testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
     },
@@ -48,7 +47,7 @@ describe('check command', () => {
       rules: {
         maxFileLines: 999,
         maxFunctionLines: 50,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },
@@ -73,7 +72,7 @@ describe('check command', () => {
       rules: {
         maxFileLines: 300,
         maxFunctionLines: 50,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },
@@ -97,11 +96,10 @@ describe('check command', () => {
 
   it('returns 1 in enforce mode with violations', async () => {
     writeConfig(tmpDir, {
-      enforcement: 'enforce',
       rules: {
         maxFileLines: 300,
         maxFunctionLines: 50,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },
@@ -114,7 +112,7 @@ describe('check command', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
-      const exitCode = await checkCommand({}, tmpDir);
+      const exitCode = await checkCommand({ enforce: true }, tmpDir);
       expect(exitCode).toBe(1);
     } finally {
       logSpy.mockRestore();
@@ -128,7 +126,7 @@ describe('check command', () => {
         rules: {
           maxFileLines: 300,
           maxFunctionLines: 50,
-          requireTests: false,
+          testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
         },
@@ -147,7 +145,7 @@ describe('check command', () => {
         expect(parsed.violations).toBeInstanceOf(Array);
         expect(parsed.violations.length).toBeGreaterThan(0);
         expect(parsed.checkedFiles).toBeGreaterThan(0);
-        expect(parsed.enforcement).toBe('warn');
+        expect(parsed.checkedFiles).toBeDefined();
       } finally {
         logSpy.mockRestore();
         errorSpy.mockRestore();
@@ -156,11 +154,10 @@ describe('check command', () => {
 
     it('returns 0 in warn mode even with violations (JSON format)', async () => {
       writeConfig(tmpDir, {
-        enforcement: 'warn',
         rules: {
           maxFileLines: 300,
           maxFunctionLines: 50,
-          requireTests: false,
+          testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
         },
@@ -183,11 +180,10 @@ describe('check command', () => {
 
     it('returns 1 in enforce mode with violations (JSON format)', async () => {
       writeConfig(tmpDir, {
-        enforcement: 'enforce',
         rules: {
           maxFileLines: 300,
           maxFunctionLines: 50,
-          requireTests: false,
+          testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
         },
@@ -200,7 +196,7 @@ describe('check command', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       try {
-        const exitCode = await checkCommand({ format: 'json' }, tmpDir);
+        const exitCode = await checkCommand({ format: 'json', enforce: true }, tmpDir);
         expect(exitCode).toBe(1);
       } finally {
         logSpy.mockRestore();

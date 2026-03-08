@@ -130,12 +130,11 @@ export function compactConfig(config: ViberailsConfig): ViberailsConfig {
   }
 
   // Reconstruct with explicit key ordering so JSON output is readable:
-  // $schema, version, name, enforcement, rules, ignore, boundaries, defaults, packages, _meta
+  // $schema, version, name, rules, ignore, boundaries, defaults, packages, _meta
   const result: ViberailsConfig = {
     ...(config.$schema ? { $schema: config.$schema } : {}),
     version: config.version,
     name: config.name,
-    enforcement: config.enforcement,
     rules: config.rules,
     ...(config.ignore && config.ignore.length > 0 ? { ignore: config.ignore } : {}),
     ...(config.boundaries ? { boundaries: config.boundaries } : {}),

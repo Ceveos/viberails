@@ -6,11 +6,10 @@ import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
 const baseConfig: ViberailsConfig = {
   version: 2,
   name: 'test-project',
-  enforcement: 'warn',
   rules: {
     maxFileLines: 300,
     maxTestFileLines: 0,
-    requireTests: true,
+    testCoverage: 80,
     enforceNaming: true,
     enforceBoundaries: false,
   },
@@ -50,7 +49,7 @@ describe('resolveConfigForFile', () => {
     expect(resolved.conventions.fileNaming).toBe('PascalCase');
     expect(resolved.rules.maxFileLines).toBe(500);
     // Non-overridden fields preserved from global
-    expect(resolved.rules.requireTests).toBe(true);
+    expect(resolved.rules.testCoverage).toBe(80);
   });
 
   it('matches the most specific (longest) package path', () => {

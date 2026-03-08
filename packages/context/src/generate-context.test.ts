@@ -6,11 +6,10 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 2,
     name: 'test-app',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
     },
@@ -65,15 +64,9 @@ describe('generateContext (rules-focused)', () => {
     expect(output).toContain('src/');
   });
 
-  it('says commits will be rejected in enforce mode', () => {
-    const output = generateContext(makeConfig({ enforcement: 'enforce' }));
-    expect(output).toContain('Commits will be rejected');
-  });
-
-  it('says violations will be warned in warn mode', () => {
-    const output = generateContext(makeConfig({ enforcement: 'warn' }));
-    expect(output).toContain('warned');
-    expect(output).not.toContain('rejected');
+  it('mentions viberails check --enforce for blocking commits', () => {
+    const output = generateContext(makeConfig());
+    expect(output).toContain('viberails check --enforce');
   });
 
   it('does not describe the project stack or architecture', () => {
@@ -112,7 +105,7 @@ describe('generateContext (rules-focused)', () => {
         rules: {
           maxFileLines: 0,
           maxTestFileLines: 0,
-          requireTests: false,
+          testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
         },

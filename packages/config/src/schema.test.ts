@@ -121,7 +121,7 @@ describe('configSchema validation', () => {
         packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 300,
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
         },

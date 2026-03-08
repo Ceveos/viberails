@@ -311,11 +311,10 @@ describe('displayRulesPreview', () => {
     return {
       version: 2,
       name: 'test',
-      enforcement: 'warn',
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },
@@ -345,7 +344,7 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            requireTests: true,
+            testCoverage: 80,
             enforceNaming: false,
             enforceBoundaries: false,
           },
@@ -361,7 +360,7 @@ describe('displayRulesPreview', () => {
         }),
       ),
     );
-    expect(output).toContain('Require test files: yes');
+    expect(output).toContain('Test coverage target: 80%');
     expect(output).toContain('*.test.ts');
   });
 
@@ -372,7 +371,7 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            requireTests: false,
+            testCoverage: 0,
             enforceNaming: true,
             enforceBoundaries: false,
           },
@@ -391,18 +390,6 @@ describe('displayRulesPreview', () => {
     expect(output).toContain('Enforce file naming: kebab-case');
   });
 
-  it('shows enforcement mode warn', () => {
-    const output = captureOutput(() => displayRulesPreview(makeConfig()));
-    expect(output).toContain('Enforcement mode:');
-    expect(output).toContain('warn');
-  });
-
-  it('shows enforcement mode enforce', () => {
-    const output = captureOutput(() => displayRulesPreview(makeConfig({ enforcement: 'enforce' })));
-    expect(output).toContain('enforce');
-    expect(output).toContain('violations will block commits');
-  });
-
   it('handles missing conventions gracefully', () => {
     const output = captureOutput(() =>
       displayRulesPreview(
@@ -410,7 +397,7 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            requireTests: true,
+            testCoverage: 80,
             enforceNaming: true,
             enforceBoundaries: false,
           },
@@ -427,7 +414,7 @@ describe('displayRulesPreview', () => {
       ),
     );
     expect(output).toContain('Enforce file naming: no');
-    expect(output).toContain('Require test files: yes');
+    expect(output).toContain('Test coverage target: 80%');
   });
 });
 

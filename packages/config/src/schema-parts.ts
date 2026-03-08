@@ -82,7 +82,7 @@ export const packageItemSchema = {
       properties: {
         maxFileLines: { type: 'number' },
         maxTestFileLines: { type: 'number' },
-        requireTests: { type: 'boolean' },
+        testCoverage: { type: 'number' },
         enforceNaming: { type: 'boolean' },
         enforceBoundaries: { type: 'boolean' },
       },

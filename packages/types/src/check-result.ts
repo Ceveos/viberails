@@ -29,7 +29,4 @@ export interface CheckResult {
 
   /** Number of files that were checked. */
   checkedFiles: number;
-
-  /** The enforcement mode from config. */
-  enforcement: 'enforce' | 'warn';
 }

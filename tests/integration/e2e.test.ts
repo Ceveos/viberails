@@ -69,7 +69,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
   it('has default rules', () => {
     const config = readConfig();
     expect(config.rules.maxFileLines).toBe(300);
-    expect(config.rules.requireTests).toBe(true);
+    expect(config.rules.testCoverage).toBe(80);
     expect(config.rules.enforceNaming).toBe(true);
     expect(config.rules.enforceBoundaries).toBe(false);
   });

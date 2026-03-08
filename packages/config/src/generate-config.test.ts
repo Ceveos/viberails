@@ -51,7 +51,6 @@ describe('generateConfig', () => {
     expect(config.$schema).toBe('https://viberails.sh/schema/v2.json');
     expect(config.version).toBe(2);
     expect(config.name).toBe('my-app');
-    expect(config.enforcement).toBe('warn');
 
     // V2: stack lives inside packages[0]
     expect(config.packages).toHaveLength(1);

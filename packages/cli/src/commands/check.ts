@@ -26,6 +26,7 @@ export interface CheckOptions {
   quiet?: boolean;
   limit?: number;
   format?: 'text' | 'json';
+  enforce?: boolean;
   hook?: boolean;
 }
 
@@ -133,9 +134,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   if (filesToCheck.length === 0) {
     if (options.format === 'json') {
-      console.log(
-        JSON.stringify({ violations: [], checkedFiles: 0, enforcement: config.enforcement }),
-      );
+      console.log(JSON.stringify({ violations: [], checkedFiles: 0 }));
     } else {
       console.log(`${chalk.green('✓')} No files to check.`);
     }
@@ -143,7 +142,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   const violations: CheckViolation[] = [];
-  const severity = config.enforcement === 'enforce' ? 'error' : 'warn';
+  const severity = options.enforce ? 'error' : 'warn';
 
   for (const file of filesToCheck) {
     const absPath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
@@ -185,7 +184,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   // Check 3: Missing tests (only on full project check, not staged/specific files)
-  if (config.rules.requireTests && !options.staged && !options.files) {
+  if (config.rules.testCoverage > 0 && !options.staged && !options.files) {
     const testViolations = checkMissingTests(projectRoot, config, severity);
     violations.push(...testViolations);
   }
@@ -242,10 +241,9 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
       JSON.stringify({
         violations,
         checkedFiles: filesToCheck.length,
-        enforcement: config.enforcement,
       }),
     );
-    return config.enforcement === 'enforce' && violations.length > 0 ? 1 : 0;
+    return options.enforce && violations.length > 0 ? 1 : 0;
   }
 
   if (violations.length === 0) {
@@ -259,7 +257,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   printSummary(violations);
 
-  if (config.enforcement === 'enforce') {
+  if (options.enforce) {
     console.log(chalk.red('Fix violations before committing.'));
     return 1;
   }

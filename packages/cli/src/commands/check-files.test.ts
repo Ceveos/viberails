@@ -121,11 +121,10 @@ describe('getAllSourceFiles', () => {
   const baseConfig: ViberailsConfig = {
     version: 2,
     name: 'test',
-    enforcement: 'warn',
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
     },

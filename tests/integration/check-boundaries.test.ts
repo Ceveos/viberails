@@ -21,11 +21,10 @@ describe('check command with boundary enforcement', () => {
     const config = {
       version: 2,
       name: 'monorepo-violations',
-      enforcement: 'warn',
       rules: {
         maxFileLines: 0,
         maxTestFileLines: 0,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: true,
       },
@@ -81,12 +80,12 @@ describe('check command with boundary enforcement', () => {
   });
 
   it('returns exit code 1 in enforce mode with violations', async () => {
-    writeConfig({ enforcement: 'enforce' });
+    writeConfig();
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
-      const exitCode = await checkCommand({}, tmpDir);
+      const exitCode = await checkCommand({ enforce: true }, tmpDir);
       expect(exitCode).toBe(1);
     } finally {
       logSpy.mockRestore();
@@ -99,7 +98,7 @@ describe('check command with boundary enforcement', () => {
       rules: {
         maxFileLines: 0,
         maxFunctionLines: 0,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
       },

@@ -168,7 +168,6 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
     $schema: 'https://viberails.sh/schema/v2.json',
     version: 2,
     name: projectName,
-    enforcement: 'warn',
     rules: { ...DEFAULT_RULES },
     ignore: [...DEFAULT_IGNORE],
     packages: [rootPackage],

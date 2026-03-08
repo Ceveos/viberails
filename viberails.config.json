@@ -2,14 +2,13 @@
   "$schema": "https://viberails.sh/schema/v2.json",
   "version": 2,
   "name": "viberails",
-  "enforcement": "warn",
   "ignore": [
     "tests/fixtures/**"
   ],
   "rules": {
     "maxFileLines": 300,
     "maxTestFileLines": 0,
-    "requireTests": true,
+    "testCoverage": 80,
     "enforceNaming": true,
     "enforceBoundaries": true
   },
@@ -96,7 +95,7 @@
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-08T17:29:08.367Z",
+    "lastSync": "2026-03-08T17:52:15.052Z",
     "packages": {
       "packages/cli": {
         "conventions": {
