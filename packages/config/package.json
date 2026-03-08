@@ -1,6 +1,6 @@
 {
   "name": "@viberails/config",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Config generation and loading for viberails",
   "type": "module",
   "main": "./dist/index.cjs",
