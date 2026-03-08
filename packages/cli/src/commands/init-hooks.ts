@@ -7,13 +7,13 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
  * Set up a pre-commit hook that runs viberails check on staged files.
  * Detects Lefthook, Husky, or falls back to a raw git hook.
  */
-export function setupPreCommitHook(projectRoot: string): void {
+export function setupPreCommitHook(projectRoot: string): string | undefined {
   // Check for Lefthook
   const lefthookPath = path.join(projectRoot, 'lefthook.yml');
   if (fs.existsSync(lefthookPath)) {
     addLefthookPreCommit(lefthookPath);
     console.log(`  ${chalk.green('✓')} lefthook.yml — added viberails pre-commit`);
-    return;
+    return 'lefthook.yml';
   }
 
   // Check for Husky
@@ -21,7 +21,7 @@ export function setupPreCommitHook(projectRoot: string): void {
   if (fs.existsSync(huskyDir)) {
     writeHuskyPreCommit(huskyDir);
     console.log(`  ${chalk.green('✓')} .husky/pre-commit — added viberails check`);
-    return;
+    return '.husky/pre-commit';
   }
 
   // Fall back to raw git hook
@@ -33,7 +33,10 @@ export function setupPreCommitHook(projectRoot: string): void {
     }
     writeGitHookPreCommit(hooksDir);
     console.log(`  ${chalk.green('✓')} .git/hooks/pre-commit`);
+    return '.git/hooks/pre-commit';
   }
+
+  return undefined;
 }
 
 function writeGitHookPreCommit(hooksDir: string): void {

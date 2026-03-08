@@ -67,4 +67,17 @@ describe('checkMissingTests', () => {
     const violations = checkMissingTests(tmpDir, config, 'warn');
     expect(violations).toHaveLength(0);
   });
+
+  it('preserves dotted file names when deriving expected test file', () => {
+    const config = monorepoConfig();
+    fs.mkdirSync(path.join(tmpDir, 'apps/web/src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'apps/web/src/date.util.ts'),
+      'export const now = Date.now;\n',
+    );
+
+    const violations = checkMissingTests(tmpDir, config, 'warn');
+    expect(violations).toHaveLength(1);
+    expect(violations[0].message).toContain('`date.util.test.ts`');
+  });
 });

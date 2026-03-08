@@ -97,7 +97,6 @@ describe('check command with boundary enforcement', () => {
     writeConfig({
       rules: {
         maxFileLines: 0,
-        maxFunctionLines: 0,
         testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,

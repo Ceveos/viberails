@@ -53,7 +53,7 @@ export function checkMissingTests(
       const ext = path.extname(basename);
       if (!SOURCE_EXTS.has(ext)) continue;
 
-      const stem = basename.slice(0, basename.indexOf('.'));
+      const stem = basename.slice(0, -ext.length);
       const expectedTestFile = `${stem}${testSuffix}`;
 
       // Look for the test file next to the source or in the package tests directory

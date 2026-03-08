@@ -99,7 +99,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
     expect(content).not.toContain('.cursorrules');
   });
 
-  it('check passes on the fixture project', async () => {
+  it('check returns 0 in warn mode on the fixture project (with violations)', async () => {
     const exitCode = await checkCommand({}, tmpDir);
     expect(exitCode).toBe(0);
   });

@@ -62,6 +62,14 @@ describe('generateTestStub', () => {
     const stub = generateTestStub('src/utils.ts', config, tmpDir);
     expect(stub).toBeNull();
   });
+
+  it('preserves dotted file names when generating stub path', () => {
+    fs.writeFileSync(path.join(tmpDir, 'src/date.util.ts'), 'export const now = Date.now;');
+    const stub = generateTestStub('src/date.util.ts', baseConfig, tmpDir);
+    expect(stub).not.toBeNull();
+    expect(stub?.path).toBe(path.join('src', 'date.util.test.ts'));
+    expect(stub?.moduleName).toBe('date.util');
+  });
 });
 
 describe('writeTestStub', () => {

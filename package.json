@@ -19,7 +19,8 @@
   "packageManager": "pnpm@10.6.4",
   "scripts": {
     "build": "turbo run build",
-    "test": "turbo run test",
+    "test": "turbo run test && pnpm test:integration",
+    "test:integration": "pnpm exec vitest -c tests/vitest.config.ts run",
     "lint": "turbo run lint",
     "format": "biome format --write packages/ tests/",
     "prepare": "lefthook install",

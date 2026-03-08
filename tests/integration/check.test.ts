@@ -19,7 +19,7 @@ describe('check command', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('returns exit code 0 when no violations exist', async () => {
+  it('returns exit code 0 in warn mode even when violations exist', async () => {
     const exitCode = await checkCommand({}, tmpDir);
     expect(exitCode).toBe(0);
   });

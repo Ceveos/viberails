@@ -196,8 +196,8 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     violations.push(...testViolations);
   }
 
-  // Check 4: Test coverage threshold
-  if (!options.files) {
+  // Check 4: Test coverage threshold (full check only)
+  if (!options.files && !options.staged) {
     const coverageViolations = checkCoverage(projectRoot, config, filesToCheck, {
       staged: options.staged,
       enforce: options.enforce,

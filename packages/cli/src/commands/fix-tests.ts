@@ -23,7 +23,9 @@ export function generateTestStub(
   if (!testPattern) return null;
 
   const basename = path.basename(sourceRelPath);
-  const stem = basename.slice(0, basename.indexOf('.'));
+  const ext = path.extname(basename);
+  if (!ext) return null;
+  const stem = basename.slice(0, -ext.length);
   const testSuffix = testPattern.replace('*', '');
   const testFilename = `${stem}${testSuffix}`;
 

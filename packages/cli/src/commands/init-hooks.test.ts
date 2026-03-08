@@ -56,7 +56,8 @@ describe('setupPreCommitHook', () => {
 
   it('creates .git/hooks/pre-commit when no hook manager exists', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'), { recursive: true });
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('.git/hooks/pre-commit');
 
     const hookPath = path.join(tmpDir, '.git', 'hooks', 'pre-commit');
     expect(fs.existsSync(hookPath)).toBe(true);
@@ -84,7 +85,8 @@ describe('setupPreCommitHook', () => {
       'pre-push:\n  commands:\n    lint:\n      run: echo lint\n',
     );
 
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('lefthook.yml');
 
     const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
     expect(content).toContain('pre-commit:');
@@ -142,7 +144,8 @@ describe('setupPreCommitHook', () => {
 
   it('detects Husky and writes to .husky/pre-commit', () => {
     fs.mkdirSync(path.join(tmpDir, '.husky'));
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('.husky/pre-commit');
 
     const hookPath = path.join(tmpDir, '.husky', 'pre-commit');
     expect(fs.existsSync(hookPath)).toBe(true);
@@ -161,6 +164,11 @@ describe('setupPreCommitHook', () => {
     const content = fs.readFileSync(path.join(huskyDir, 'pre-commit'), 'utf-8');
     const matches = content.match(/viberails/g);
     expect(matches).toHaveLength(1);
+  });
+
+  it('returns undefined when no hook manager or git directory exists', () => {
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBeUndefined();
   });
 });
 

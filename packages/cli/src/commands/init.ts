@@ -77,7 +77,7 @@ export async function initCommand(
     return;
   }
 
-  // === Non-interactive path: console.log only, no clack, no hooks ===
+  // === Non-interactive path: console.log only (no clack prompts) ===
   if (options.yes) {
     console.log(chalk.dim('Scanning project...'));
     const scanResult = await scan(projectRoot);
@@ -119,7 +119,7 @@ export async function initCommand(
     // Set up integrations automatically in --yes mode
     setupClaudeCodeHook(projectRoot);
     setupClaudeMdReference(projectRoot);
-    setupPreCommitHook(projectRoot);
+    const preCommitTarget = setupPreCommitHook(projectRoot);
 
     console.log(`\nCreated:`);
     console.log(`  ${chalk.green('\u2713')} ${CONFIG_FILE}`);
@@ -129,7 +129,11 @@ export async function initCommand(
     console.log(
       `  ${chalk.green('\u2713')} CLAUDE.md \u2014 added @.viberails/context.md reference`,
     );
-    console.log(`  ${chalk.green('\u2713')} pre-commit hook`);
+    if (preCommitTarget) {
+      console.log(`  ${chalk.green('\u2713')} ${preCommitTarget}`);
+    } else {
+      console.log(`  ${chalk.yellow('!')} pre-commit hook skipped (no .git / hook manager found)`);
+    }
     console.log(
       `\n${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
     );
@@ -286,9 +290,11 @@ export async function initCommand(
   ];
 
   if (integrations.preCommitHook) {
-    setupPreCommitHook(projectRoot);
-    if (hookManager === 'Lefthook') {
-      createdFiles.push(`lefthook.yml \u2014 added viberails pre-commit`);
+    const preCommitTarget = setupPreCommitHook(projectRoot);
+    if (preCommitTarget) {
+      createdFiles.push(`${preCommitTarget} \u2014 added viberails pre-commit`);
+    } else {
+      createdFiles.push('pre-commit hook skipped (no .git / hook manager found)');
     }
   }
   if (integrations.claudeCodeHook) {
