@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
+import picomatch from 'picomatch';
 
 const ALWAYS_SKIP_DIRS = new Set([
   'node_modules',
@@ -42,31 +43,9 @@ export const NAMING_PATTERNS: Record<string, RegExp> = {
 
 /** Check if a path matches any ignore pattern. */
 export function isIgnored(relPath: string, ignorePatterns: string[]): boolean {
-  for (const pattern of ignorePatterns) {
-    const startsGlob = pattern.startsWith('**/');
-    const endsGlob = pattern.endsWith('/**');
-
-    if (startsGlob && endsGlob) {
-      // Pattern like **/public/** — match directory name anywhere in path
-      const middle = pattern.slice(3, -3);
-      if (
-        relPath.startsWith(`${middle}/`) ||
-        relPath.includes(`/${middle}/`) ||
-        relPath === middle
-      ) {
-        return true;
-      }
-    } else if (endsGlob) {
-      const prefix = pattern.slice(0, -3);
-      if (relPath.startsWith(`${prefix}/`) || relPath === prefix) return true;
-    } else if (startsGlob) {
-      const suffix = pattern.slice(3);
-      if (relPath.endsWith(suffix) || relPath === suffix) return true;
-    } else if (relPath === pattern || relPath.startsWith(`${pattern}/`)) {
-      return true;
-    }
-  }
-  return false;
+  if (ignorePatterns.length === 0) return false;
+  const isMatch = picomatch(ignorePatterns, { dot: true });
+  return isMatch(relPath);
 }
 
 /** Count lines in a file. Returns null if the file can't be read. */

@@ -77,6 +77,42 @@ describe('isIgnored', () => {
   it('does not match unrelated paths', () => {
     expect(isIgnored('src/utils.ts', ['dist/**'])).toBe(false);
   });
+
+  it('matches glob brace patterns like **/*.{css,scss}', () => {
+    expect(isIgnored('src/styles/main.css', ['**/*.{css,scss}'])).toBe(true);
+    expect(isIgnored('src/styles/theme.scss', ['**/*.{css,scss}'])).toBe(true);
+    expect(isIgnored('src/styles/theme.ts', ['**/*.{css,scss}'])).toBe(false);
+  });
+
+  it('matches character class patterns like [abc]', () => {
+    expect(isIgnored('src/a.ts', ['src/[abc].ts'])).toBe(true);
+    expect(isIgnored('src/d.ts', ['src/[abc].ts'])).toBe(false);
+  });
+
+  it('matches directory-anywhere patterns like **/vendor/**', () => {
+    expect(isIgnored('lib/vendor/dep.ts', ['**/vendor/**'])).toBe(true);
+    expect(isIgnored('vendor/dep.ts', ['**/vendor/**'])).toBe(true);
+  });
+
+  it('matches wildcard filename patterns like *.config.*', () => {
+    expect(isIgnored('tailwind.config.ts', ['*.config.*'])).toBe(true);
+    expect(isIgnored('vitest.config.ts', ['*.config.*'])).toBe(true);
+    expect(isIgnored('utils.ts', ['*.config.*'])).toBe(false);
+  });
+
+  it('returns false for empty patterns array', () => {
+    expect(isIgnored('src/utils.ts', [])).toBe(false);
+  });
+
+  it('matches dotfiles when pattern includes dot', () => {
+    expect(isIgnored('.env', ['.env'])).toBe(true);
+    expect(isIgnored('.env.local', ['.env*'])).toBe(true);
+  });
+
+  it('matches multiple patterns (any match returns true)', () => {
+    expect(isIgnored('dist/bundle.js', ['src/**', 'dist/**'])).toBe(true);
+    expect(isIgnored('lib/utils.ts', ['src/**', 'dist/**'])).toBe(false);
+  });
 });
 
 describe('getAllSourceFiles', () => {

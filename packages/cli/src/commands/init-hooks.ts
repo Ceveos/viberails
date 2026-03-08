@@ -111,7 +111,9 @@ export function setupClaudeCodeHook(projectRoot: string): void {
     try {
       settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
     } catch {
-      // If the file is invalid JSON, start fresh
+      console.warn(
+        `  ${chalk.yellow('!')} .claude/settings.json contains invalid JSON — resetting to add hook`,
+      );
       settings = {};
     }
   }
@@ -123,10 +125,12 @@ export function setupClaudeCodeHook(projectRoot: string): void {
   if (existing.some((h) => JSON.stringify(h).includes('viberails'))) return;
 
   // The hook command reads the tool input from stdin, extracts file_path, and checks it.
+  // Uses Node.js to parse JSON (no external dependency like jq required).
+  // readFileSync(0) reads stdin synchronously via file descriptor 0.
   // `; exit 0` ensures warn-mode (always exit 0) while still showing check output.
-  // Using `|| true` would mask errors from jq or viberails itself.
-  const hookCommand =
-    'FILE=$(cat | jq -r \'.tool_input.file_path // empty\') && [ -n "$FILE" ] && npx viberails check --files "$FILE" --format json; exit 0';
+  const extractFile =
+    "node -e \"try{process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).tool_input?.file_path??'')}catch{}\"";
+  const hookCommand = `FILE=$(${extractFile}) && [ -n "$FILE" ] && npx viberails check --files "$FILE" --format json; exit 0`;
 
   hooks.PostToolUse = [
     ...existing,

@@ -195,12 +195,16 @@ describe('setupClaudeCodeHook', () => {
     expect(settings.hooks.PostToolUse).toHaveLength(1);
   });
 
-  it('handles malformed JSON gracefully by resetting to empty object', () => {
+  it('handles malformed JSON gracefully with warning and reset', () => {
     const claudeDir = path.join(tmpDir, '.claude');
     fs.mkdirSync(claudeDir, { recursive: true });
     fs.writeFileSync(path.join(claudeDir, 'settings.json'), '{broken json!!!');
 
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setupClaudeCodeHook(tmpDir);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid JSON'));
+    warnSpy.mockRestore();
 
     const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
     expect(settings.hooks.PostToolUse).toHaveLength(1);
@@ -212,7 +216,7 @@ describe('setupClaudeCodeHook', () => {
     expect(fs.existsSync(path.join(tmpDir, '.claude'))).toBe(true);
   });
 
-  it('hook command uses exit 0 instead of || true', () => {
+  it('hook command uses node instead of jq and exits 0', () => {
     setupClaudeCodeHook(tmpDir);
 
     const settingsPath = path.join(tmpDir, '.claude', 'settings.json');
@@ -220,5 +224,7 @@ describe('setupClaudeCodeHook', () => {
     const command = settings.hooks.PostToolUse[0].hooks[0].command;
     expect(command).toContain('; exit 0');
     expect(command).not.toContain('|| true');
+    expect(command).not.toContain('jq');
+    expect(command).toContain('node -e');
   });
 });
