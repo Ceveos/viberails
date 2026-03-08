@@ -7,4 +7,4 @@ pre-commit:
       stage_fixed: true
     lint:
       glob: "{packages,tests}/**/*.{ts,tsx,js}"
-      run: npx biome lint {staged_files}
+      run: npx biome check {staged_files}
