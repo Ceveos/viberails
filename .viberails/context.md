@@ -12,6 +12,10 @@ These rules are checked before commits. Violations will be **warned** but not bl
 
 The following packages have rules that differ from the global defaults:
 
+### packages/cli
+- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
+### packages/config
+- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 ### packages/graph
 - Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 ### packages/scanner
@@ -21,8 +25,8 @@ The following packages have rules that differ from the global defaults:
 
 These import boundaries are enforced:
 
-- `@viberails/types` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/scanner` must NOT import from: `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/config` must NOT import from: `@viberails/scanner`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/context` must NOT import from: `@viberails/scanner`, `@viberails/graph`, `viberails`
-- `@viberails/graph` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `viberails`
+- `@viberails/config` must NOT import from: `viberails`, `@viberails/context`, `@viberails/graph`, `@viberails/scanner`
+- `@viberails/context` must NOT import from: `viberails`, `@viberails/graph`, `@viberails/scanner`
+- `@viberails/graph` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/scanner`
+- `@viberails/scanner` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/graph`
+- `@viberails/types` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/graph`, `@viberails/scanner`
