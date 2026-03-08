@@ -1,16 +1,22 @@
-/** A boundary rule defining allowed or disallowed imports. */
+/**
+ * Boundary configuration for import enforcement.
+ * Maps source packages/directories to the targets they must NOT import from.
+ */
+export interface BoundaryConfig {
+  /** Source → denied targets. Each key is a package/directory name, value is the list it must not import from. */
+  deny: Record<string, string[]>;
+
+  /** File paths that bypass boundary checks entirely (escape hatch for legitimate exceptions). */
+  ignore?: string[];
+}
+
+/** A single boundary rule (from → to deny pair), used internally by violation reporting. */
 export interface BoundaryRule {
-  /** Source package or directory pattern. */
+  /** Source package or directory. */
   from: string;
 
-  /** Target package or directory pattern. */
+  /** Target package or directory that is denied. */
   to: string;
-
-  /** Whether this import direction is allowed (`true`) or disallowed (`false`). */
-  allow: boolean;
-
-  /** Human-readable explanation of why this boundary exists. */
-  reason?: string;
 }
 
 /** A boundary violation detected during checking. */

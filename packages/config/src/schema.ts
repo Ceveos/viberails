@@ -4,7 +4,7 @@
  * This schema will eventually be hosted at https://viberails.sh/schema/v1.json.
  * For now it is exported as a TypeScript object that can be serialized to JSON.
  */
-import { boundaryItemSchema, conventionValueDef, packageItemSchema } from './schema-parts.js';
+import { boundarySchema, conventionValueDef, packageItemSchema } from './schema-parts.js';
 
 export const configSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
@@ -178,8 +178,7 @@ export const configSchema = {
       description: 'Glob patterns for files and directories to ignore.',
     },
     boundaries: {
-      type: 'array',
-      items: boundaryItemSchema,
+      ...boundarySchema,
       description: 'Module boundary rules for import enforcement.',
     },
     workspace: {

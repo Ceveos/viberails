@@ -1,7 +1,7 @@
 declare const __PACKAGE_VERSION__: string;
 export const VERSION: string = __PACKAGE_VERSION__;
 
-export type { BoundaryRule, BoundaryViolation } from './boundary.js';
+export type { BoundaryConfig, BoundaryRule, BoundaryViolation } from './boundary.js';
 export type { CheckResult, CheckRule, CheckViolation } from './check-result.js';
 export type { Confidence, DetectedConvention } from './confidence.js';
 export { confidenceFromConsistency } from './confidence.js';

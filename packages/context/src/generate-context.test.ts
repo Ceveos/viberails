@@ -116,45 +116,41 @@ describe('generateContext (rules-focused)', () => {
     const output = generateContext(
       makeConfig({
         rules: { ...makeConfig().rules, enforceBoundaries: true },
-        boundaries: [
-          { from: '@app/ui', to: '@app/api', allow: false, reason: 'UI should not depend on API' },
-        ],
+        boundaries: { deny: { '@app/ui': ['@app/api'] } },
       }),
     );
     expect(output).toContain('## Boundary rules');
-    expect(output).toContain('`@app/ui` must NOT import from `@app/api`');
-    expect(output).toContain('UI should not depend on API');
+    expect(output).toContain('`@app/ui` must NOT import from: `@app/api`');
   });
 
   it('omits boundary section when enforceBoundaries is false', () => {
     const output = generateContext(
       makeConfig({
         rules: { ...makeConfig().rules, enforceBoundaries: false },
-        boundaries: [{ from: '@app/ui', to: '@app/api', allow: false }],
+        boundaries: { deny: { '@app/ui': ['@app/api'] } },
       }),
     );
     expect(output).not.toContain('Boundary rules');
   });
 
-  it('omits boundary section when only allow rules exist', () => {
+  it('omits boundary section when deny map is empty', () => {
     const output = generateContext(
       makeConfig({
         rules: { ...makeConfig().rules, enforceBoundaries: true },
-        boundaries: [{ from: '@app/ui', to: '@app/shared', allow: true }],
+        boundaries: { deny: {} },
       }),
     );
     expect(output).not.toContain('Boundary rules');
   });
 
-  it('handles boundary rule without reason', () => {
+  it('groups multiple denied targets on one line', () => {
     const output = generateContext(
       makeConfig({
         rules: { ...makeConfig().rules, enforceBoundaries: true },
-        boundaries: [{ from: 'components', to: 'pages', allow: false }],
+        boundaries: { deny: { components: ['pages', 'api'] } },
       }),
     );
-    expect(output).toContain('`components` must NOT import from `pages`');
-    expect(output).not.toContain('(');
+    expect(output).toContain('`components` must NOT import from: `pages`, `api`');
   });
 });
 

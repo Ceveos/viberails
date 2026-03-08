@@ -105,10 +105,11 @@ export async function initCommand(
         ignore: config.ignore,
       });
       const inferred = inferBoundaries(graph);
-      if (inferred.length > 0) {
+      const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
+      if (denyCount > 0) {
         config.boundaries = inferred;
         config.rules.enforceBoundaries = true;
-        console.log(`  Inferred ${inferred.length} boundary rules`);
+        console.log(`  Inferred ${denyCount} boundary rules`);
       }
     }
 
@@ -198,10 +199,11 @@ export async function initCommand(
         ignore: config.ignore,
       });
       const inferred = inferBoundaries(graph);
-      if (inferred.length > 0) {
+      const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
+      if (denyCount > 0) {
         config.boundaries = inferred;
         config.rules.enforceBoundaries = true;
-        bs.stop(`Inferred ${inferred.length} boundary rules`);
+        bs.stop(`Inferred ${denyCount} boundary rules`);
       } else {
         bs.stop('No boundary rules inferred');
       }

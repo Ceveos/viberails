@@ -214,7 +214,7 @@ describe('generateConfig', () => {
       packages: ['packages/core', 'packages/api'],
       isMonorepo: true,
     });
-    expect(config.boundaries).toEqual([]);
+    expect(config.boundaries).toEqual({ deny: {} });
   });
 
   it('omits workspace and boundaries when scan result has no workspace', () => {

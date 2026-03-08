@@ -116,9 +116,15 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
 
   // Boundaries: preserve existing rules (user may have adjusted)
   if (existing.boundaries) {
-    merged.boundaries = [...existing.boundaries];
+    merged.boundaries = {
+      deny: { ...existing.boundaries.deny },
+      ...(existing.boundaries.ignore ? { ignore: [...existing.boundaries.ignore] } : {}),
+    };
   } else if (fresh.boundaries) {
-    merged.boundaries = [...fresh.boundaries];
+    merged.boundaries = {
+      deny: { ...fresh.boundaries.deny },
+      ...(fresh.boundaries.ignore ? { ignore: [...fresh.boundaries.ignore] } : {}),
+    };
   }
 
   // Packages: preserve existing overrides, add new ones

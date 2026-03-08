@@ -136,10 +136,11 @@ describe('configSchema validation', () => {
 
     const withBoundaries = {
       ...config,
-      boundaries: [
-        { from: '@mono/web', to: '@mono/api', allow: false, reason: 'No cross-import' },
-        { from: '@mono/web', to: '@mono/core', allow: true },
-      ],
+      boundaries: {
+        deny: {
+          '@mono/web': ['@mono/api'],
+        },
+      },
       workspace: {
         packages: ['packages/web', 'packages/api', 'packages/core'],
         isMonorepo: true,

@@ -49,24 +49,22 @@ export async function boundariesCommand(options: BoundariesOptions, cwd?: string
 
 /** Display configured boundary rules. */
 function displayRules(config: ViberailsConfig): void {
-  if (!config.boundaries || config.boundaries.length === 0) {
+  if (!config.boundaries || Object.keys(config.boundaries.deny).length === 0) {
     console.log(chalk.yellow('No boundary rules configured.'));
     console.log(`Run ${chalk.cyan('viberails boundaries --infer')} to generate rules.`);
     return;
   }
 
-  const allowRules = config.boundaries.filter((r) => r.allow);
-  const denyRules = config.boundaries.filter((r) => !r.allow);
+  const { deny } = config.boundaries;
+  const sources = Object.keys(deny).filter((k) => deny[k].length > 0);
+  const totalRules = sources.reduce((sum, k) => sum + deny[k].length, 0);
 
-  console.log(`\n${chalk.bold(`Boundary rules (${config.boundaries.length} rules):`)}\n`);
+  console.log(`\n${chalk.bold(`Boundary rules (${totalRules} deny rules):`)}\n`);
 
-  for (const r of allowRules) {
-    console.log(`  ${chalk.green('✓')} ${r.from} → ${r.to}`);
-  }
-
-  for (const r of denyRules) {
-    const reason = r.reason ? chalk.dim(` (${r.reason})`) : '';
-    console.log(`  ${chalk.red('✗')} ${r.from} → ${r.to}${reason}`);
+  for (const source of sources) {
+    for (const target of deny[source]) {
+      console.log(`  ${chalk.red('✗')} ${source} → ${target}`);
+    }
   }
 
   console.log(
@@ -95,27 +93,23 @@ async function inferAndDisplay(
   console.log(chalk.dim(`${graph.nodes.length} files, ${graph.edges.length} edges`));
 
   const inferred = inferBoundaries(graph);
+  const sources = Object.keys(inferred.deny).filter((k) => inferred.deny[k].length > 0);
+  const totalRules = sources.reduce((sum, k) => sum + inferred.deny[k].length, 0);
 
-  if (inferred.length === 0) {
+  if (totalRules === 0) {
     console.log(chalk.yellow('No boundary rules could be inferred.'));
     return;
   }
 
-  const allow = inferred.filter((r) => r.allow);
-  const deny = inferred.filter((r) => !r.allow);
-
   console.log(`\n${chalk.bold('Inferred boundary rules:')}\n`);
 
-  for (const r of allow) {
-    console.log(`  ${chalk.green('✓')} ${r.from} → ${r.to}`);
+  for (const source of sources) {
+    for (const target of inferred.deny[source]) {
+      console.log(`  ${chalk.red('✗')} ${source} → ${target}`);
+    }
   }
 
-  for (const r of deny) {
-    const reason = r.reason ? chalk.dim(` (${r.reason})`) : '';
-    console.log(`  ${chalk.red('✗')} ${r.from} → ${r.to}${reason}`);
-  }
-
-  console.log(`\n  ${allow.length} allowed, ${deny.length} denied`);
+  console.log(`\n  ${totalRules} denied`);
 
   console.log('');
   const shouldSave = await confirm('Save to viberails.config.json?');
@@ -123,7 +117,7 @@ async function inferAndDisplay(
     config.boundaries = inferred;
     config.rules.enforceBoundaries = true;
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
-    console.log(`${chalk.green('✓')} Saved ${inferred.length} rules`);
+    console.log(`${chalk.green('✓')} Saved ${totalRules} rules`);
   }
 }
 

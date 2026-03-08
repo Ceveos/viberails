@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import type {
-  BoundaryRule,
+  BoundaryConfig,
   ImportEdge,
   ImportGraph,
   ImportGraphNode,
@@ -21,17 +21,17 @@ function edge(source: string, target: string, specifier = '', line = 1): ImportE
 }
 
 describe('checkBoundaries', () => {
-  it('returns no violations when there are no rules', () => {
+  it('returns no violations when deny map is empty', () => {
     const graph: ImportGraph = {
       nodes: [node('/a/src/x.ts', 'src/x.ts', 'a')],
       edges: [edge('/a/src/x.ts', '/b/src/y.ts', 'b')],
       packages: [],
       cycles: [],
     };
-    expect(checkBoundaries(graph, [])).toEqual([]);
+    expect(checkBoundaries(graph, { deny: {} })).toEqual([]);
   });
 
-  it('detects a violation for a disallowed import', () => {
+  it('detects a violation for a denied import', () => {
     const graph: ImportGraph = {
       nodes: [
         node('/repo/packages/web/src/app.tsx', 'src/app.tsx', '@mono/web'),
@@ -57,10 +57,10 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    const rules: BoundaryRule[] = [
-      { from: '@mono/web', to: '@mono/api', allow: false, reason: 'web should not import api' },
-    ];
-    const violations = checkBoundaries(graph, rules);
+    const boundaries: BoundaryConfig = {
+      deny: { '@mono/web': ['@mono/api'] },
+    };
+    const violations = checkBoundaries(graph, boundaries);
 
     expect(violations).toHaveLength(1);
     expect(violations[0]).toEqual({
@@ -68,11 +68,11 @@ describe('checkBoundaries', () => {
       line: 5,
       specifier: '@mono/api',
       resolvedTo: '/repo/packages/api/src/handler.ts',
-      rule: rules[0],
+      rule: { from: '@mono/web', to: '@mono/api' },
     });
   });
 
-  it('does not flag edges matching an allow rule', () => {
+  it('does not flag imports not in the deny map', () => {
     const graph: ImportGraph = {
       nodes: [
         node('/repo/packages/web/src/app.tsx', 'src/app.tsx', '@mono/web'),
@@ -98,8 +98,9 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    const rules: BoundaryRule[] = [{ from: '@mono/web', to: '@mono/core', allow: true }];
-    expect(checkBoundaries(graph, rules)).toEqual([]);
+    // web→core is NOT in the deny map, so it's implicitly allowed
+    const boundaries: BoundaryConfig = { deny: {} };
+    expect(checkBoundaries(graph, boundaries)).toEqual([]);
   });
 
   it('does not flag same-package edges', () => {
@@ -120,9 +121,9 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    // Even with a blanket deny rule, same-package edges are never flagged
-    const rules: BoundaryRule[] = [{ from: '@mono/web', to: '@mono/web', allow: false }];
-    expect(checkBoundaries(graph, rules)).toEqual([]);
+    // Even with a deny rule, same-package edges are never flagged
+    const boundaries: BoundaryConfig = { deny: { '@mono/web': ['@mono/web'] } };
+    expect(checkBoundaries(graph, boundaries)).toEqual([]);
   });
 
   it('skips external/builtin edges', () => {
@@ -143,11 +144,11 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    const rules: BoundaryRule[] = [{ from: '@mono/web', to: 'react', allow: false }];
-    expect(checkBoundaries(graph, rules)).toEqual([]);
+    const boundaries: BoundaryConfig = { deny: { '@mono/web': ['react'] } };
+    expect(checkBoundaries(graph, boundaries)).toEqual([]);
   });
 
-  it('detects multiple violations from different rules', () => {
+  it('detects multiple violations from different deny entries', () => {
     const graph: ImportGraph = {
       nodes: [
         node('/repo/packages/ui/src/bad.tsx', 'src/bad.tsx', '@mv/ui'),
@@ -176,12 +177,14 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    const rules: BoundaryRule[] = [
-      { from: '@mv/ui', to: '@mv/api', allow: false, reason: 'UI should not import API' },
-      { from: '@mv/api', to: '@mv/ui', allow: false, reason: 'API should not import UI' },
-    ];
+    const boundaries: BoundaryConfig = {
+      deny: {
+        '@mv/ui': ['@mv/api'],
+        '@mv/api': ['@mv/ui'],
+      },
+    };
 
-    const violations = checkBoundaries(graph, rules);
+    const violations = checkBoundaries(graph, boundaries);
     expect(violations).toHaveLength(2);
     expect(violations[0].file).toContain('ui/src/bad.tsx');
     expect(violations[1].file).toContain('api/src/bad.ts');
@@ -205,18 +208,40 @@ describe('checkBoundaries', () => {
       cycles: [],
     };
 
-    const rules: BoundaryRule[] = [
-      {
-        from: 'components',
-        to: 'pages',
-        allow: false,
-        reason: 'Components should not import pages',
-      },
-    ];
+    const boundaries: BoundaryConfig = {
+      deny: { components: ['pages'] },
+    };
 
-    const violations = checkBoundaries(graph, rules);
+    const violations = checkBoundaries(graph, boundaries);
     expect(violations).toHaveLength(1);
     expect(violations[0].line).toBe(5);
+  });
+
+  it('skips files in the ignore list', () => {
+    const graph: ImportGraph = {
+      nodes: [
+        node('/project/src/components/Button.tsx', 'src/components/Button.tsx'),
+        node('/project/src/pages/Home.tsx', 'src/pages/Home.tsx'),
+      ],
+      edges: [
+        edge(
+          '/project/src/components/Button.tsx',
+          '/project/src/pages/Home.tsx',
+          '../pages/Home',
+          5,
+        ),
+      ],
+      packages: [],
+      cycles: [],
+    };
+
+    const boundaries: BoundaryConfig = {
+      deny: { components: ['pages'] },
+      ignore: ['src/components/Button.tsx'],
+    };
+
+    const violations = checkBoundaries(graph, boundaries);
+    expect(violations).toHaveLength(0);
   });
 });
 
@@ -248,8 +273,8 @@ describe('checkBoundaries — fixture-based', () => {
 
     const { inferBoundaries } = await import('./infer-boundaries.js');
     const graph = await buildImportGraph(MONOREPO, { packages });
-    const rules = inferBoundaries(graph);
-    const violations = checkBoundaries(graph, rules);
+    const boundaries = inferBoundaries(graph);
+    const violations = checkBoundaries(graph, boundaries);
 
     expect(violations).toEqual([]);
   });
@@ -279,12 +304,14 @@ describe('checkBoundaries — fixture-based', () => {
 
     const graph = await buildImportGraph(VIOLATIONS, { packages });
 
-    const rules: BoundaryRule[] = [
-      { from: '@mv/ui', to: '@mv/api', allow: false, reason: 'UI should not import API' },
-      { from: '@mv/api', to: '@mv/ui', allow: false, reason: 'API should not import UI' },
-    ];
+    const boundaries: BoundaryConfig = {
+      deny: {
+        '@mv/ui': ['@mv/api'],
+        '@mv/api': ['@mv/ui'],
+      },
+    };
 
-    const violations = checkBoundaries(graph, rules);
+    const violations = checkBoundaries(graph, boundaries);
     expect(violations).toHaveLength(2);
 
     const uiViolation = violations.find((v) => v.file.includes('ui/'));

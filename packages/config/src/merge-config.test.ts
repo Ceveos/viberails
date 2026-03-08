@@ -155,16 +155,16 @@ describe('mergeConfig', () => {
 
   it('preserves existing boundary rules during merge', () => {
     const existing = createExistingConfig();
-    existing.boundaries = [
-      { from: '@mono/web', to: '@mono/api', allow: false, reason: 'Custom rule' },
-    ];
+    existing.boundaries = {
+      deny: { '@mono/web': ['@mono/api'] },
+    };
     const scanResult = createScanResult();
 
     const merged = mergeConfig(existing, scanResult);
 
-    expect(merged.boundaries).toEqual([
-      { from: '@mono/web', to: '@mono/api', allow: false, reason: 'Custom rule' },
-    ]);
+    expect(merged.boundaries).toEqual({
+      deny: { '@mono/web': ['@mono/api'] },
+    });
   });
 
   it('takes fresh workspace from scan result', () => {

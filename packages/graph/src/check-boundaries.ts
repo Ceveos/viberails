@@ -1,5 +1,5 @@
 import type {
-  BoundaryRule,
+  BoundaryConfig,
   BoundaryViolation,
   ImportGraph,
   ImportGraphNode,
@@ -9,28 +9,32 @@ import type {
  * Checks import edges against boundary rules and returns violations.
  *
  * For each edge in the graph, determines the source and target
- * package/directory and checks if any `allow: false` rule matches.
- * Skips external/builtin imports and same-package/directory edges.
+ * package/directory and checks if any deny rule matches.
+ * Skips external/builtin imports, same-package/directory edges,
+ * and files listed in the ignore list.
  *
  * @param graph - The complete import graph for a project.
- * @param rules - Boundary rules to check against.
+ * @param boundaries - Boundary config with deny map and optional ignore list.
  * @returns An array of boundary violations.
  */
-export function checkBoundaries(graph: ImportGraph, rules: BoundaryRule[]): BoundaryViolation[] {
-  if (rules.length === 0) return [];
+export function checkBoundaries(
+  graph: ImportGraph,
+  boundaries: BoundaryConfig,
+): BoundaryViolation[] {
+  const denyMap = boundaries.deny;
+  if (Object.keys(denyMap).length === 0) return [];
 
   const isMonorepo = graph.packages.length > 0;
   const nodeIndex = buildNodeIndex(graph.nodes);
 
+  // Build ignored file set for quick lookup
+  const ignoredFiles = new Set(boundaries.ignore ?? []);
+
   // Build package path → package name lookup for workspace imports
-  // (workspace imports resolve to the package root path, not a file)
   const packagePathIndex = new Map<string, string>();
   for (const pkg of graph.packages) {
     packagePathIndex.set(pkg.path, pkg.name);
   }
-
-  const denyRules = rules.filter((r) => !r.allow);
-  const allowRules = rules.filter((r) => r.allow);
 
   const violations: BoundaryViolation[] = [];
 
@@ -40,6 +44,9 @@ export function checkBoundaries(graph: ImportGraph, rules: BoundaryRule[]): Boun
 
     const sourceNode = nodeIndex.get(edge.source);
     if (!sourceNode) continue;
+
+    // Skip files in the ignore list
+    if (ignoredFiles.has(sourceNode.relativePath)) continue;
 
     // Determine target zone: try node lookup first, then package path lookup
     const targetNode = nodeIndex.get(edge.target);
@@ -59,19 +66,15 @@ export function checkBoundaries(graph: ImportGraph, rules: BoundaryRule[]): Boun
     // Skip if we can't determine zones or they're the same
     if (!sourceZone || !targetZone || sourceZone === targetZone) continue;
 
-    // Check if explicitly allowed
-    const isAllowed = allowRules.some((r) => r.from === sourceZone && r.to === targetZone);
-    if (isAllowed) continue;
-
-    // Check deny rules
-    const matchedRule = denyRules.find((r) => r.from === sourceZone && r.to === targetZone);
-    if (matchedRule) {
+    // Check deny map
+    const deniedTargets = denyMap[sourceZone];
+    if (deniedTargets?.includes(targetZone)) {
       violations.push({
         file: edge.source,
         line: edge.line,
         specifier: edge.specifier,
         resolvedTo: edge.target,
-        rule: matchedRule,
+        rule: { from: sourceZone, to: targetZone },
       });
     }
   }

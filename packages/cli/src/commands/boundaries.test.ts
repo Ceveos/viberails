@@ -53,10 +53,11 @@ describe('boundaries command', () => {
 
   it('displays configured boundary rules', async () => {
     writeConfig({
-      boundaries: [
-        { from: '@app/ui', to: '@app/api', allow: false, reason: 'UI must not import API' },
-        { from: '@app/ui', to: '@app/shared', allow: true },
-      ],
+      boundaries: {
+        deny: {
+          '@app/ui': ['@app/api'],
+        },
+      },
     });
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -65,8 +66,7 @@ describe('boundaries command', () => {
       const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
       expect(output).toContain('@app/ui');
       expect(output).toContain('@app/api');
-      expect(output).toContain('@app/shared');
-      expect(output).toContain('2 rules');
+      expect(output).toContain('1 deny rules');
     } finally {
       logSpy.mockRestore();
     }

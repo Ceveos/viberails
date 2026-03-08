@@ -187,7 +187,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   if (
     config.rules.enforceBoundaries &&
     config.boundaries &&
-    config.boundaries.length > 0 &&
+    Object.keys(config.boundaries.deny).length > 0 &&
     !options.noBoundaries
   ) {
     const startTime = Date.now();
@@ -217,7 +217,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
       violations.push({
         file: relFile,
         rule: 'boundary-violation',
-        message: `Imports "${bv.specifier}" violating boundary: ${bv.rule.from} → ${bv.rule.to}${bv.rule.reason ? ` (${bv.rule.reason})` : ''}`,
+        message: `Imports "${bv.specifier}" violating boundary: ${bv.rule.from} → ${bv.rule.to}`,
         severity,
       });
     }

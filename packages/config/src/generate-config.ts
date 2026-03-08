@@ -148,7 +148,7 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
       packages: scanResult.workspace.packages.map((p) => p.relativePath),
       isMonorepo: true,
     };
-    config.boundaries = [];
+    config.boundaries = { deny: {} };
   }
 
   const packageOverrides = generatePackageOverrides(scanResult, config);

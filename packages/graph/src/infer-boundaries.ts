@@ -1,4 +1,4 @@
-import type { BoundaryRule, ImportGraph, ImportGraphNode } from '@viberails/types';
+import type { BoundaryConfig, ImportGraph, ImportGraphNode } from '@viberails/types';
 
 /**
  * Infers boundary rules from existing import patterns in the graph.
@@ -7,14 +7,14 @@ import type { BoundaryRule, ImportGraph, ImportGraphNode } from '@viberails/type
  * import from each other. For single-package projects, creates
  * directory-level rules based on top-level directory imports.
  *
- * Only creates `allow: false` rules where the codebase already follows
+ * Only creates deny rules where the codebase already follows
  * the pattern (zero imports in that direction), so inferred rules never
  * produce immediate violations.
  *
  * @param graph - The complete import graph for a project.
- * @returns An array of inferred boundary rules.
+ * @returns A BoundaryConfig with inferred deny rules.
  */
-export function inferBoundaries(graph: ImportGraph): BoundaryRule[] {
+export function inferBoundaries(graph: ImportGraph): BoundaryConfig {
   if (graph.packages.length > 0) {
     return inferMonorepoBoundaries(graph);
   }
@@ -35,7 +35,7 @@ function buildNodeIndex(nodes: ImportGraphNode[]): Map<string, ImportGraphNode> 
 /**
  * Infer boundary rules for a monorepo based on package-to-package imports.
  */
-function inferMonorepoBoundaries(graph: ImportGraph): BoundaryRule[] {
+function inferMonorepoBoundaries(graph: ImportGraph): BoundaryConfig {
   const nodeIndex = buildNodeIndex(graph.nodes);
   const packageNames = graph.packages.map((p) => p.name);
 
@@ -59,7 +59,7 @@ function inferMonorepoBoundaries(graph: ImportGraph): BoundaryRule[] {
     importCounts.set(k, (importCounts.get(k) ?? 0) + 1);
   }
 
-  const rules: BoundaryRule[] = [];
+  const deny: Record<string, string[]> = {};
 
   for (const from of packageNames) {
     for (const to of packageNames) {
@@ -70,22 +70,15 @@ function inferMonorepoBoundaries(graph: ImportGraph): BoundaryRule[] {
 
       if (count === 0 && !isDeclaredDep) {
         // No imports and not a declared dependency — disallow
-        rules.push({
-          from,
-          to,
-          allow: false,
-          reason: `${from} should not depend on ${to}`,
-        });
-      } else if (count > 0 && isDeclaredDep) {
-        // Imports exist and it's a declared dependency — allow
-        rules.push({ from, to, allow: true });
+        if (!deny[from]) deny[from] = [];
+        deny[from].push(to);
       }
-      // If imports exist but NOT declared → skip rule creation
-      // (would produce immediate violation, defeats auto-detection purpose)
+      // If imports exist and it's a declared dependency — implicitly allowed (no rule needed)
+      // If imports exist but NOT declared → skip (would produce immediate violation)
     }
   }
 
-  return rules;
+  return { deny };
 }
 
 /**
@@ -106,7 +99,7 @@ function getTopLevelDirectory(relativePath: string): string | undefined {
 /**
  * Infer boundary rules for a single-package project based on directory imports.
  */
-function inferSinglePackageBoundaries(graph: ImportGraph): BoundaryRule[] {
+function inferSinglePackageBoundaries(graph: ImportGraph): BoundaryConfig {
   const nodeIndex = buildNodeIndex(graph.nodes);
 
   // Collect all top-level directories
@@ -117,7 +110,7 @@ function inferSinglePackageBoundaries(graph: ImportGraph): BoundaryRule[] {
   }
 
   // Need at least 2 directories to form boundaries
-  if (directories.size < 2) return [];
+  if (directories.size < 2) return { deny: {} };
 
   // Count imports from directory A to directory B
   const importCounts = new Map<string, number>();
@@ -136,7 +129,7 @@ function inferSinglePackageBoundaries(graph: ImportGraph): BoundaryRule[] {
     importCounts.set(k, (importCounts.get(k) ?? 0) + 1);
   }
 
-  const rules: BoundaryRule[] = [];
+  const deny: Record<string, string[]> = {};
   const dirList = [...directories].sort();
 
   for (const from of dirList) {
@@ -146,15 +139,11 @@ function inferSinglePackageBoundaries(graph: ImportGraph): BoundaryRule[] {
       const count = importCounts.get(key(from, to)) ?? 0;
       if (count === 0) {
         // No imports exist in this direction — safe to create a boundary
-        rules.push({
-          from,
-          to,
-          allow: false,
-          reason: `${from} should not depend on ${to}`,
-        });
+        if (!deny[from]) deny[from] = [];
+        deny[from].push(to);
       }
     }
   }
 
-  return rules;
+  return { deny };
 }

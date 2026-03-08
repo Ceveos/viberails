@@ -37,25 +37,24 @@ export const conventionValueDef = {
   ],
 } as const;
 
-export const boundaryItemSchema = {
+export const boundarySchema = {
   type: 'object',
-  required: ['from', 'to', 'allow'],
+  required: ['deny'],
   properties: {
-    from: {
-      type: 'string',
-      description: 'Source package or directory pattern.',
+    deny: {
+      type: 'object',
+      additionalProperties: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      description:
+        'Map of source package/directory to the list of targets it must NOT import from.',
     },
-    to: {
-      type: 'string',
-      description: 'Target package or directory pattern.',
-    },
-    allow: {
-      type: 'boolean',
-      description: 'Whether this import direction is allowed or disallowed.',
-    },
-    reason: {
-      type: 'string',
-      description: 'Human-readable explanation of why this boundary exists.',
+    ignore: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'File paths that bypass boundary checks entirely (escape hatch for legitimate exceptions).',
     },
   },
   additionalProperties: false,

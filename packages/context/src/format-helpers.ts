@@ -130,23 +130,24 @@ export function formatPackageOverrides(config: ViberailsConfig): string[] {
 
 /**
  * Build the boundary rules section as markdown lines.
- * Only includes deny rules (allow: false).
+ * Groups deny rules by source package for compact output.
  */
 export function formatBoundaryRules(config: ViberailsConfig): string[] {
-  if (!config.rules.enforceBoundaries || !config.boundaries || config.boundaries.length === 0) {
+  if (!config.rules.enforceBoundaries || !config.boundaries) {
     return [];
   }
 
-  const denyRules = config.boundaries.filter((r) => !r.allow);
-  if (denyRules.length === 0) return [];
+  const { deny } = config.boundaries;
+  const sources = Object.keys(deny).filter((k) => deny[k].length > 0);
+  if (sources.length === 0) return [];
 
   const lines: string[] = [];
   lines.push('## Boundary rules\n');
   lines.push('These import boundaries are enforced:\n');
 
-  for (const rule of denyRules) {
-    const reason = rule.reason ? ` (${rule.reason})` : '';
-    lines.push(`- \`${rule.from}\` must NOT import from \`${rule.to}\`${reason}`);
+  for (const source of sources) {
+    const targets = deny[source].map((t) => `\`${t}\``).join(', ');
+    lines.push(`- \`${source}\` must NOT import from: ${targets}`);
   }
 
   return lines;

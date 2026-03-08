@@ -25,26 +25,11 @@ The following packages have rules that differ from the global defaults:
 
 These import boundaries are enforced:
 
-- `@viberails/types` must NOT import from `@viberails/scanner` (@viberails/types should not depend on @viberails/scanner)
-- `@viberails/types` must NOT import from `@viberails/config` (@viberails/types should not depend on @viberails/config)
-- `@viberails/types` must NOT import from `@viberails/context` (@viberails/types should not depend on @viberails/context)
-- `@viberails/types` must NOT import from `@viberails/graph` (@viberails/types should not depend on @viberails/graph)
-- `@viberails/types` must NOT import from `viberails` (@viberails/types should not depend on viberails)
-- `@viberails/scanner` must NOT import from `@viberails/config` (@viberails/scanner should not depend on @viberails/config)
-- `@viberails/scanner` must NOT import from `@viberails/context` (@viberails/scanner should not depend on @viberails/context)
-- `@viberails/scanner` must NOT import from `@viberails/graph` (@viberails/scanner should not depend on @viberails/graph)
-- `@viberails/scanner` must NOT import from `viberails` (@viberails/scanner should not depend on viberails)
-- `@viberails/config` must NOT import from `@viberails/scanner` (@viberails/config should not depend on @viberails/scanner)
-- `@viberails/config` must NOT import from `@viberails/context` (@viberails/config should not depend on @viberails/context)
-- `@viberails/config` must NOT import from `@viberails/graph` (@viberails/config should not depend on @viberails/graph)
-- `@viberails/config` must NOT import from `viberails` (@viberails/config should not depend on viberails)
-- `@viberails/context` must NOT import from `@viberails/scanner` (@viberails/context should not depend on @viberails/scanner)
-- `@viberails/context` must NOT import from `@viberails/graph` (@viberails/context should not depend on @viberails/graph)
-- `@viberails/context` must NOT import from `viberails` (@viberails/context should not depend on viberails)
-- `@viberails/graph` must NOT import from `@viberails/scanner` (@viberails/graph should not depend on @viberails/scanner)
-- `@viberails/graph` must NOT import from `@viberails/config` (@viberails/graph should not depend on @viberails/config)
-- `@viberails/graph` must NOT import from `@viberails/context` (@viberails/graph should not depend on @viberails/context)
-- `@viberails/graph` must NOT import from `viberails` (@viberails/graph should not depend on viberails)
+- `@viberails/types` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
+- `@viberails/scanner` must NOT import from: `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
+- `@viberails/config` must NOT import from: `@viberails/scanner`, `@viberails/context`, `@viberails/graph`, `viberails`
+- `@viberails/context` must NOT import from: `@viberails/scanner`, `@viberails/graph`, `viberails`
+- `@viberails/graph` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `viberails`
 
 ## Development setup
 

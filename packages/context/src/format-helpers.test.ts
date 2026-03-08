@@ -89,12 +89,12 @@ describe('formatDevelopmentSetup', () => {
 describe('formatBoundaryRules', () => {
   it('returns empty when boundaries disabled', () => {
     const config = makeConfig({
-      boundaries: [{ from: '@app/a', to: '@app/b', allow: false }],
+      boundaries: { deny: { '@app/a': ['@app/b'] } },
     });
     expect(formatBoundaryRules(config)).toEqual([]);
   });
 
-  it('returns empty when no deny rules', () => {
+  it('returns empty when deny map is empty', () => {
     const config = makeConfig({
       rules: {
         maxFileLines: 300,
@@ -104,12 +104,12 @@ describe('formatBoundaryRules', () => {
         enforceNaming: true,
         enforceBoundaries: true,
       },
-      boundaries: [{ from: '@app/a', to: '@app/b', allow: true }],
+      boundaries: { deny: {} },
     });
     expect(formatBoundaryRules(config)).toEqual([]);
   });
 
-  it('formats deny rules with reasons', () => {
+  it('formats deny rules grouped by source', () => {
     const config = makeConfig({
       rules: {
         maxFileLines: 300,
@@ -119,13 +119,11 @@ describe('formatBoundaryRules', () => {
         enforceNaming: true,
         enforceBoundaries: true,
       },
-      boundaries: [
-        { from: '@app/types', to: '@app/db', allow: false, reason: 'types must stay pure' },
-      ],
+      boundaries: { deny: { '@app/types': ['@app/db', '@app/api'] } },
     });
     const lines = formatBoundaryRules(config);
     expect(lines).toContain('## Boundary rules\n');
-    expect(lines).toContain('- `@app/types` must NOT import from `@app/db` (types must stay pure)');
+    expect(lines).toContain('- `@app/types` must NOT import from: `@app/db`, `@app/api`');
   });
 });
 

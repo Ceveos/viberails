@@ -51,43 +51,28 @@ describe('inferBoundaries — monorepo', () => {
   }
 
   it('infers that api and web cannot import each other', () => {
-    const rules = inferBoundaries(makeMonorepoGraph());
+    const result = inferBoundaries(makeMonorepoGraph());
 
-    const apiToWeb = rules.find((r) => r.from === '@mono/api' && r.to === '@mono/web');
-    const webToApi = rules.find((r) => r.from === '@mono/web' && r.to === '@mono/api');
-    expect(apiToWeb).toEqual({
-      from: '@mono/api',
-      to: '@mono/web',
-      allow: false,
-      reason: '@mono/api should not depend on @mono/web',
-    });
-    expect(webToApi).toEqual({
-      from: '@mono/web',
-      to: '@mono/api',
-      allow: false,
-      reason: '@mono/web should not depend on @mono/api',
-    });
+    expect(result.deny['@mono/api']).toContain('@mono/web');
+    expect(result.deny['@mono/web']).toContain('@mono/api');
   });
 
-  it('creates allow rules for declared dependencies with actual imports', () => {
-    const rules = inferBoundaries(makeMonorepoGraph());
+  it('does not deny declared dependencies with actual imports', () => {
+    const result = inferBoundaries(makeMonorepoGraph());
 
-    const apiToCore = rules.find((r) => r.from === '@mono/api' && r.to === '@mono/core');
-    const webToCore = rules.find((r) => r.from === '@mono/web' && r.to === '@mono/core');
-    expect(apiToCore).toEqual({ from: '@mono/api', to: '@mono/core', allow: true });
-    expect(webToCore).toEqual({ from: '@mono/web', to: '@mono/core', allow: true });
+    // api→core and web→core are declared deps with imports — should NOT be in deny
+    expect(result.deny['@mono/api'] ?? []).not.toContain('@mono/core');
+    expect(result.deny['@mono/web'] ?? []).not.toContain('@mono/core');
   });
 
-  it('creates disallow rules for core importing from api or web', () => {
-    const rules = inferBoundaries(makeMonorepoGraph());
+  it('denies core importing from api or web', () => {
+    const result = inferBoundaries(makeMonorepoGraph());
 
-    const coreToApi = rules.find((r) => r.from === '@mono/core' && r.to === '@mono/api');
-    const coreToWeb = rules.find((r) => r.from === '@mono/core' && r.to === '@mono/web');
-    expect(coreToApi?.allow).toBe(false);
-    expect(coreToWeb?.allow).toBe(false);
+    expect(result.deny['@mono/core']).toContain('@mono/api');
+    expect(result.deny['@mono/core']).toContain('@mono/web');
   });
 
-  it('does not create disallow rules when all packages import from shared', () => {
+  it('does not deny when all packages import from shared', () => {
     const packages: WorkspacePackage[] = [
       {
         name: '@mono/shared',
@@ -113,15 +98,13 @@ describe('inferBoundaries — monorepo', () => {
     ];
 
     const graph: ImportGraph = { nodes, edges, packages, cycles: [] };
-    const rules = inferBoundaries(graph);
+    const result = inferBoundaries(graph);
 
-    // shared→app should be disallowed (no imports, not a dep)
-    const sharedToApp = rules.find((r) => r.from === '@mono/shared' && r.to === '@mono/app');
-    expect(sharedToApp?.allow).toBe(false);
+    // shared→app should be denied (no imports, not a dep)
+    expect(result.deny['@mono/shared']).toContain('@mono/app');
 
-    // app→shared should be allowed (imports exist, declared dep)
-    const appToShared = rules.find((r) => r.from === '@mono/app' && r.to === '@mono/shared');
-    expect(appToShared?.allow).toBe(true);
+    // app→shared should NOT be denied (imports exist, declared dep)
+    expect(result.deny['@mono/app'] ?? []).not.toContain('@mono/shared');
   });
 
   it('skips rules for undeclared imports (would produce immediate violations)', () => {
@@ -141,12 +124,10 @@ describe('inferBoundaries — monorepo', () => {
     ];
 
     const graph: ImportGraph = { nodes, edges, packages, cycles: [] };
-    const rules = inferBoundaries(graph);
+    const result = inferBoundaries(graph);
 
-    // Should NOT create a disallow rule for a→b (would immediately violate)
-    // Should NOT create an allow rule (b is not a declared dep of a)
-    const aToB = rules.find((r) => r.from === '@mono/a' && r.to === '@mono/b');
-    expect(aToB).toBeUndefined();
+    // Should NOT deny a→b (would immediately violate)
+    expect(result.deny['@mono/a'] ?? []).not.toContain('@mono/b');
   });
 
   it('counts type-only imports as real imports', () => {
@@ -182,10 +163,10 @@ describe('inferBoundaries — monorepo', () => {
     ];
 
     const graph: ImportGraph = { nodes, edges, packages, cycles: [] };
-    const rules = inferBoundaries(graph);
+    const result = inferBoundaries(graph);
 
-    const appToTypes = rules.find((r) => r.from === '@mono/app' && r.to === '@mono/types');
-    expect(appToTypes?.allow).toBe(true);
+    // app→types should NOT be denied (type-only import counts as real)
+    expect(result.deny['@mono/app'] ?? []).not.toContain('@mono/types');
   });
 });
 
@@ -208,37 +189,27 @@ describe('inferBoundaries — single package', () => {
   }
 
   it('infers that components should not import from pages', () => {
-    const rules = inferBoundaries(makeSinglePackageGraph());
+    const result = inferBoundaries(makeSinglePackageGraph());
 
-    const compToPages = rules.find((r) => r.from === 'components' && r.to === 'pages');
-    expect(compToPages).toEqual({
-      from: 'components',
-      to: 'pages',
-      allow: false,
-      reason: 'components should not depend on pages',
-    });
+    expect(result.deny.components).toContain('pages');
   });
 
   it('infers that utils should not import from components or pages', () => {
-    const rules = inferBoundaries(makeSinglePackageGraph());
+    const result = inferBoundaries(makeSinglePackageGraph());
 
-    const utilsToComp = rules.find((r) => r.from === 'utils' && r.to === 'components');
-    const utilsToPages = rules.find((r) => r.from === 'utils' && r.to === 'pages');
-    expect(utilsToComp?.allow).toBe(false);
-    expect(utilsToPages?.allow).toBe(false);
+    expect(result.deny.utils).toContain('components');
+    expect(result.deny.utils).toContain('pages');
   });
 
-  it('does not create disallow rules for utils as target when everything imports it', () => {
-    const rules = inferBoundaries(makeSinglePackageGraph());
+  it('does not deny imports that already exist', () => {
+    const result = inferBoundaries(makeSinglePackageGraph());
 
-    // pages→utils and components→utils both exist, so no disallow rules should target utils FROM those dirs
-    const pagesToUtils = rules.find((r) => r.from === 'pages' && r.to === 'utils');
-    const compToUtils = rules.find((r) => r.from === 'components' && r.to === 'utils');
-    expect(pagesToUtils).toBeUndefined();
-    expect(compToUtils).toBeUndefined();
+    // pages→utils and components→utils both exist, so no deny rules for those
+    expect(result.deny.pages ?? []).not.toContain('utils');
+    expect(result.deny.components ?? []).not.toContain('utils');
   });
 
-  it('returns empty array for single-directory project', () => {
+  it('returns empty deny map for single-directory project', () => {
     const nodes: ImportGraphNode[] = [
       node('/project/src/a.ts', 'src/a.ts'),
       node('/project/src/b.ts', 'src/b.ts'),
@@ -246,14 +217,14 @@ describe('inferBoundaries — single package', () => {
     const edges: ImportEdge[] = [edge('/project/src/a.ts', '/project/src/b.ts')];
 
     const graph: ImportGraph = { nodes, edges, packages: [], cycles: [] };
-    const rules = inferBoundaries(graph);
-    expect(rules).toEqual([]);
+    const result = inferBoundaries(graph);
+    expect(result.deny).toEqual({});
   });
 
-  it('returns empty array for empty project', () => {
+  it('returns empty deny map for empty project', () => {
     const graph: ImportGraph = { nodes: [], edges: [], packages: [], cycles: [] };
-    const rules = inferBoundaries(graph);
-    expect(rules).toEqual([]);
+    const result = inferBoundaries(graph);
+    expect(result.deny).toEqual({});
   });
 
   it('handles files without src/ prefix', () => {
@@ -266,9 +237,8 @@ describe('inferBoundaries — single package', () => {
     const edges: ImportEdge[] = [edge('/project/pages/Home.tsx', '/project/components/Button.tsx')];
 
     const graph: ImportGraph = { nodes, edges, packages: [], cycles: [] };
-    const rules = inferBoundaries(graph);
+    const result = inferBoundaries(graph);
 
-    const compToPages = rules.find((r) => r.from === 'components' && r.to === 'pages');
-    expect(compToPages?.allow).toBe(false);
+    expect(result.deny.components).toContain('pages');
   });
 });
