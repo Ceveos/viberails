@@ -16,6 +16,7 @@ export type {
   WorkspaceConfig,
 } from './config.js';
 export {
+  CONVENTION_LABELS,
   FRAMEWORK_NAMES,
   LIBRARY_NAMES,
   ORM_NAMES,

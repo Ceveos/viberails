@@ -17,7 +17,8 @@ program
   .command('init', { isDefault: true })
   .description('Scan your project and set up enforcement guardrails')
   .option('-y, --yes', 'Non-interactive mode (use defaults, high-confidence only)')
-  .action(async (options: { yes?: boolean }) => {
+  .option('-f, --force', 'Re-initialize, replacing existing config')
+  .action(async (options: { yes?: boolean; force?: boolean }) => {
     try {
       await initCommand(options);
     } catch (err: unknown) {

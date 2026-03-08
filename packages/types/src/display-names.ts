@@ -96,6 +96,14 @@ export const LIBRARY_NAMES: Record<string, string> = {
   lerna: 'Lerna',
 };
 
+/** Display labels for convention keys. */
+export const CONVENTION_LABELS: Record<string, string> = {
+  fileNaming: 'File naming',
+  componentNaming: 'Component naming',
+  hookNaming: 'Hook naming',
+  importAlias: 'Import alias',
+};
+
 /** Display names for directory roles. */
 export const ROLE_DESCRIPTIONS: Record<string, string> = {
   pages: 'Pages / Routes',

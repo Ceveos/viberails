@@ -1,5 +1,11 @@
 import type { DetectedConvention, ScanResult, StackItem, ViberailsConfig } from '@viberails/types';
-import { FRAMEWORK_NAMES, LIBRARY_NAMES, ORM_NAMES, STYLING_NAMES } from '@viberails/types';
+import {
+  CONVENTION_LABELS,
+  FRAMEWORK_NAMES,
+  LIBRARY_NAMES,
+  ORM_NAMES,
+  STYLING_NAMES,
+} from '@viberails/types';
 import chalk from 'chalk';
 import {
   formatExtensions,
@@ -8,14 +14,6 @@ import {
   groupByRole,
 } from './display-helpers.js';
 import { displayMonorepoResults, formatMonorepoResultsText } from './display-monorepo.js';
-
-/** Labels for convention keys. */
-const CONVENTION_LABELS: Record<string, string> = {
-  fileNaming: 'File naming',
-  componentNaming: 'Component naming',
-  hookNaming: 'Hook naming',
-  importAlias: 'Import alias',
-};
 
 /**
  * Format a StackItem for display: "DisplayName Version".

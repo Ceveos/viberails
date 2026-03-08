@@ -23,7 +23,7 @@ cd your-project
 npx viberails
 ```
 
-viberails scans your project, generates config and context files, and installs a pre-commit hook.
+viberails launches an interactive wizard that scans your project, shows detected conventions with confidence levels, and lets you customize rules before generating config. It also offers to set up pre-commit hooks and Claude Code integration.
 
 ## What It Generates
 
@@ -33,19 +33,18 @@ viberails scans your project, generates config and context files, and installs a
 | `.viberails/context.md` | AI context in natural language — enforced rules your AI tools can read |
 | `.viberails/scan-result.json` | Raw scan data (gitignored) |
 
-viberails also installs a pre-commit hook that runs `viberails check --staged` automatically.
-
 ## Commands
 
 ### `npx viberails` (or `viberails init`)
 
-Scans your project, generates config and context files, and sets up a pre-commit hook.
+Scans your project, generates config and context files, and guides you through hook setup.
 
-- `--yes` / `-y` — Non-interactive mode. Uses defaults, includes only high-confidence conventions.
+- `--yes` / `-y` — Non-interactive mode. Uses defaults, includes only high-confidence conventions. Skips hook installation.
+- `--force` / `-f` — Re-initialize from scratch, replacing the existing config. Use this when your project has changed significantly since the first init.
 
 ### `viberails sync`
 
-Re-scans your project and regenerates context files. Preserves any manual edits to `viberails.config.json`.
+Re-scans your project and regenerates context files. Preserves any manual edits to `viberails.config.json`. Reports specific changes: new stack detections, conventions, packages, and codebase size deltas.
 
 ### `viberails check`
 
@@ -77,17 +76,27 @@ Displays configured boundary rules and detected violations.
 
 3. **Generate** — Produces `viberails.config.json` with detected rules and `.viberails/context.md` with enforced rules in natural language.
 
-4. **Enforce** — A pre-commit hook runs `viberails check --staged` on every commit, catching violations before they land.
+4. **Enforce** — Optional pre-commit hooks and Claude Code integration run `viberails check` automatically, catching violations before they land.
 
-## Pre-commit Hooks
+## Hooks & Integrations
 
-`viberails init` automatically detects your hook manager and integrates:
+In interactive mode (`viberails init`), you can choose which integrations to set up:
+
+### Pre-commit hook
+
+Automatically detects your hook manager and integrates:
 
 - **Lefthook** — Appends a `viberails` command to `lefthook.yml`
 - **Husky** — Adds to `.husky/pre-commit`
 - **No hook manager** — Creates `.git/hooks/pre-commit` directly
 
-The hook runs in warn-only mode by default. Set `"enforcement": "enforce"` in `viberails.config.json` to block commits with violations.
+The hook runs `viberails check --staged` on every commit. It uses warn-only mode by default — set `"enforcement": "enforce"` in `viberails.config.json` to block commits with violations.
+
+### Claude Code hook
+
+Sets up a PostToolUse hook in `.claude/settings.json` that runs `viberails check` after every file edit or write, giving AI agents real-time feedback on convention violations.
+
+> **Note:** `--yes` mode skips all hook installation. Run `viberails init` interactively to set up hooks, or configure them manually.
 
 ## Confidence Model
 

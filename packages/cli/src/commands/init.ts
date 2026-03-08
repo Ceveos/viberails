@@ -59,7 +59,10 @@ function hasConventionOverrides(config: ViberailsConfig): boolean {
  * @param options - CLI options
  * @param cwd - Working directory override (for testing)
  */
-export async function initCommand(options: { yes?: boolean }, cwd?: string): Promise<void> {
+export async function initCommand(
+  options: { yes?: boolean; force?: boolean },
+  cwd?: string,
+): Promise<void> {
   const startDir = cwd ?? process.cwd();
 
   // 1. Find project root
@@ -74,10 +77,10 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
 
   // 2. Check for existing config (early exit — no clack)
   const configPath = path.join(projectRoot, CONFIG_FILE);
-  if (fs.existsSync(configPath)) {
+  if (fs.existsSync(configPath) && !options.force) {
     console.log(
       `${chalk.yellow('!')} viberails is already initialized.\n` +
-        `  Run ${chalk.cyan('viberails sync')} to update, or delete viberails.config.json to start fresh.`,
+        `  Run ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
     );
     return;
   }
