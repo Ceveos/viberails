@@ -37,10 +37,12 @@ describe('check command with boundary enforcement', () => {
         packages: ['packages/ui', 'packages/api', 'packages/shared'],
         isMonorepo: true,
       },
-      boundaries: [
-        { from: '@mv/ui', to: '@mv/api', allow: false, reason: 'UI must not import API' },
-        { from: '@mv/api', to: '@mv/ui', allow: false, reason: 'API must not import UI' },
-      ],
+      boundaries: {
+        deny: {
+          '@mv/ui': ['@mv/api'],
+          '@mv/api': ['@mv/ui'],
+        },
+      },
       ...overrides,
     };
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), JSON.stringify(config, null, 2));

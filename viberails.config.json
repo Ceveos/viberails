@@ -51,11 +51,36 @@
   },
   "boundaries": {
     "deny": {
-      "@viberails/types": ["@viberails/scanner", "@viberails/config", "@viberails/context", "@viberails/graph", "viberails"],
-      "@viberails/scanner": ["@viberails/config", "@viberails/context", "@viberails/graph", "viberails"],
-      "@viberails/config": ["@viberails/scanner", "@viberails/context", "@viberails/graph", "viberails"],
-      "@viberails/context": ["@viberails/scanner", "@viberails/graph", "viberails"],
-      "@viberails/graph": ["@viberails/scanner", "@viberails/config", "@viberails/context", "viberails"]
+      "@viberails/types": [
+        "@viberails/scanner",
+        "@viberails/config",
+        "@viberails/context",
+        "@viberails/graph",
+        "viberails"
+      ],
+      "@viberails/scanner": [
+        "@viberails/config",
+        "@viberails/context",
+        "@viberails/graph",
+        "viberails"
+      ],
+      "@viberails/config": [
+        "@viberails/scanner",
+        "@viberails/context",
+        "@viberails/graph",
+        "viberails"
+      ],
+      "@viberails/context": [
+        "@viberails/scanner",
+        "@viberails/graph",
+        "viberails"
+      ],
+      "@viberails/graph": [
+        "@viberails/scanner",
+        "@viberails/config",
+        "@viberails/context",
+        "viberails"
+      ]
     }
   },
   "packages": [

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty') && [ -n \"$FILE\" ] && node packages/cli/dist/index.js check --files \"$FILE\" --format json; exit 0"
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty')\nif [ -z \"$FILE\" ]; then exit 0; fi\nOUTPUT=$(node packages/cli/dist/index.js check --files \"$FILE\" --format json 2>&1)\nif echo \"$OUTPUT\" | jq -e '.violations | length > 0' >/dev/null 2>&1; then\n  echo \"$OUTPUT\" >&2\n  exit 2\nfi\nexit 0"
           }
         ]
       }

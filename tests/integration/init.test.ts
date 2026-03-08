@@ -36,8 +36,9 @@ describe('init command', () => {
     expect(context).toContain('viberails enforced rules');
     expect(context).toContain('300 lines');
 
-    // Should NOT create CLAUDE.md or .cursorrules
-    expect(fs.existsSync(path.join(tmpDir, 'CLAUDE.md'))).toBe(false);
+    // Should create CLAUDE.md with context reference, but NOT .cursorrules
+    const claudeMd = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf-8');
+    expect(claudeMd).toContain('@.viberails/context.md');
     expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
 
     // .gitignore — should include scan-result.json but not .cursorrules
@@ -85,9 +86,10 @@ describe('init command', () => {
         ]),
       );
 
-      // In --yes mode, boundaries should be auto-inferred
+      // In --yes mode, boundaries should be auto-inferred as deny map
       expect(config.boundaries).toBeDefined();
-      expect(config.boundaries.length).toBeGreaterThan(0);
+      expect(config.boundaries.deny).toBeDefined();
+      expect(Object.keys(config.boundaries.deny).length).toBeGreaterThan(0);
       expect(config.rules.enforceBoundaries).toBe(true);
     } finally {
       fs.rmSync(monoDir, { recursive: true, force: true });

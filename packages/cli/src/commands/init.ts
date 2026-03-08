@@ -5,7 +5,8 @@ import { generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
-import { displayRulesPreview, displayScanResults, formatScanResultsText } from '../display.js';
+import { formatScanResultsText } from '../display-text.js';
+import { displayRulesPreview, displayScanResults } from '../display.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import {
   confirm,
@@ -15,7 +16,12 @@ import {
 } from '../utils/prompt.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
-import { detectHookManager, setupClaudeCodeHook, setupPreCommitHook } from './init-hooks.js';
+import {
+  detectHookManager,
+  setupClaudeCodeHook,
+  setupClaudeMdReference,
+  setupPreCommitHook,
+} from './init-hooks.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 
@@ -118,7 +124,9 @@ export async function initCommand(
     writeGeneratedFiles(projectRoot, config, scanResult);
     updateGitignore(projectRoot);
 
-    // No hooks installed in --yes mode
+    // Always append CLAUDE.md reference in --yes mode (non-destructive)
+    setupClaudeMdReference(projectRoot);
+
     console.log(`\nCreated:`);
     console.log(`  ${chalk.green('\u2713')} ${CONFIG_FILE}`);
     console.log(`  ${chalk.green('\u2713')} .viberails/context.md`);
@@ -250,6 +258,10 @@ export async function initCommand(
   if (integrations.claudeCodeHook) {
     setupClaudeCodeHook(projectRoot);
     createdFiles.push('.claude/settings.json \u2014 added viberails hook');
+  }
+  if (integrations.claudeMdRef) {
+    setupClaudeMdReference(projectRoot);
+    createdFiles.push('CLAUDE.md \u2014 added @.viberails/context.md reference');
   }
 
   // 14. Summary

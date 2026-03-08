@@ -39,6 +39,7 @@ export async function confirmDangerous(message: string): Promise<boolean> {
 export interface IntegrationChoice {
   preCommitHook: boolean;
   claudeCodeHook: boolean;
+  claudeMdRef: boolean;
 }
 
 /**
@@ -154,8 +155,13 @@ export async function promptIntegrations(
         label: 'Claude Code hook',
         hint: 'checks files when Claude edits them',
       },
+      {
+        value: 'claudeMd' as const,
+        label: 'CLAUDE.md reference',
+        hint: 'appends @.viberails/context.md so Claude loads rules automatically',
+      },
     ],
-    initialValues: ['preCommit', 'claude'],
+    initialValues: ['preCommit', 'claude', 'claudeMd'],
     required: false,
   });
   assertNotCancelled(result);
@@ -163,5 +169,6 @@ export async function promptIntegrations(
   return {
     preCommitHook: result.includes('preCommit'),
     claudeCodeHook: result.includes('claude'),
+    claudeMdRef: result.includes('claudeMd'),
   };
 }

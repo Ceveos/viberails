@@ -2,7 +2,6 @@ import type { ViberailsConfig } from '@viberails/types';
 import {
   conventionValue,
   formatBoundaryRules,
-  formatDevelopmentSetup,
   formatPackageOverrides,
   NAMING_EXAMPLES,
 } from './format-helpers.js';
@@ -86,14 +85,7 @@ export function generateContext(config: ViberailsConfig): string {
     sections.push(boundaryLines.join('\n'));
   }
 
-  const setupLines = formatDevelopmentSetup(config);
-  if (setupLines.length > 0) {
-    sections.push('');
-    sections.push(setupLines.join('\n'));
-  }
-
   sections.push('');
-  sections.push('Run `viberails check` before committing to catch violations early.\n');
 
   return sections.join('\n');
 }

@@ -83,11 +83,11 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
     expect(content).toContain('viberails enforced rules');
     expect(content).toContain('300 lines');
     expect(content).toContain('kebab-case');
-    expect(content).toContain('viberails check');
   });
 
-  it('does not create CLAUDE.md or .cursorrules', () => {
-    expect(fs.existsSync(path.join(tmpDir, 'CLAUDE.md'))).toBe(false);
+  it('creates CLAUDE.md with context reference', () => {
+    const claudeMd = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf-8');
+    expect(claudeMd).toContain('@.viberails/context.md');
     expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
   });
 

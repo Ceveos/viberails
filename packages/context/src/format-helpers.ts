@@ -89,39 +89,44 @@ export function formatPackageOverrides(config: ViberailsConfig): string[] {
   lines.push('The following packages have rules that differ from the global defaults:\n');
 
   for (const pkg of config.packages) {
-    lines.push(packageHeader(pkg));
+    const pkgLines: string[] = [];
 
     if (pkg.conventions?.fileNaming) {
       const val = conventionValue(pkg.conventions.fileNaming);
       const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
-      lines.push(`- Source files use **${val}**: ${examples}.`);
+      pkgLines.push(`- Source files use **${val}**: ${examples}.`);
     }
 
     if (pkg.conventions?.componentNaming) {
       const val = conventionValue(pkg.conventions.componentNaming);
-      lines.push(`- Components use **${val}** naming.`);
+      pkgLines.push(`- Components use **${val}** naming.`);
     }
 
     if (pkg.conventions?.hookNaming) {
       const val = conventionValue(pkg.conventions.hookNaming);
-      lines.push(`- Hooks use **${val}** naming.`);
+      pkgLines.push(`- Hooks use **${val}** naming.`);
     }
 
     if (pkg.conventions?.importAlias) {
       const val = conventionValue(pkg.conventions.importAlias);
-      lines.push(`- Import alias: \`${val}\`.`);
+      pkgLines.push(`- Import alias: \`${val}\`.`);
     }
 
     if (pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines > 0) {
-      lines.push(
+      pkgLines.push(
         `- Files must not exceed **${pkg.rules.maxFileLines} lines**. Split into focused modules.`,
       );
     }
 
     if (pkg.rules?.maxFunctionLines !== undefined && pkg.rules.maxFunctionLines > 0) {
-      lines.push(
+      pkgLines.push(
         `- Functions must not exceed **${pkg.rules.maxFunctionLines} lines**. Extract helpers for complex logic.`,
       );
+    }
+
+    if (pkgLines.length > 0) {
+      lines.push(packageHeader(pkg));
+      lines.push(...pkgLines);
     }
   }
 

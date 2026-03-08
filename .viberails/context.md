@@ -12,14 +12,10 @@ These rules are checked before commits. Violations will be **warned** but not bl
 
 The following packages have rules that differ from the global defaults:
 
-### packages/cli
-### packages/config
-### packages/context
 ### packages/graph
 - Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 ### packages/scanner
 - Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
-### packages/types
 
 ## Boundary rules
 
@@ -30,12 +26,3 @@ These import boundaries are enforced:
 - `@viberails/config` must NOT import from: `@viberails/scanner`, `@viberails/context`, `@viberails/graph`, `viberails`
 - `@viberails/context` must NOT import from: `@viberails/scanner`, `@viberails/graph`, `viberails`
 - `@viberails/graph` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `viberails`
-
-## Development setup
-
-This project uses **Biome** for formatting and linting.
-
-- Enable format-on-save in your editor to avoid lint failures on commit.
-- If using VS Code, install the [Biome extension](https://marketplace.visualstudio.com/items?itemName=biomejs.biome) and enable format-on-save.
-
-Run `viberails check` before committing to catch violations early.

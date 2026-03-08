@@ -127,10 +127,21 @@ export function setupClaudeCodeHook(projectRoot: string): void {
   // The hook command reads the tool input from stdin, extracts file_path, and checks it.
   // Uses Node.js to parse JSON (no external dependency like jq required).
   // readFileSync(0) reads stdin synchronously via file descriptor 0.
-  // `; exit 0` ensures warn-mode (always exit 0) while still showing check output.
+  // Exit 2 with stderr output when violations are found, so Claude sees the feedback.
+  // Exit 0 when clean or no file to check.
   const extractFile =
     "node -e \"try{process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).tool_input?.file_path??'')}catch{}\"";
-  const hookCommand = `FILE=$(${extractFile}) && [ -n "$FILE" ] && npx viberails check --files "$FILE" --format json; exit 0`;
+  const checkAndReport = [
+    `FILE=$(${extractFile})`,
+    'if [ -z "$FILE" ]; then exit 0; fi',
+    'OUTPUT=$(npx viberails check --files "$FILE" --format json 2>&1)',
+    `if echo "$OUTPUT" | node -e "process.exit(JSON.parse(require('fs').readFileSync(0,'utf8')).violations?.length?0:1)" 2>/dev/null; then`,
+    '  echo "$OUTPUT" >&2',
+    '  exit 2',
+    'fi',
+    'exit 0',
+  ].join('\n');
+  const hookCommand = checkAndReport;
 
   hooks.PostToolUse = [
     ...existing,
@@ -148,6 +159,26 @@ export function setupClaudeCodeHook(projectRoot: string): void {
   settings.hooks = hooks;
   fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
   console.log(`  ${chalk.green('✓')} .claude/settings.json — added viberails PostToolUse hook`);
+}
+
+/**
+ * Append a @.viberails/context.md reference to the project's CLAUDE.md.
+ * Creates CLAUDE.md if it doesn't exist. Skips if the reference is already present.
+ */
+export function setupClaudeMdReference(projectRoot: string): void {
+  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+  let content = '';
+
+  if (fs.existsSync(claudeMdPath)) {
+    content = fs.readFileSync(claudeMdPath, 'utf-8');
+  }
+
+  if (content.includes('@.viberails/context.md')) return;
+
+  const ref = '\n@.viberails/context.md\n';
+  const prefix = content.length === 0 ? '' : content.trimEnd();
+  fs.writeFileSync(claudeMdPath, prefix + ref);
+  console.log(`  ${chalk.green('✓')} CLAUDE.md — added @.viberails/context.md reference`);
 }
 
 function writeHuskyPreCommit(huskyDir: string): void {

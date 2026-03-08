@@ -17,7 +17,7 @@ describe('init command with existing CLAUDE.md', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('does not modify an existing CLAUDE.md', async () => {
+  it('appends context reference to an existing CLAUDE.md', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
     const customContent =
       '# My Project\n\nCustom instructions for AI.\n\n## Rules\n\n- Be concise\n- Use TypeScript';
@@ -26,19 +26,34 @@ describe('init command with existing CLAUDE.md', () => {
     await initCommand({ yes: true }, tmpDir);
 
     const result = fs.readFileSync(claudeMdPath, 'utf-8');
-    // CLAUDE.md should be untouched
-    expect(result).toBe(customContent);
+    // Original content preserved, reference appended
+    expect(result).toContain(customContent.trimEnd());
+    expect(result).toContain('@.viberails/context.md');
   });
 
-  it('does not create CLAUDE.md when none exists', async () => {
+  it('does not duplicate reference if already present', async () => {
     const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
-    // Ensure no CLAUDE.md exists
+    const contentWithRef = '# My Project\n\n@.viberails/context.md\n';
+    fs.writeFileSync(claudeMdPath, contentWithRef);
+
+    await initCommand({ yes: true }, tmpDir);
+
+    const result = fs.readFileSync(claudeMdPath, 'utf-8');
+    // Should not have duplicate references
+    const matches = result.match(/@\.viberails\/context\.md/g);
+    expect(matches).toHaveLength(1);
+  });
+
+  it('creates CLAUDE.md with reference when none exists', async () => {
+    const claudeMdPath = path.join(tmpDir, 'CLAUDE.md');
     if (fs.existsSync(claudeMdPath)) {
       fs.unlinkSync(claudeMdPath);
     }
 
     await initCommand({ yes: true }, tmpDir);
 
-    expect(fs.existsSync(claudeMdPath)).toBe(false);
+    expect(fs.existsSync(claudeMdPath)).toBe(true);
+    const result = fs.readFileSync(claudeMdPath, 'utf-8');
+    expect(result).toContain('@.viberails/context.md');
   });
 });

@@ -1,13 +1,8 @@
 import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
 import { FRAMEWORK_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
-import {
-  displayConventions,
-  displaySummarySection,
-  formatConventionsText,
-  formatItem,
-  formatRulesText,
-} from './display.js';
+import { formatConventionsText, formatRulesText } from './display-text.js';
+import { displayConventions, displaySummarySection, formatItem } from './display.js';
 import {
   formatExtensions,
   formatRoleGroup,
