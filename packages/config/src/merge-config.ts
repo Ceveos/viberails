@@ -62,6 +62,9 @@ function mergeConventions(
       if (freshMeta?.[key]) {
         meta[key] = { ...freshMeta[key], detected: true };
       }
+    } else if (existing[key] !== undefined && freshMeta?.[key]) {
+      // Update meta with latest scan data but preserve existing convention value
+      meta[key] = { ...freshMeta[key], value: freshMeta[key].value };
     }
   }
 

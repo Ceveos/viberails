@@ -112,6 +112,8 @@ export interface ConfigMeta {
 
 /** Scanner metadata for a single convention. */
 export interface ConventionMeta {
+  /** The value detected by the scanner (e.g. "kebab-case"). */
+  value: string;
   /** Scanner confidence level. */
   confidence: Confidence;
   /** Consistency percentage (0-100). */

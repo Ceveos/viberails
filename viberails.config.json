@@ -3,6 +3,9 @@
   "version": 2,
   "name": "viberails",
   "enforcement": "warn",
+  "ignore": [
+    "tests/fixtures/**"
+  ],
   "rules": {
     "maxFileLines": 300,
     "maxTestFileLines": 0,
@@ -47,13 +50,14 @@
   "defaults": {
     "stack": {
       "language": "typescript@5",
-      "packageManager": "npm",
+      "packageManager": "pnpm",
       "linter": "biome@2",
       "formatter": "biome@2",
       "testRunner": "vitest@4"
     },
     "structure": {
-      "srcDir": "src"
+      "srcDir": "src",
+      "testPattern": "*.test.ts"
     }
   },
   "packages": [
@@ -61,22 +65,12 @@
       "name": "viberails",
       "path": "packages/cli",
       "structure": {
-        "utils": "src/utils",
-        "testPattern": "*.test.ts"
-      },
-      "conventions": {
-        "fileNaming": "kebab-case"
+        "utils": "src/utils"
       }
     },
     {
       "name": "@viberails/config",
-      "path": "packages/config",
-      "structure": {
-        "testPattern": "*.test.ts"
-      },
-      "conventions": {
-        "fileNaming": "kebab-case"
-      }
+      "path": "packages/config"
     },
     {
       "name": "@viberails/context",
@@ -85,9 +79,6 @@
     {
       "name": "@viberails/graph",
       "path": "packages/graph",
-      "structure": {
-        "testPattern": "*.test.ts"
-      },
       "conventions": {
         "fileNaming": "kebab-case"
       }
@@ -96,11 +87,7 @@
       "name": "@viberails/scanner",
       "path": "packages/scanner",
       "structure": {
-        "utils": "src/utils",
-        "testPattern": "*.test.ts"
-      },
-      "conventions": {
-        "fileNaming": "kebab-case"
+        "utils": "src/utils"
       }
     },
     {
@@ -109,20 +96,21 @@
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-08T17:14:56.574Z",
+    "lastSync": "2026-03-08T17:29:08.367Z",
     "packages": {
       "packages/cli": {
         "conventions": {
           "fileNaming": {
+            "value": "kebab-case",
             "confidence": "medium",
-            "consistency": 71,
-            "detected": true
+            "consistency": 71
           }
         }
       },
       "packages/config": {
         "conventions": {
           "fileNaming": {
+            "value": "kebab-case",
             "confidence": "medium",
             "consistency": 75
           }
@@ -131,6 +119,7 @@
       "packages/graph": {
         "conventions": {
           "fileNaming": {
+            "value": "kebab-case",
             "confidence": "high",
             "consistency": 100
           }
@@ -139,6 +128,7 @@
       "packages/scanner": {
         "conventions": {
           "fileNaming": {
+            "value": "kebab-case",
             "confidence": "medium",
             "consistency": 85
           }

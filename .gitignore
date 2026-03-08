@@ -8,3 +8,6 @@ coverage
 # viberails
 .viberails/
 .cursorrules
+
+# viberails
+.viberails/scan-result.json

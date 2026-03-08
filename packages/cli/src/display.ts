@@ -113,11 +113,15 @@ export function displayScanResults(scanResult: ScanResult): void {
   if (stack.orm) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.orm, ORM_NAMES)}`);
   }
-  if (stack.linter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
-  }
-  if (stack.formatter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
+    }
+    if (stack.formatter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+    }
   }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);

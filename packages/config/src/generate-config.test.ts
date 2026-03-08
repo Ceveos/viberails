@@ -103,9 +103,13 @@ describe('generateConfig', () => {
     const config = generateConfig(scanResult);
 
     const meta = config._meta?.packages?.['.']?.conventions;
-    expect(meta?.fileNaming).toEqual({ confidence: 'high', consistency: 97 });
-    expect(meta?.componentNaming).toEqual({ confidence: 'high', consistency: 94 });
-    expect(meta?.hookNaming).toEqual({ confidence: 'medium', consistency: 78 });
+    expect(meta?.fileNaming).toEqual({ value: 'kebab-case', confidence: 'high', consistency: 97 });
+    expect(meta?.componentNaming).toEqual({
+      value: 'PascalCase',
+      confidence: 'high',
+      consistency: 94,
+    });
+    expect(meta?.hookNaming).toEqual({ value: 'useXxx', confidence: 'medium', consistency: 78 });
   });
 
   it('includes medium-confidence conventions as plain strings', () => {

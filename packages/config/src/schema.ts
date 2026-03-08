@@ -96,6 +96,7 @@ export const configSchema = {
                 additionalProperties: {
                   type: 'object',
                   properties: {
+                    value: { type: 'string' },
                     confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
                     consistency: { type: 'number' },
                     detected: { type: 'boolean' },

@@ -41,7 +41,7 @@ export async function detectStructure(
 
 /**
  * Detects the dominant test file naming pattern from all source files.
- * Returns undefined if fewer than 3 test files are found.
+ * Returns undefined if no test files are found.
  */
 function detectTestPattern(
   dirs: Array<{ sourceFileNames: string[] }>,
@@ -49,7 +49,7 @@ function detectTestPattern(
   const allFiles = dirs.flatMap((d) => d.sourceFileNames);
   const testFiles = allFiles.filter((f) => f.includes('.test.') || f.includes('.spec.'));
 
-  if (testFiles.length < 3) return undefined;
+  if (testFiles.length === 0) return undefined;
 
   const dotTestCount = testFiles.filter((f) => f.includes('.test.')).length;
   const dotSpecCount = testFiles.filter((f) => f.includes('.spec.')).length;

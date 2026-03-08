@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { PackageScanResult } from '@viberails/types';
+import type { PackageScanResult, StackItem } from '@viberails/types';
 import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
 import { detectStack } from './detect-stack.js';
@@ -17,6 +17,7 @@ import { walkDirectory } from './utils/walk-directory.js';
  * @param name - Package name from package.json.
  * @param relativePath - Path relative to workspace root (empty string for single-package).
  * @param rootDeps - Optional root-level dependencies merged as a base layer.
+ * @param rootPackageManager - Optional package manager detected at the workspace root.
  * @returns Per-package scan result.
  */
 export async function scanPackage(
@@ -24,12 +25,13 @@ export async function scanPackage(
   name: string,
   relativePath: string,
   rootDeps?: Record<string, string>,
+  rootPackageManager?: StackItem,
 ): Promise<PackageScanResult> {
   const root = resolve(packagePath);
   const dirs = await walkDirectory(root, 4);
 
   const [stack, structure, statistics] = await Promise.all([
-    detectStack(root, rootDeps),
+    detectStack(root, rootDeps, rootPackageManager),
     detectStructure(root, dirs),
     computeStatistics(root, dirs),
   ]);

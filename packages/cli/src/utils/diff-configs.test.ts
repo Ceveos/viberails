@@ -94,7 +94,7 @@ describe('diffConfigs', () => {
         packages: {
           '.': {
             conventions: {
-              hookNaming: { confidence: 'high', consistency: 95, detected: true },
+              hookNaming: { value: 'use-*', confidence: 'high', consistency: 95, detected: true },
             },
           },
         },

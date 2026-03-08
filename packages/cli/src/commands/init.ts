@@ -82,10 +82,11 @@ export async function initCommand(
     const scanResult = await scan(projectRoot);
     const config = generateConfig(scanResult);
 
-    // Filter to high-confidence conventions only in --yes mode
-    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
-    const rootMeta = config._meta?.packages?.[root.path]?.conventions;
-    root.conventions = filterHighConfidence(root.conventions ?? {}, rootMeta);
+    // Filter to high-confidence conventions only in --yes mode (all packages)
+    for (const pkg of config.packages) {
+      const pkgMeta = config._meta?.packages?.[pkg.path]?.conventions;
+      pkg.conventions = filterHighConfidence(pkg.conventions ?? {}, pkgMeta);
+    }
 
     displayScanResults(scanResult);
     displayRulesPreview(config);

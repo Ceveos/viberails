@@ -39,11 +39,15 @@ export function displayMonorepoResults(scanResult: ScanResult): void {
   if (stack.packageManager) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.packageManager)}`);
   }
-  if (stack.linter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
-  }
-  if (stack.formatter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
+    }
+    if (stack.formatter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+    }
   }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
@@ -105,8 +109,12 @@ export function formatMonorepoResultsText(scanResult: ScanResult, config: Vibera
   // Shared stack items as compact line
   const sharedParts: string[] = [formatItem(stack.language)];
   if (stack.packageManager) sharedParts.push(formatItem(stack.packageManager));
-  if (stack.linter) sharedParts.push(formatItem(stack.linter));
-  if (stack.formatter) sharedParts.push(formatItem(stack.formatter));
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    sharedParts.push(`${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) sharedParts.push(formatItem(stack.linter));
+    if (stack.formatter) sharedParts.push(formatItem(stack.formatter));
+  }
   if (stack.testRunner) sharedParts.push(formatItem(stack.testRunner));
   lines.push(`  \u2713 ${sharedParts.join(' \u00b7 ')}`);
 

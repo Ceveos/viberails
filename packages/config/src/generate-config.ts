@@ -104,6 +104,7 @@ function mapConventions(scanResult: ScanResult): {
     if (detected && detected.confidence !== 'low') {
       conventions[key] = detected.value;
       meta[key] = {
+        value: detected.value,
         confidence: detected.confidence,
         consistency: detected.consistency,
       };
@@ -124,6 +125,7 @@ export function buildConventionMeta(
     const detected = conventions[key];
     if (detected && detected.confidence !== 'low') {
       meta[key] = {
+        value: detected.value,
         confidence: detected.confidence,
         consistency: detected.consistency,
       };
