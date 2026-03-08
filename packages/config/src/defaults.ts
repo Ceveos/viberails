@@ -7,16 +7,22 @@ import type { ConfigRules } from '@viberails/types';
 export const DEFAULT_RULES: ConfigRules = {
   maxFileLines: 300,
   maxTestFileLines: 0,
-  maxFunctionLines: 50,
   requireTests: true,
   enforceNaming: true,
   enforceBoundaries: false,
 };
 
 /**
- * Default glob patterns for files and directories to ignore.
+ * Default project-specific ignore patterns for a new config.
+ * Empty — universal patterns live in BUILTIN_IGNORE and are applied at check-time.
  */
-export const DEFAULT_IGNORE: string[] = [
+export const DEFAULT_IGNORE: string[] = [];
+
+/**
+ * Universal ignore patterns applied at check-time.
+ * These are never written to config — they are always applied implicitly.
+ */
+export const BUILTIN_IGNORE: string[] = [
   '**/*.d.ts',
   '**/*.min.js',
   '**/*.min.cjs',

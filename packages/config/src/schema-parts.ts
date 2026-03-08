@@ -3,40 +3,6 @@
  * Keeps the primary schema file under 300 lines.
  */
 
-export const conventionValueDef = {
-  description:
-    'A convention value — either a plain string (user-confirmed) or an object with scanner metadata.',
-  oneOf: [
-    { type: 'string' },
-    {
-      type: 'object',
-      required: ['value', '_confidence', '_consistency'],
-      properties: {
-        value: {
-          type: 'string',
-          description: 'The convention value.',
-        },
-        _confidence: {
-          type: 'string',
-          enum: ['high', 'medium', 'low'],
-          description: 'Scanner confidence level.',
-        },
-        _consistency: {
-          type: 'number',
-          minimum: 0,
-          maximum: 100,
-          description: 'Scanner consistency percentage.',
-        },
-        _detected: {
-          type: 'boolean',
-          description: 'Set by mergeConfig when a convention is newly detected during sync.',
-        },
-      },
-      additionalProperties: false,
-    },
-  ],
-} as const;
-
 export const boundarySchema = {
   type: 'object',
   required: ['deny'],
@@ -60,34 +26,62 @@ export const boundarySchema = {
   additionalProperties: false,
 } as const;
 
+export const stackSchema = {
+  type: 'object',
+  properties: {
+    framework: { type: 'string', description: 'Primary framework (e.g. "nextjs@15").' },
+    language: { type: 'string', description: 'Primary language (e.g. "typescript").' },
+    styling: { type: 'string', description: 'Styling solution (e.g. "tailwindcss@4").' },
+    backend: { type: 'string', description: 'Backend framework (e.g. "express@5").' },
+    orm: { type: 'string', description: 'ORM or database client (e.g. "prisma").' },
+    packageManager: { type: 'string', description: 'Package manager (e.g. "pnpm").' },
+    linter: { type: 'string', description: 'Linter (e.g. "eslint@9").' },
+    formatter: { type: 'string', description: 'Formatter (e.g. "prettier").' },
+    testRunner: { type: 'string', description: 'Test runner (e.g. "vitest").' },
+  },
+  additionalProperties: false,
+} as const;
+
+export const structureSchema = {
+  type: 'object',
+  properties: {
+    srcDir: { type: 'string', description: 'Source directory (e.g. "src").' },
+    pages: { type: 'string', description: 'Pages or routes directory.' },
+    components: { type: 'string', description: 'Components directory.' },
+    hooks: { type: 'string', description: 'Hooks directory.' },
+    utils: { type: 'string', description: 'Utilities directory.' },
+    types: { type: 'string', description: 'Type definitions directory.' },
+    tests: { type: 'string', description: 'Tests directory.' },
+    testPattern: { type: 'string', description: 'Test file naming pattern (e.g. "*.test.ts").' },
+  },
+  additionalProperties: false,
+} as const;
+
+export const conventionsSchema = {
+  type: 'object',
+  properties: {
+    fileNaming: { type: 'string', description: 'File naming convention (e.g. "kebab-case").' },
+    componentNaming: { type: 'string', description: 'Component naming convention.' },
+    hookNaming: { type: 'string', description: 'Hook naming convention.' },
+    importAlias: { type: 'string', description: 'Import alias pattern (e.g. "@/*").' },
+  },
+  additionalProperties: false,
+} as const;
+
 export const packageItemSchema = {
   type: 'object',
   required: ['name', 'path'],
   properties: {
     name: { type: 'string', description: 'Package name from package.json.' },
-    path: { type: 'string', description: 'Relative path to the package.' },
-    stack: {
-      type: 'object',
-      properties: {
-        framework: { type: 'string' },
-        language: { type: 'string' },
-        styling: { type: 'string' },
-        backend: { type: 'string' },
-        orm: { type: 'string' },
-        packageManager: { type: 'string' },
-        linter: { type: 'string' },
-        formatter: { type: 'string' },
-        testRunner: { type: 'string' },
-      },
-      additionalProperties: false,
-    },
-    conventions: { $ref: '#/properties/conventions' },
+    path: { type: 'string', description: 'Relative path to the package ("." for root).' },
+    stack: { ...stackSchema, description: 'Technology stack for this package.' },
+    structure: { ...structureSchema, description: 'Directory structure for this package.' },
+    conventions: { ...conventionsSchema, description: 'Coding conventions for this package.' },
     rules: {
       type: 'object',
       properties: {
         maxFileLines: { type: 'number' },
         maxTestFileLines: { type: 'number' },
-        maxFunctionLines: { type: 'number' },
         requireTests: { type: 'boolean' },
         enforceNaming: { type: 'boolean' },
         enforceBoundaries: { type: 'boolean' },
@@ -95,6 +89,28 @@ export const packageItemSchema = {
       additionalProperties: false,
     },
     ignore: { type: 'array', items: { type: 'string' } },
+    boundaries: {
+      type: 'object',
+      properties: {
+        deny: { type: 'array', items: { type: 'string' } },
+        ignore: { type: 'array', items: { type: 'string' } },
+      },
+      additionalProperties: false,
+    },
   },
   additionalProperties: false,
+} as const;
+
+export const defaultsSchema = {
+  type: 'object',
+  properties: {
+    stack: { ...stackSchema, description: 'Default stack inherited by all packages.' },
+    structure: { ...structureSchema, description: 'Default structure inherited by all packages.' },
+    conventions: {
+      ...conventionsSchema,
+      description: 'Default conventions inherited by all packages.',
+    },
+  },
+  additionalProperties: false,
+  description: 'Shared defaults for all packages. Packages inherit and can override.',
 } as const;

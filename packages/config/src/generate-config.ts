@@ -1,17 +1,19 @@
 import * as path from 'node:path';
 import type {
   ConfigConventions,
+  ConfigMeta,
   ConfigStack,
   ConfigStructure,
-  ConventionValue,
+  ConventionMeta,
   DetectedConvention,
   DirectoryRole,
+  PackageConfig,
   ScanResult,
   StackItem,
   ViberailsConfig,
 } from '@viberails/types';
 import { DEFAULT_IGNORE, DEFAULT_RULES } from './defaults.js';
-import { generatePackageOverrides } from './generate-overrides.js';
+import { generatePackages } from './generate-packages.js';
 
 /**
  * Format a StackItem as a config string: `"name@version"` or `"name"`.
@@ -23,7 +25,7 @@ export function formatStackItem(item: StackItem): string {
 /**
  * Map DetectedStack → ConfigStack by formatting each StackItem.
  */
-function mapStack(scanResult: ScanResult): ConfigStack {
+export function mapStack(scanResult: ScanResult): ConfigStack {
   const { stack } = scanResult;
   const config: ConfigStack = {
     language: formatStackItem(stack.language),
@@ -55,7 +57,7 @@ const ROLE_TO_FIELD: Partial<Record<DirectoryRole, keyof ConfigStructure>> = {
  * Map DetectedStructure → ConfigStructure by finding the first directory
  * for each known role.
  */
-function mapStructure(scanResult: ScanResult): ConfigStructure {
+export function mapStructure(scanResult: ScanResult): ConfigStructure {
   const { structure } = scanResult;
   const config: ConfigStructure = {};
 
@@ -77,22 +79,6 @@ function mapStructure(scanResult: ScanResult): ConfigStructure {
   return config;
 }
 
-/**
- * Convert a DetectedConvention to a ConventionValue with metadata.
- * Returns undefined for low-confidence conventions (they are omitted).
- */
-export function mapConvention(convention: DetectedConvention): ConventionValue | undefined {
-  if (convention.confidence === 'low') {
-    return undefined;
-  }
-
-  return {
-    value: convention.value,
-    _confidence: convention.confidence,
-    _consistency: convention.consistency,
-  };
-}
-
 /** Convention keys from ScanResult that map to ConfigConventions fields. */
 export const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
   'fileNaming',
@@ -102,58 +88,109 @@ export const CONVENTION_KEYS: (keyof ConfigConventions)[] = [
 ];
 
 /**
- * Map scanner conventions → ConfigConventions, omitting low-confidence entries.
+ * Map scanner conventions → ConfigConventions as plain strings.
+ * Low-confidence conventions are omitted.
+ * Returns both the plain-string conventions and the metadata for _meta.
  */
-function mapConventions(scanResult: ScanResult): ConfigConventions {
-  const config: ConfigConventions = {};
+function mapConventions(scanResult: ScanResult): {
+  conventions: ConfigConventions;
+  meta: Record<string, ConventionMeta>;
+} {
+  const conventions: ConfigConventions = {};
+  const meta: Record<string, ConventionMeta> = {};
 
   for (const key of CONVENTION_KEYS) {
     const detected = scanResult.conventions[key];
-    if (detected) {
-      const value = mapConvention(detected);
-      if (value !== undefined) {
-        config[key] = value;
-      }
+    if (detected && detected.confidence !== 'low') {
+      conventions[key] = detected.value;
+      meta[key] = {
+        confidence: detected.confidence,
+        consistency: detected.consistency,
+      };
     }
   }
 
-  return config;
+  return { conventions, meta };
+}
+
+/**
+ * Build _meta for a single package's conventions.
+ */
+export function buildConventionMeta(
+  conventions: Record<string, DetectedConvention>,
+): Record<string, ConventionMeta> {
+  const meta: Record<string, ConventionMeta> = {};
+  for (const key of CONVENTION_KEYS) {
+    const detected = conventions[key];
+    if (detected && detected.confidence !== 'low') {
+      meta[key] = {
+        confidence: detected.confidence,
+        consistency: detected.consistency,
+      };
+    }
+  }
+  return meta;
 }
 
 /**
  * Generate a ViberailsConfig from scan results.
  *
- * Maps the scanner's DetectedStack, DetectedStructure, and conventions
- * into the config format with smart defaults. Low-confidence conventions
- * are omitted. The project name is derived from the root directory basename.
+ * Produces V2 format: all config lives in `packages[]`.
+ * Single projects get one package with `path: "."`.
+ * Monorepos get one package per workspace package.
  *
  * @param scanResult - The output of scanning a project
  * @returns A complete ViberailsConfig ready to be written as JSON
  */
 export function generateConfig(scanResult: ScanResult): ViberailsConfig {
-  const config: ViberailsConfig = {
-    $schema: 'https://viberails.sh/schema/v1.json',
-    version: 1,
-    name: path.basename(scanResult.root),
-    enforcement: 'warn',
+  const projectName = path.basename(scanResult.root);
+  const { conventions, meta } = mapConventions(scanResult);
+
+  // Build the root package
+  const rootPackage: PackageConfig = {
+    name: projectName,
+    path: '.',
     stack: mapStack(scanResult),
     structure: mapStructure(scanResult),
-    conventions: mapConventions(scanResult),
-    rules: { ...DEFAULT_RULES },
-    ignore: [...DEFAULT_IGNORE],
+    conventions,
   };
 
-  if (scanResult.workspace) {
-    config.workspace = {
-      packages: scanResult.workspace.packages.map((p) => p.relativePath),
-      isMonorepo: true,
-    };
-    config.boundaries = { deny: {} };
-  }
+  const _meta: ConfigMeta = {
+    lastSync: new Date().toISOString(),
+    packages: {
+      '.': { conventions: Object.keys(meta).length > 0 ? meta : undefined },
+    },
+  };
 
-  const packageOverrides = generatePackageOverrides(scanResult, config);
-  if (packageOverrides) {
-    config.packages = packageOverrides;
+  const config: ViberailsConfig = {
+    $schema: 'https://viberails.sh/schema/v2.json',
+    version: 2,
+    name: projectName,
+    enforcement: 'warn',
+    rules: { ...DEFAULT_RULES },
+    ignore: [...DEFAULT_IGNORE],
+    packages: [rootPackage],
+    _meta,
+  };
+
+  // Monorepo: generate per-package configs
+  if (scanResult.workspace) {
+    const packages = generatePackages(scanResult, config);
+    if (packages) {
+      config.packages = packages;
+      // Rebuild _meta for all packages
+      const pkgMeta: Record<string, { conventions?: Record<string, ConventionMeta> }> = {};
+      for (const pkg of scanResult.packages) {
+        const convMeta = buildConventionMeta(pkg.conventions);
+        if (Object.keys(convMeta).length > 0) {
+          pkgMeta[pkg.relativePath] = { conventions: convMeta };
+        }
+      }
+      if (Object.keys(pkgMeta).length > 0) {
+        _meta.packages = pkgMeta;
+      }
+    }
+    config.boundaries = { deny: {} };
   }
 
   return config;

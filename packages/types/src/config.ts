@@ -9,7 +9,7 @@ export interface ViberailsConfig {
   /** JSON Schema URL for editor validation. */
   $schema?: string;
 
-  /** Config format version. Always `1` for V1.0. */
+  /** Config format version. Always `2`. */
   version: number;
 
   /** Project name, typically from package.json. */
@@ -18,59 +18,111 @@ export interface ViberailsConfig {
   /** Whether conventions are warned about or enforced as errors. */
   enforcement: 'warn' | 'enforce';
 
-  /** Detected or configured technology stack. */
-  stack: ConfigStack;
-
-  /** Detected or configured directory structure. */
-  structure: ConfigStructure;
-
-  /** Detected or configured coding conventions. */
-  conventions: ConfigConventions;
-
   /** Rule thresholds and toggles for enforcement. */
   rules: ConfigRules;
 
-  /** Glob patterns for files and directories to ignore. */
-  ignore: string[];
+  /** Glob patterns for files and directories to ignore. Project-specific only. */
+  ignore?: string[];
 
   /** Module boundary rules for import enforcement. */
   boundaries?: BoundaryConfig;
 
-  /** Workspace configuration for monorepo support (V1.1+). */
-  workspace?: WorkspaceConfig;
+  /**
+   * Shared defaults for all packages. Packages inherit these values
+   * and can override any field. Only present when packages share common config.
+   * Written by compactConfig(), consumed by expandDefaults() on load.
+   */
+  defaults?: ConfigDefaults;
 
-  /** Per-package overrides for monorepo projects. Only packages that differ from global. */
-  packages?: PackageConfigOverrides[];
+  /**
+   * Per-package configs. Required — single projects use `path: "."`.
+   * After loading, each package is self-contained (expandDefaults merges defaults in).
+   * On disk, stack/structure/conventions may be omitted when covered by defaults.
+   */
+  packages: PackageConfig[];
+
+  /** Scanner metadata. Regenerated on every sync — not user-editable. */
+  _meta?: ConfigMeta;
 }
 
 /**
- * Per-package configuration overrides for monorepo projects.
- * Only fields that differ from the global config are included.
+ * Per-package configuration.
+ * Self-contained after loading: stack, structure, and conventions are fully populated.
+ * On disk, these fields are optional — expandDefaults fills them from defaults.
  */
-export interface PackageConfigOverrides {
+export interface PackageConfig {
   /** Package name from package.json. */
   name: string;
-  /** Relative path to the package (e.g. "apps/web"). */
+
+  /** Relative path to the package (e.g. "apps/web", "." for root). */
   path: string;
-  /** Override stack fields (only differences from global). */
-  stack?: Partial<ConfigStack>;
-  /** Override conventions (only differences from global). */
-  conventions?: Partial<ConfigConventions>;
-  /** Override rules (only differences from global). */
+
+  /** Technology stack for this package. Optional on disk, filled by expandDefaults. */
+  stack?: ConfigStack;
+
+  /** Directory structure for this package. Optional on disk, filled by expandDefaults. */
+  structure?: ConfigStructure;
+
+  /** Coding conventions for this package. Optional on disk, filled by expandDefaults. */
+  conventions?: ConfigConventions;
+
+  /** Override rules for this package (only differences from global). */
   rules?: Partial<ConfigRules>;
+
   /** Additional ignore patterns for this package (appended to global). */
+  ignore?: string[];
+
+  /** Per-package boundary rules. */
+  boundaries?: PackageBoundary;
+}
+
+/**
+ * Per-package boundary declaration.
+ */
+export interface PackageBoundary {
+  /** Packages/modules this package must NOT import from. */
+  deny: string[];
+  /** Files exempt from boundary checks. */
   ignore?: string[];
 }
 
 /**
- * Workspace configuration for monorepo projects.
+ * Shared default values for all packages. Packages inherit from these
+ * and override specific fields. Keeps config DRY when packages share tooling.
  */
-export interface WorkspaceConfig {
-  /** Relative paths to workspace packages (e.g. `"packages/scanner"`). */
-  packages: string[];
+export interface ConfigDefaults {
+  /** Default technology stack, inherited by all packages. */
+  stack?: Partial<ConfigStack>;
+  /** Default directory structure, inherited by all packages. */
+  structure?: Partial<ConfigStructure>;
+  /** Default coding conventions, inherited by all packages. */
+  conventions?: ConfigConventions;
+}
 
-  /** Whether this project is a monorepo with multiple packages. */
-  isMonorepo: boolean;
+/**
+ * Scanner metadata, separated from user-editable config.
+ * Regenerated on every `sync`. Never manually edited.
+ */
+export interface ConfigMeta {
+  /** ISO timestamp of the last sync. */
+  lastSync?: string;
+  /** Per-package scanner metadata, keyed by package path. */
+  packages?: Record<string, PackageMeta>;
+}
+
+/** Scanner metadata for a single convention. */
+export interface ConventionMeta {
+  /** Scanner confidence level. */
+  confidence: Confidence;
+  /** Consistency percentage (0-100). */
+  consistency: number;
+  /** Set when a convention is newly detected during sync. */
+  detected?: boolean;
+}
+
+/** Scanner metadata for a package. */
+export interface PackageMeta {
+  conventions?: Record<string, ConventionMeta>;
 }
 
 /**
@@ -108,7 +160,7 @@ export interface ConfigStack {
 
 /**
  * Directory structure configuration. Each field is a path relative
- * to the project root.
+ * to the package root.
  */
 export interface ConfigStructure {
   /** Source directory (e.g. `"src"`), or undefined for flat structure. */
@@ -137,39 +189,21 @@ export interface ConfigStructure {
 }
 
 /**
- * A convention value that may carry scanner metadata.
- * When generated from a scan, includes confidence and consistency info.
- * When manually set, is just a plain string.
- */
-export type ConventionValue =
-  | string
-  | {
-      /** The convention value. */
-      value: string;
-      /** Scanner confidence level. Prefixed with `_` to signal metadata. */
-      _confidence: Confidence;
-      /** Scanner consistency percentage. Prefixed with `_` to signal metadata. */
-      _consistency: number;
-      /** Set by mergeConfig when a convention is newly detected during sync. */
-      _detected?: boolean;
-    };
-
-/**
- * Coding convention configuration. Each field can be a plain string
- * (confirmed by user) or an object with scanner metadata (auto-detected).
+ * Coding convention configuration. Plain strings only.
+ * Scanner metadata lives in `_meta.packages[path].conventions`.
  */
 export interface ConfigConventions {
   /** File naming convention (e.g. `"kebab-case"`, `"camelCase"`). */
-  fileNaming?: ConventionValue;
+  fileNaming?: string;
 
   /** Component naming convention (e.g. `"PascalCase"`). */
-  componentNaming?: ConventionValue;
+  componentNaming?: string;
 
   /** Hook naming convention (e.g. `"useXxx"`). */
-  hookNaming?: ConventionValue;
+  hookNaming?: string;
 
   /** Import alias pattern (e.g. `"@/*"`, `"~/*"`). */
-  importAlias?: ConventionValue;
+  importAlias?: string;
 }
 
 /**
@@ -190,12 +224,6 @@ export interface ConfigRules {
   maxTestFileLines: number;
 
   /**
-   * Maximum number of lines allowed per function.
-   * @default 50
-   */
-  maxFunctionLines: number;
-
-  /**
    * Whether to require test files for source modules.
    * @default true
    */
@@ -209,7 +237,7 @@ export interface ConfigRules {
 
   /**
    * Whether to enforce module boundary rules.
-   * @default false (V1.1+ feature)
+   * @default false
    */
   enforceBoundaries: boolean;
 }

@@ -2,8 +2,8 @@ import type {
   ConfigConventions,
   ConfigStack,
   ConfigStructure,
-  ConventionValue,
-  PackageConfigOverrides,
+  ConventionMeta,
+  PackageConfig,
   ScanResult,
   ViberailsConfig,
 } from '@viberails/types';
@@ -43,52 +43,64 @@ function mergeStructure(existing: ConfigStructure, fresh: ConfigStructure): Conf
 }
 
 /**
- * Check if a convention key exists in the existing config
- * (either as a string or as an object with a value).
- */
-function hasConvention(conventions: ConfigConventions, key: keyof ConfigConventions): boolean {
-  return conventions[key] !== undefined;
-}
-
-/**
- * Mark a ConventionValue as newly detected by adding `_detected: true`.
- * Only applies to object-form values (not plain strings).
- */
-function markAsDetected(value: ConventionValue): ConventionValue {
-  if (typeof value === 'string') {
-    return { value, _confidence: 'high', _consistency: 100, _detected: true };
-  }
-  return { ...value, _detected: true };
-}
-
-/**
- * Merge conventions: keep all existing values, add new detections with `_detected: true`.
+ * Merge conventions: keep all existing values, add new ones from fresh scan.
+ * New conventions are marked with `detected: true` in _meta.
  */
 function mergeConventions(
   existing: ConfigConventions,
   fresh: ConfigConventions,
-): ConfigConventions {
-  const merged: ConfigConventions = { ...existing };
+  existingMeta: Record<string, ConventionMeta> | undefined,
+  freshMeta: Record<string, ConventionMeta> | undefined,
+): { conventions: ConfigConventions; meta: Record<string, ConventionMeta> } {
+  const conventions: ConfigConventions = { ...existing };
+  const meta: Record<string, ConventionMeta> = { ...(existingMeta ?? {}) };
 
   for (const key of CONVENTION_KEYS) {
-    if (!hasConvention(existing, key) && fresh[key] !== undefined) {
-      const freshValue = fresh[key];
-      if (freshValue !== undefined) {
-        merged[key] = markAsDetected(freshValue);
+    if (existing[key] === undefined && fresh[key] !== undefined) {
+      conventions[key] = fresh[key];
+      // Mark as newly detected in meta
+      if (freshMeta?.[key]) {
+        meta[key] = { ...freshMeta[key], detected: true };
       }
     }
   }
 
-  return merged;
+  return { conventions, meta };
+}
+
+/**
+ * Merge a single package config, preserving existing values and adding fresh detections.
+ */
+function mergePackage(
+  existing: PackageConfig,
+  fresh: PackageConfig,
+  existingMeta: Record<string, ConventionMeta> | undefined,
+  freshMeta: Record<string, ConventionMeta> | undefined,
+): { pkg: PackageConfig; meta: Record<string, ConventionMeta> } {
+  const { conventions, meta } = mergeConventions(
+    existing.conventions ?? {},
+    fresh.conventions ?? {},
+    existingMeta,
+    freshMeta,
+  );
+
+  return {
+    pkg: {
+      ...existing,
+      stack: mergeStack(existing.stack ?? ({} as ConfigStack), fresh.stack ?? ({} as ConfigStack)),
+      structure: mergeStructure(existing.structure ?? {}, fresh.structure ?? {}),
+      conventions,
+    },
+    meta,
+  };
 }
 
 /**
  * Merge a new scan result into an existing config for `viberails sync`.
  *
  * Preserves all developer-confirmed values from the existing config.
- * Adds newly detected conventions with a `_detected: true` annotation
- * so the developer can review them. Never removes rules or values
- * the developer has set.
+ * Adds newly detected values. New conventions are marked with
+ * `detected: true` in _meta so the developer can review them.
  *
  * @param existing - The current ViberailsConfig (from viberails.config.json)
  * @param scanResult - Fresh scan results from re-scanning the project
@@ -97,22 +109,52 @@ function mergeConventions(
 export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): ViberailsConfig {
   const fresh = generateConfig(scanResult);
 
+  const existingByPath = new Map(existing.packages.map((p) => [p.path, p]));
+  const freshByPath = new Map(fresh.packages.map((p) => [p.path, p]));
+
+  const mergedPackages: PackageConfig[] = [];
+  const mergedPkgMeta: Record<string, { conventions?: Record<string, ConventionMeta> }> = {};
+
+  // Merge existing packages with fresh data
+  for (const existingPkg of existing.packages) {
+    const freshPkg = freshByPath.get(existingPkg.path);
+    if (freshPkg) {
+      const existingConvMeta = existing._meta?.packages?.[existingPkg.path]?.conventions;
+      const freshConvMeta = fresh._meta?.packages?.[existingPkg.path]?.conventions;
+      const { pkg, meta } = mergePackage(existingPkg, freshPkg, existingConvMeta, freshConvMeta);
+      mergedPackages.push(pkg);
+      if (Object.keys(meta).length > 0) {
+        mergedPkgMeta[pkg.path] = { conventions: meta };
+      }
+    } else {
+      mergedPackages.push(existingPkg);
+    }
+  }
+
+  // Add new packages from fresh scan
+  for (const freshPkg of fresh.packages) {
+    if (!existingByPath.has(freshPkg.path)) {
+      mergedPackages.push(freshPkg);
+      const freshConvMeta = fresh._meta?.packages?.[freshPkg.path]?.conventions;
+      if (freshConvMeta && Object.keys(freshConvMeta).length > 0) {
+        mergedPkgMeta[freshPkg.path] = { conventions: freshConvMeta };
+      }
+    }
+  }
+
   const merged: ViberailsConfig = {
     $schema: existing.$schema ?? fresh.$schema,
     version: existing.version,
     name: existing.name,
     enforcement: existing.enforcement,
-    stack: mergeStack(existing.stack, fresh.stack),
-    structure: mergeStructure(existing.structure, fresh.structure),
-    conventions: mergeConventions(existing.conventions, fresh.conventions),
     rules: { ...existing.rules },
-    ignore: [...existing.ignore],
+    ignore: [...(existing.ignore ?? [])],
+    packages: mergedPackages,
+    _meta: {
+      lastSync: new Date().toISOString(),
+      ...(Object.keys(mergedPkgMeta).length > 0 ? { packages: mergedPkgMeta } : {}),
+    },
   };
-
-  // Workspace: always take fresh scan (structure can change)
-  if (fresh.workspace) {
-    merged.workspace = fresh.workspace;
-  }
 
   // Boundaries: preserve existing rules (user may have adjusted)
   if (existing.boundaries) {
@@ -127,33 +169,5 @@ export function mergeConfig(existing: ViberailsConfig, scanResult: ScanResult): 
     };
   }
 
-  // Packages: preserve existing overrides, add new ones
-  if (existing.packages || fresh.packages) {
-    merged.packages = mergePackageOverrides(existing.packages, fresh.packages);
-  }
-
   return merged;
-}
-
-/**
- * Merge per-package overrides: keep existing user-edited overrides,
- * add new packages from fresh scan.
- */
-function mergePackageOverrides(
-  existing?: PackageConfigOverrides[],
-  fresh?: PackageConfigOverrides[],
-): PackageConfigOverrides[] | undefined {
-  if (!fresh || fresh.length === 0) return existing;
-  if (!existing || existing.length === 0) return fresh;
-
-  const existingByPath = new Map(existing.map((p) => [p.path, p]));
-  const merged: PackageConfigOverrides[] = [...existing];
-
-  for (const freshPkg of fresh) {
-    if (!existingByPath.has(freshPkg.path)) {
-      merged.push(freshPkg);
-    }
-  }
-
-  return merged.length > 0 ? merged : undefined;
 }
