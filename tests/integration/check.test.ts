@@ -105,6 +105,23 @@ describe('check --diff-base', () => {
     expect(exitCode).toBe(1);
   });
 
+  it('ignores non-source files like lockfiles and markdown', async () => {
+    const lockfile = path.join(tmpDir, 'pnpm-lock.yaml');
+    fs.writeFileSync(lockfile, Array(500).fill('  resolution: {integrity: sha}').join('\n'));
+    const readme = path.join(tmpDir, 'README.md');
+    fs.writeFileSync(readme, Array(500).fill('# Docs').join('\n'));
+    execSync('git add -A && git commit --no-verify -m "add non-source files"', {
+      cwd: tmpDir,
+      stdio: 'pipe',
+    });
+
+    const exitCode = await checkCommand(
+      { enforce: true, diffBase: baseRef, noBoundaries: true },
+      tmpDir,
+    );
+    expect(exitCode).toBe(0);
+  });
+
   it('does not flag pre-existing violations outside the diff', async () => {
     // Add a new source file WITH a corresponding test — no violations
     const newFile = path.join(tmpDir, 'src', 'lib', 'clean-util.ts');

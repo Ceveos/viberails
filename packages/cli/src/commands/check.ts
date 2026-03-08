@@ -8,6 +8,7 @@ import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
 import { checkCoverage } from './check-coverage.js';
 import {
+  SOURCE_EXTS,
   checkNaming,
   countFileLines,
   getAllSourceFiles,
@@ -138,7 +139,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     filesToCheck = getStagedFiles(projectRoot);
   } else if (options.diffBase) {
     const diff = getDiffFiles(projectRoot, options.diffBase);
-    filesToCheck = diff.all;
+    filesToCheck = diff.all.filter((f) => SOURCE_EXTS.has(path.extname(f)));
     diffAddedFiles = new Set(diff.added);
   } else if (options.files && options.files.length > 0) {
     filesToCheck = options.files;
