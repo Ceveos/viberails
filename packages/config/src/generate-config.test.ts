@@ -306,6 +306,7 @@ function createPackageScanResult(overrides: {
   name: string;
   relativePath: string;
   framework?: { name: string; version?: string };
+  testRunner?: { name: string; version?: string };
   fileNaming?: {
     value: string;
     confidence: 'high' | 'medium' | 'low';
@@ -325,6 +326,7 @@ function createPackageScanResult(overrides: {
       language: { name: 'typescript' } as const,
       packageManager: { name: 'pnpm' } as const,
       framework: overrides.framework,
+      testRunner: overrides.testRunner,
       libraries: [],
     },
     structure: { directories: [] },
@@ -468,5 +470,67 @@ describe('per-package configs in monorepo', () => {
     delete scanResult.stack.testRunner;
     const config = generateConfig(scanResult);
     expect(config.defaults?.coverage?.command).toBeUndefined();
+  });
+
+  it('sets per-package coverage commands when monorepo has mixed test runners', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        testRunner: { name: 'vitest', version: '4' },
+      }),
+      createPackageScanResult({
+        name: '@app/mobile',
+        relativePath: 'apps/mobile',
+        testRunner: { name: 'jest', version: '29' },
+      }),
+      createPackageScanResult({
+        name: '@app/shared',
+        relativePath: 'packages/shared',
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+
+    // Global default should not have a coverage command
+    expect(config.defaults?.coverage?.command).toBeUndefined();
+
+    // Each package with a test runner should have its own coverage command
+    const webPkg = config.packages.find((p) => p.path === 'apps/web');
+    expect(webPkg?.coverage?.command).toContain('vitest');
+
+    const mobilePkg = config.packages.find((p) => p.path === 'apps/mobile');
+    expect(mobilePkg?.coverage?.command).toContain('jest');
+
+    // Package without a test runner should have no coverage command
+    const sharedPkg = config.packages.find((p) => p.path === 'packages/shared');
+    expect(sharedPkg?.coverage?.command).toBeUndefined();
+  });
+
+  it('keeps global default when monorepo packages share the same test runner', () => {
+    const scanResult = createMonorepoScanResult();
+    scanResult.packages = [
+      createPackageScanResult({
+        name: '@app/web',
+        relativePath: 'apps/web',
+        testRunner: { name: 'vitest', version: '4' },
+      }),
+      createPackageScanResult({
+        name: '@app/mobile',
+        relativePath: 'apps/mobile',
+        testRunner: { name: 'vitest', version: '3' },
+      }),
+    ];
+
+    const config = generateConfig(scanResult);
+
+    // Global default should remain since all runners are vitest
+    expect(config.defaults?.coverage?.command).toContain('vitest');
+
+    // Packages should not have individual coverage commands
+    for (const pkg of config.packages) {
+      expect(pkg.coverage?.command).toBeUndefined();
+    }
   });
 });
