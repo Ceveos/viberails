@@ -30,6 +30,7 @@ export function checkGitDirty(projectRoot: string): boolean {
     const output = execSync('git status --porcelain', {
       cwd: projectRoot,
       encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
     return output.trim().length > 0;
   } catch {

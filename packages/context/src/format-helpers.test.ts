@@ -193,7 +193,7 @@ describe('packageHeader', () => {
     const result = packageHeader({
       name: '@app/web',
       path: 'apps/web',
-      stack: { framework: 'nextjs' },
+      stack: { framework: 'nextjs', language: 'typescript', packageManager: 'pnpm' },
     });
     expect(result).toBe('### apps/web (nextjs)');
   });

@@ -1,11 +1,14 @@
+import { createRequire } from 'node:module';
 import type { ScanResult } from '@viberails/types';
-import Ajv from 'ajv';
 import { describe, expect, it } from 'vitest';
 import { generateConfig } from './generate-config.js';
 import { configSchema } from './schema.js';
 
+const require = createRequire(import.meta.url);
+const Ajv = require('ajv');
+
 function makeMinimalScanResult(): ScanResult {
-  return {
+  const result: ScanResult = {
     root: '/project/my-app',
     stack: {
       language: { name: 'typescript' },
@@ -23,11 +26,24 @@ function makeMinimalScanResult(): ScanResult {
       largestFiles: [],
       filesByExtension: { '.ts': 10 },
     },
+    packages: [],
   };
+  result.packages = [
+    {
+      name: 'my-app',
+      root: result.root,
+      relativePath: '',
+      stack: result.stack,
+      structure: result.structure,
+      conventions: result.conventions,
+      statistics: result.statistics,
+    },
+  ];
+  return result;
 }
 
 function makeFullScanResult(): ScanResult {
-  return {
+  const result: ScanResult = {
     root: '/project/my-app',
     stack: {
       framework: { name: 'nextjs', version: '15' },
@@ -68,7 +84,20 @@ function makeFullScanResult(): ScanResult {
       largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
       filesByExtension: { '.ts': 60, '.tsx': 40 },
     },
+    packages: [],
   };
+  result.packages = [
+    {
+      name: 'my-app',
+      root: result.root,
+      relativePath: '',
+      stack: result.stack,
+      structure: result.structure,
+      conventions: result.conventions,
+      statistics: result.statistics,
+    },
+  ];
+  return result;
 }
 
 describe('configSchema validation', () => {

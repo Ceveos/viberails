@@ -103,6 +103,7 @@ export function getStagedFiles(projectRoot: string): string[] {
     const output = execSync('git diff --cached --name-only --diff-filter=ACM', {
       cwd: projectRoot,
       encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
     return output.trim().split('\n').filter(Boolean);
   } catch {

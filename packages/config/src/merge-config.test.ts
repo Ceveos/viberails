@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { mergeConfig } from './merge-config.js';
 
 function createScanResult(): ScanResult {
-  return {
+  const result: ScanResult = {
     root: '/home/user/projects/my-app',
     stack: {
       framework: { name: 'nextjs', version: '15' },
@@ -32,7 +32,20 @@ function createScanResult(): ScanResult {
       largestFiles: [],
       filesByExtension: { '.ts': 40, '.tsx': 40 },
     },
+    packages: [],
   };
+  result.packages = [
+    {
+      name: 'my-app',
+      root: result.root,
+      relativePath: '',
+      stack: result.stack,
+      structure: result.structure,
+      conventions: result.conventions,
+      statistics: result.statistics,
+    },
+  ];
+  return result;
 }
 
 function createExistingConfig(): ViberailsConfig {

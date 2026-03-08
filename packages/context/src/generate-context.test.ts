@@ -220,7 +220,7 @@ describe('per-package rules', () => {
           {
             name: '@app/mobile',
             path: 'apps/mobile',
-            stack: { framework: 'expo@53' },
+            stack: { framework: 'expo@53', language: 'typescript', packageManager: 'pnpm' },
             conventions: { fileNaming: 'PascalCase' },
           },
         ],

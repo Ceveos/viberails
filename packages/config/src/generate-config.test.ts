@@ -1,4 +1,4 @@
-import type { ScanResult } from '@viberails/types';
+import type { DetectedConvention, PackageScanResult, ScanResult } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_IGNORE, DEFAULT_RULES } from './defaults.js';
 import { generateConfig } from './generate-config.js';
@@ -40,6 +40,52 @@ function createNextjs15ScanResult(): ScanResult {
       largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
       filesByExtension: { '.ts': 42, '.tsx': 55, '.css': 12 },
     },
+    packages: [
+      {
+        name: 'my-app',
+        root: '/home/user/projects/my-app',
+        relativePath: '',
+        stack: {
+          framework: { name: 'nextjs', version: '15' },
+          language: { name: 'typescript' },
+          styling: { name: 'tailwindcss', version: '4' },
+          packageManager: { name: 'pnpm' },
+          linter: { name: 'eslint', version: '9' },
+          testRunner: { name: 'vitest' },
+          libraries: [{ name: 'zod' }, { name: 'react-query', version: '5' }],
+        },
+        structure: {
+          srcDir: 'src',
+          directories: [
+            { path: 'src/app', role: 'pages', fileCount: 12, confidence: 'high' },
+            { path: 'src/components', role: 'components', fileCount: 47, confidence: 'high' },
+            { path: 'src/hooks', role: 'hooks', fileCount: 8, confidence: 'high' },
+            { path: 'src/lib', role: 'utils', fileCount: 14, confidence: 'high' },
+            { path: 'src/types', role: 'types', fileCount: 5, confidence: 'high' },
+            { path: '__tests__', role: 'tests', fileCount: 23, confidence: 'high' },
+          ],
+          testPattern: { value: '*.test.ts', confidence: 'high', sampleSize: 23, consistency: 95 },
+        },
+        conventions: {
+          fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 100, consistency: 97 },
+          componentNaming: {
+            value: 'PascalCase',
+            confidence: 'high',
+            sampleSize: 47,
+            consistency: 94,
+          },
+          hookNaming: { value: 'useXxx', confidence: 'medium', sampleSize: 8, consistency: 78 },
+          importAlias: { value: '@/*', confidence: 'high', sampleSize: 1, consistency: 100 },
+        },
+        statistics: {
+          totalFiles: 109,
+          totalLines: 14500,
+          averageFileLines: 133,
+          largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
+          filesByExtension: { '.ts': 42, '.tsx': 55, '.css': 12 },
+        },
+      },
+    ],
   };
 }
 
@@ -266,7 +312,11 @@ function createPackageScanResult(overrides: {
     sampleSize: number;
     consistency: number;
   };
-}) {
+}): PackageScanResult {
+  const conventions: Record<string, DetectedConvention> = {};
+  if (overrides.fileNaming) {
+    conventions.fileNaming = overrides.fileNaming;
+  }
   return {
     name: overrides.name,
     root: `/abs/${overrides.relativePath}`,
@@ -278,7 +328,7 @@ function createPackageScanResult(overrides: {
       libraries: [],
     },
     structure: { directories: [] },
-    conventions: overrides.fileNaming ? { fileNaming: overrides.fileNaming } : {},
+    conventions,
     statistics: {
       totalFiles: 10,
       totalLines: 500,
