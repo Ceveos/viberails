@@ -71,7 +71,25 @@ describe('prompt utils', () => {
       claudeCodeHook: false,
       claudeMdRef: true,
       githubAction: false,
+      typecheckHook: false,
+      lintHook: false,
     });
+  });
+
+  it('promptIntegrations shows typecheck option when TypeScript is detected', async () => {
+    multiselectMock.mockResolvedValueOnce(['preCommit', 'typecheck']);
+    const result = await promptIntegrations('Husky', { isTypeScript: true });
+    expect(result.typecheckHook).toBe(true);
+    const options = multiselectMock.mock.calls[0][0].options;
+    expect(options.some((o: { value: string }) => o.value === 'typecheck')).toBe(true);
+  });
+
+  it('promptIntegrations shows lint option when linter is detected', async () => {
+    multiselectMock.mockResolvedValueOnce(['lint']);
+    const result = await promptIntegrations('Lefthook', { linter: 'eslint' });
+    expect(result.lintHook).toBe(true);
+    const options = multiselectMock.mock.calls[0][0].options;
+    expect(options.some((o: { value: string }) => o.value === 'lint')).toBe(true);
   });
 
   it('promptRuleMenu updates maxFileLines and testCoverage', async () => {

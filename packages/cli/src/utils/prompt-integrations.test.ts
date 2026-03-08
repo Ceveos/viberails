@@ -26,6 +26,8 @@ describe('promptIntegrations', () => {
       claudeCodeHook: false,
       claudeMdRef: true,
       githubAction: true,
+      typecheckHook: false,
+      lintHook: false,
     });
   });
 

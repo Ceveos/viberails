@@ -30,6 +30,11 @@ import {
   setupGithubAction,
   setupPreCommitHook,
 } from './init-hooks.js';
+import {
+  setupLintHook,
+  setupSelectedIntegrations,
+  setupTypecheckHook,
+} from './init-hooks-extra.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 
@@ -107,8 +112,14 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   setupClaudeCodeHook(projectRoot);
   setupClaudeMdReference(projectRoot);
   const preCommitTarget = setupPreCommitHook(projectRoot);
-  const rootPkgPm = config.packages[0]?.stack?.packageManager ?? 'npm';
+  const rootPkg = config.packages[0];
+  const rootPkgPm = rootPkg?.stack?.packageManager ?? 'npm';
   const actionTarget = setupGithubAction(projectRoot, rootPkgPm);
+
+  const typecheckTarget =
+    rootPkg?.stack?.language === 'typescript' ? setupTypecheckHook(projectRoot) : undefined;
+  const linter = rootPkg?.stack?.linter?.split('@')[0];
+  const lintTarget = linter ? setupLintHook(projectRoot, linter) : undefined;
 
   const ok = chalk.green('\u2713');
   const created = [
@@ -118,6 +129,8 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
     `${ok} .claude/settings.json \u2014 added viberails hook`,
     `${ok} CLAUDE.md \u2014 added @.viberails/context.md reference`,
     preCommitTarget ? `${ok} ${preCommitTarget}` : `${chalk.yellow('!')} pre-commit hook skipped`,
+    typecheckTarget ? `${ok} ${typecheckTarget} \u2014 added typecheck` : '',
+    lintTarget ? `${ok} ${lintTarget} \u2014 added lint check` : '',
     actionTarget ? `${ok} ${actionTarget} \u2014 blocks PRs on violations` : '',
   ].filter(Boolean);
   console.log(`\nCreated:\n${created.map((f) => `  ${f}`).join('\n')}`);
@@ -246,7 +259,11 @@ async function initInteractive(
   }
 
   const hookManager = detectHookManager(projectRoot);
-  const integrations = await promptIntegrations(hookManager);
+  const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
+  const integrations = await promptIntegrations(hookManager, {
+    isTypeScript: rootPkgStack?.language === 'typescript',
+    linter: rootPkgStack?.linter?.split('@')[0],
+  });
 
   const shouldWrite = await confirm('Write configuration and set up selected integrations?');
   if (!shouldWrite) {
@@ -263,32 +280,11 @@ async function initInteractive(
     path.basename(configPath),
     '.viberails/context.md',
     '.viberails/scan-result.json',
+    ...setupSelectedIntegrations(projectRoot, integrations, {
+      linter: rootPkgStack?.linter?.split('@')[0],
+      packageManager: rootPkgStack?.packageManager,
+    }),
   ];
-
-  if (integrations.preCommitHook) {
-    const preCommitTarget = setupPreCommitHook(projectRoot);
-    if (preCommitTarget) {
-      createdFiles.push(`${preCommitTarget} \u2014 added viberails pre-commit`);
-    } else {
-      createdFiles.push('pre-commit hook skipped (no .git / hook manager found)');
-    }
-  }
-  if (integrations.claudeCodeHook) {
-    setupClaudeCodeHook(projectRoot);
-    createdFiles.push('.claude/settings.json \u2014 added viberails hook');
-  }
-  if (integrations.claudeMdRef) {
-    setupClaudeMdReference(projectRoot);
-    createdFiles.push('CLAUDE.md \u2014 added @.viberails/context.md reference');
-  }
-  if (integrations.githubAction) {
-    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
-    const pm = rootPkg.stack?.packageManager ?? 'npm';
-    const target = setupGithubAction(projectRoot, pm);
-    if (target) {
-      createdFiles.push(`${target} \u2014 blocks PRs on violations`);
-    }
-  }
 
   clack.log.success(`Created:\n${createdFiles.map((f) => `  ${f}`).join('\n')}`);
   clack.outro(
