@@ -86,6 +86,14 @@ if grep -q "export const VERSION" "$CLI_INDEX"; then
   fi
 fi
 
+# Ensure npm authentication (required for @viberails scoped packages)
+echo "==> Checking npm authentication..."
+if ! npm whoami &>/dev/null; then
+  echo "  Not logged in to npm. Running npm login..."
+  npm login
+fi
+echo "  Logged in as: $(npm whoami)"
+
 # Build and test
 echo "==> Building all packages..."
 pnpm build
