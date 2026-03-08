@@ -136,7 +136,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
       ].join('\n')}\n`,
     );
 
-    await syncCommand(tmpDir);
+    await syncCommand({}, tmpDir);
 
     // Context regenerated with rules format
     const contextAfter = fs.readFileSync(path.join(tmpDir, '.viberails', 'context.md'), 'utf-8');

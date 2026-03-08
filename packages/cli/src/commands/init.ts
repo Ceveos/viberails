@@ -6,6 +6,7 @@ import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
 import { displayRulesPreview, displayScanResults } from '../display.js';
 import { formatRulesText, formatScanResultsText } from '../display-text.js';
+import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import {
   checkCoveragePrereqs,
   displayMissingPrereqs,
@@ -60,7 +61,7 @@ export async function initCommand(
   if (fs.existsSync(configPath) && !options.force) {
     console.log(
       `${chalk.yellow('!')} viberails is already initialized.\n` +
-        `  Run ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
+        `  Run ${chalk.cyan('viberails config')} to edit rules, ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
     );
     return;
   }
@@ -200,34 +201,7 @@ async function initInteractive(
       packageOverrides: config.packages,
     });
 
-    if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
-    config.rules.maxFileLines = overrides.maxFileLines;
-    config.rules.testCoverage = overrides.testCoverage;
-    config.rules.enforceMissingTests = overrides.enforceMissingTests;
-    config.rules.enforceNaming = overrides.enforceNaming;
-
-    for (const pkg of config.packages) {
-      pkg.coverage = pkg.coverage ?? {};
-      if (pkg.coverage.summaryPath === undefined) {
-        pkg.coverage.summaryPath = overrides.coverageSummaryPath;
-      }
-      if (pkg.coverage.command === undefined && overrides.coverageCommand) {
-        pkg.coverage.command = overrides.coverageCommand;
-      }
-    }
-
-    if (overrides.fileNamingValue) {
-      const oldNaming = rootPkg.conventions?.fileNaming;
-      rootPkg.conventions = rootPkg.conventions ?? {};
-      rootPkg.conventions.fileNaming = overrides.fileNamingValue;
-      if (oldNaming && oldNaming !== overrides.fileNamingValue) {
-        for (const pkg of config.packages) {
-          if (pkg.conventions?.fileNaming === oldNaming) {
-            pkg.conventions.fileNaming = overrides.fileNamingValue;
-          }
-        }
-      }
-    }
+    applyRuleOverrides(config, overrides);
   }
 
   if (config.packages.length > 1) {
