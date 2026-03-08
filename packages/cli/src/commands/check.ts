@@ -200,9 +200,10 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     const startTime = Date.now();
     const { buildImportGraph, checkBoundaries } = await import('@viberails/graph');
 
-    const packages = config.workspace
-      ? resolveWorkspacePackages(projectRoot, config.workspace)
-      : undefined;
+    const packages =
+      config.packages.length > 1
+        ? resolveWorkspacePackages(projectRoot, config.packages)
+        : undefined;
 
     const graph = await buildImportGraph(projectRoot, {
       packages,

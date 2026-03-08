@@ -15,14 +15,7 @@ import {
 import { formatItem } from './display.js';
 import { formatMonorepoResultsText } from './display-monorepo.js';
 
-/**
- * Extract the convention value string from a ConventionValue.
- */
-function getConventionStr(
-  cv: string | { value: string; _confidence: string; _consistency: number },
-): string {
-  return typeof cv === 'string' ? cv : cv.value;
-}
+// Conventions are plain strings in V2 — no extraction needed.
 
 /**
  * Format a plain-text confidence label (no chalk).
@@ -78,21 +71,22 @@ export function formatConventionsText(scanResult: ScanResult): string[] {
  * Build rules preview as plain text lines.
  */
 export function formatRulesText(config: ViberailsConfig): string[] {
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   const lines: string[] = [];
   lines.push('');
   lines.push('Rules:');
   lines.push(`  \u2022 Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.requireTests && config.structure.testPattern) {
-    lines.push(`  \u2022 Require test files: yes (${config.structure.testPattern})`);
+  if (config.rules.requireTests && root?.structure?.testPattern) {
+    lines.push(`  \u2022 Require test files: yes (${root.structure.testPattern})`);
   } else if (config.rules.requireTests) {
     lines.push('  \u2022 Require test files: yes');
   } else {
     lines.push('  \u2022 Require test files: no');
   }
 
-  if (config.rules.enforceNaming && config.conventions.fileNaming) {
-    lines.push(`  \u2022 Enforce file naming: ${getConventionStr(config.conventions.fileNaming)}`);
+  if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
+    lines.push(`  \u2022 Enforce file naming: ${root.conventions.fileNaming}`);
   } else {
     lines.push('  \u2022 Enforce file naming: no');
   }

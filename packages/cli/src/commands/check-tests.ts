@@ -22,10 +22,11 @@ export function checkMissingTests(
   severity: 'error' | 'warn',
 ): CheckViolation[] {
   const violations: CheckViolation[] = [];
-  const { testPattern } = config.structure;
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const testPattern = root.structure?.testPattern;
   if (!testPattern) return violations;
 
-  const srcDir = config.structure.srcDir;
+  const srcDir = root.structure?.srcDir;
   if (!srcDir) return violations;
 
   const srcPath = path.join(projectRoot, srcDir);
@@ -56,7 +57,7 @@ export function checkMissingTests(
     // Look for the test file next to the source or in the tests directory
     const dir = path.dirname(path.join(projectRoot, relFile));
     const colocatedTest = path.join(dir, expectedTestFile);
-    const testsDir = config.structure.tests;
+    const testsDir = root.structure?.tests;
     const dedicatedTest = testsDir ? path.join(projectRoot, testsDir, expectedTestFile) : null;
 
     const hasTest =

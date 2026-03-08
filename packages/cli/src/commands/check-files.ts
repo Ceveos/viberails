@@ -1,7 +1,8 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
+import type { ConfigConventions, ViberailsConfig } from '@viberails/types';
+import { BUILTIN_IGNORE } from '@viberails/config';
 import picomatch from 'picomatch';
 
 const ALWAYS_SKIP_DIRS = new Set([
@@ -87,11 +88,7 @@ export function checkNaming(relPath: string, conventions: ConfigConventions): st
   }
 
   const bare = filename.slice(0, filename.indexOf('.'));
-  const convention =
-    typeof conventions.fileNaming === 'string'
-      ? conventions.fileNaming
-      : (conventions.fileNaming as Exclude<ConventionValue, string> | undefined)?.value;
-
+  const convention = conventions.fileNaming;
   if (!convention) return undefined;
 
   const pattern = NAMING_PATTERNS[convention];
@@ -115,6 +112,7 @@ export function getStagedFiles(projectRoot: string): string[] {
 
 /** Get all source files in the project. */
 export function getAllSourceFiles(projectRoot: string, config: ViberailsConfig): string[] {
+  const effectiveIgnore = [...BUILTIN_IGNORE, ...(config.ignore ?? [])];
   const files: string[] = [];
   const walk = (dir: string) => {
     let entries: fs.Dirent[];
@@ -129,11 +127,11 @@ export function getAllSourceFiles(projectRoot: string, config: ViberailsConfig):
         if (ALWAYS_SKIP_DIRS.has(entry.name)) {
           continue;
         }
-        if (isIgnored(rel, config.ignore)) continue;
+        if (isIgnored(rel, effectiveIgnore)) continue;
         walk(path.join(dir, entry.name));
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name);
-        if (SOURCE_EXTS.has(ext) && !isIgnored(rel, config.ignore)) {
+        if (SOURCE_EXTS.has(ext) && !isIgnored(rel, effectiveIgnore)) {
           files.push(rel);
         }
       }

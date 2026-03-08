@@ -38,12 +38,10 @@ export function checkGitDirty(projectRoot: string): boolean {
 }
 
 /**
- * Extract the string value from a convention (which may be a string or an object with a value property).
+ * Extract the string value from a convention.
+ * In V2, conventions are always plain strings.
  */
 export function getConventionValue(convention: unknown): string | undefined {
   if (typeof convention === 'string') return convention;
-  if (convention && typeof convention === 'object' && 'value' in convention) {
-    return (convention as { value: string }).value;
-  }
   return undefined;
 }

@@ -81,9 +81,8 @@ async function inferAndDisplay(
   console.log(chalk.dim('Analyzing imports...'));
   const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
 
-  const packages = config.workspace
-    ? resolveWorkspacePackages(projectRoot, config.workspace)
-    : undefined;
+  const packages =
+    config.packages.length > 1 ? resolveWorkspacePackages(projectRoot, config.packages) : undefined;
 
   const graph = await buildImportGraph(projectRoot, {
     packages,
@@ -126,9 +125,8 @@ async function showGraph(projectRoot: string, config: ViberailsConfig): Promise<
   console.log(chalk.dim('Building import graph...'));
   const { buildImportGraph } = await import('@viberails/graph');
 
-  const packages = config.workspace
-    ? resolveWorkspacePackages(projectRoot, config.workspace)
-    : undefined;
+  const packages =
+    config.packages.length > 1 ? resolveWorkspacePackages(projectRoot, config.packages) : undefined;
 
   const graph = await buildImportGraph(projectRoot, {
     packages,

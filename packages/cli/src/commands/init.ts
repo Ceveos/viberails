@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as clack from '@clack/prompts';
-import { generateConfig } from '@viberails/config';
+import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
-import type { ConfigConventions, ConventionValue } from '@viberails/types';
+import type { ConfigConventions } from '@viberails/types';
 import chalk from 'chalk';
 import { formatScanResultsText } from '../display-text.js';
 import { displayRulesPreview, displayScanResults } from '../display.js';
@@ -26,29 +26,22 @@ import {
 const CONFIG_FILE = 'viberails.config.json';
 
 /**
- * Filter a ConfigConventions object to only include high-confidence entries.
+ * Filter conventions to only include high-confidence entries (using _meta).
  */
-function filterHighConfidence(conventions: ConfigConventions): ConfigConventions {
+function filterHighConfidence(
+  conventions: ConfigConventions,
+  meta?: Record<string, { confidence: string }>,
+): ConfigConventions {
+  if (!meta) return conventions;
   const filtered: ConfigConventions = {};
   for (const [key, value] of Object.entries(conventions)) {
     if (value === undefined) continue;
-    if (typeof value === 'string') {
+    const convMeta = meta[key];
+    if (!convMeta || convMeta.confidence === 'high') {
       filtered[key as keyof ConfigConventions] = value;
-    } else if (value._confidence === 'high') {
-      filtered[key as keyof ConfigConventions] = value as ConventionValue;
     }
   }
   return filtered;
-}
-
-/**
- * Extract the string value from a ConventionValue.
- */
-function getConventionStr(
-  cv: string | { value: string; _confidence: string; _consistency: number } | undefined,
-): string | undefined {
-  if (!cv) return undefined;
-  return typeof cv === 'string' ? cv : cv.value;
 }
 
 /**
@@ -88,16 +81,20 @@ export async function initCommand(
     console.log(chalk.dim('Scanning project...'));
     const scanResult = await scan(projectRoot);
     const config = generateConfig(scanResult);
-    config.conventions = filterHighConfidence(config.conventions);
+
+    // Filter to high-confidence conventions only in --yes mode
+    const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    const rootMeta = config._meta?.packages?.[root.path]?.conventions;
+    root.conventions = filterHighConfidence(root.conventions ?? {}, rootMeta);
 
     displayScanResults(scanResult);
     displayRulesPreview(config);
 
     // Auto-infer boundaries for monorepos
-    if (config.workspace?.packages && config.workspace.packages.length > 0) {
+    if (config.packages.length > 1) {
       console.log(chalk.dim('Building import graph...'));
       const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-      const packages = resolveWorkspacePackages(projectRoot, config.workspace);
+      const packages = resolveWorkspacePackages(projectRoot, config.packages);
       const graph = await buildImportGraph(projectRoot, {
         packages,
         ignore: config.ignore,
@@ -111,8 +108,9 @@ export async function initCommand(
       }
     }
 
-    // Write files
-    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    // Write files (compact before writing)
+    const compacted = compactConfig(config);
+    fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
     writeGeneratedFiles(projectRoot, config, scanResult);
     updateGitignore(projectRoot);
 
@@ -152,12 +150,13 @@ export async function initCommand(
   const decision = await promptInitDecision();
 
   if (decision === 'customize') {
+    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
     const overrides = await promptRuleMenu({
       maxFileLines: config.rules.maxFileLines,
       requireTests: config.rules.requireTests,
       enforceNaming: config.rules.enforceNaming,
       enforcement: config.enforcement,
-      fileNamingValue: getConventionStr(config.conventions.fileNaming),
+      fileNamingValue: rootPkg.conventions?.fileNaming,
       packageOverrides: config.packages,
     });
 
@@ -168,7 +167,7 @@ export async function initCommand(
   }
 
   // 7. Boundary inference (monorepo only)
-  if (config.workspace?.packages && config.workspace.packages.length > 0) {
+  if (config.packages.length > 1) {
     clack.note(
       'Boundary rules prevent packages from importing where they\n' +
         "shouldn't. viberails scans your existing imports and creates\n" +
@@ -181,7 +180,7 @@ export async function initCommand(
       const bs = clack.spinner();
       bs.start('Building import graph...');
       const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-      const packages = resolveWorkspacePackages(projectRoot, config.workspace);
+      const packages = resolveWorkspacePackages(projectRoot, config.packages);
       const graph = await buildImportGraph(projectRoot, {
         packages,
         ignore: config.ignore,
@@ -202,8 +201,9 @@ export async function initCommand(
   const hookManager = detectHookManager(projectRoot);
   const integrations = await promptIntegrations(hookManager);
 
-  // 9. Write config
-  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  // 9. Write config (compact before writing)
+  const compacted = compactConfig(config);
+  fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
 
   // 11. Generate context and scan-result.json
   writeGeneratedFiles(projectRoot, config, scanResult);

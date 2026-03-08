@@ -17,7 +17,8 @@ export function generateTestStub(
   config: ViberailsConfig,
   projectRoot: string,
 ): TestStubRecord | null {
-  const { testPattern } = config.structure;
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const testPattern = root?.structure?.testPattern;
   if (!testPattern) return null;
 
   const basename = path.basename(sourceRelPath);
@@ -41,7 +42,8 @@ export function generateTestStub(
  * Write a test stub file to disk.
  */
 export function writeTestStub(stub: TestStubRecord, config: ViberailsConfig): void {
-  const runner = config.stack.testRunner === 'jest' ? 'jest' : 'vitest';
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const runner = root?.stack?.testRunner === 'jest' ? 'jest' : 'vitest';
   const importLine =
     runner === 'jest'
       ? '' // jest globals are available without import
