@@ -130,13 +130,13 @@ describe('checkCoverage', () => {
     expect(violations[0].file).toBe('custom/summary.json');
   });
 
-  it('reports actionable violation for unsupported runner without configured command', () => {
+  it('shows helpful message when no summary and no configured command', () => {
     const config = makeConfig({
       packages: [
         {
           name: 'test-project',
           path: '.',
-          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'mocha@10.0.0' },
+          stack: { language: 'typescript', packageManager: 'pnpm' },
           structure: {},
           conventions: {},
         },
@@ -145,7 +145,26 @@ describe('checkCoverage', () => {
 
     const violations = checkCoverage(tmpDir, config, [], {});
     expect(violations).toHaveLength(1);
-    expect(violations[0].message).toContain('cannot be evaluated');
+    expect(violations[0].message).toContain('No coverage summary found');
     expect(violations[0].message).toContain('defaults.coverage.command');
+  });
+
+  it('does not auto-run inferred commands — only explicit coverage.command', () => {
+    // Even with a known test runner, check should NOT auto-infer and run
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest@4.0.0' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    });
+
+    const violations = checkCoverage(tmpDir, config, [], {});
+    expect(violations).toHaveLength(1);
+    expect(violations[0].message).toContain('No coverage summary found');
   });
 });

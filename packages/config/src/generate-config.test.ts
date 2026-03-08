@@ -455,4 +455,18 @@ describe('per-package configs in monorepo', () => {
     expect(mobilePackage).toBeDefined();
     expect(mobilePackage?.stack?.styling).toBe('nativewind@4');
   });
+
+  it('sets defaults.coverage.command when testRunner is vitest', () => {
+    const scanResult = createNextjs15ScanResult();
+    const config = generateConfig(scanResult);
+    expect(config.defaults?.coverage?.command).toContain('vitest');
+    expect(config.defaults?.coverage?.command).toContain('--coverage');
+  });
+
+  it('does not set defaults.coverage.command when testRunner is absent', () => {
+    const scanResult = createNextjs15ScanResult();
+    delete scanResult.stack.testRunner;
+    const config = generateConfig(scanResult);
+    expect(config.defaults?.coverage?.command).toBeUndefined();
+  });
 });

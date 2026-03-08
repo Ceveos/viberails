@@ -14,6 +14,7 @@ import type {
 } from '@viberails/types';
 import { DEFAULT_IGNORE, DEFAULT_RULES } from './defaults.js';
 import { generatePackages } from './generate-packages.js';
+import { inferCoverageCommand } from './infer-coverage-command.js';
 
 /**
  * Format a StackItem as a config string: `"name@version"` or `"name"`.
@@ -173,6 +174,15 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
     packages: [rootPackage],
     _meta,
   };
+
+  // Infer coverage command from detected test runner
+  const testRunner = scanResult.stack.testRunner;
+  const coverageCommand = inferCoverageCommand(
+    testRunner ? formatStackItem(testRunner) : undefined,
+  );
+  if (coverageCommand) {
+    config.defaults = { coverage: { command: coverageCommand } };
+  }
 
   // Monorepo: generate per-package configs
   if (scanResult.workspace) {

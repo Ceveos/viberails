@@ -43,9 +43,13 @@ export async function confirmDangerous(message: string): Promise<boolean> {
  */
 export async function promptInitDecision(): Promise<'accept' | 'customize'> {
   const result = await clack.select({
-    message: 'Accept these settings?',
+    message: 'Accept these rules?',
     options: [
-      { value: 'accept' as const, label: 'Yes, looks good', hint: 'recommended' },
+      {
+        value: 'accept' as const,
+        label: 'Yes, looks good',
+        hint: 'warns on violation; use --enforce in CI to block',
+      },
       { value: 'customize' as const, label: 'Let me customize rules' },
     ],
   });

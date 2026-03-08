@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
+    "@vitest/coverage-v8": "^4.0.18",
     "lefthook": "^2.1.2",
     "tsup": "^8.5.1",
     "turbo": "^2.8.13",

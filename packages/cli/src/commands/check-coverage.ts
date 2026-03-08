@@ -77,21 +77,6 @@ function readCoveragePercentage(summaryPath: string): number | undefined {
   }
 }
 
-function inferCoverageCommand(pkgRoot: string, pkg: PackageConfig): string | undefined {
-  const runner = pkg.stack?.testRunner?.split('@')[0];
-  if (runner === 'vitest') {
-    const vitestBin = path.join(pkgRoot, 'node_modules', '.bin', 'vitest');
-    if (!fs.existsSync(vitestBin)) return undefined;
-    return './node_modules/.bin/vitest run --coverage --coverage.reporter=json-summary';
-  }
-  if (runner === 'jest') {
-    const jestBin = path.join(pkgRoot, 'node_modules', '.bin', 'jest');
-    if (!fs.existsSync(jestBin)) return undefined;
-    return './node_modules/.bin/jest --coverage --coverageReporters=json-summary';
-  }
-  return undefined;
-}
-
 function runCoverageCommand(pkgRoot: string, command: string): { ok: boolean; detail?: string } {
   const result = spawnSync(command, {
     cwd: pkgRoot,
@@ -150,13 +135,13 @@ export function checkCoverage(
     let pct = readCoveragePercentage(summaryAbs);
 
     if (pct === undefined && !options.staged) {
-      const command = target.coverage.command ?? inferCoverageCommand(pkgRoot, target.pkg);
+      const command = target.coverage.command;
       if (!command) {
         const pkgLabel = target.pkg.path === '.' ? 'root package' : target.pkg.path;
         pushViolation(
           violations,
           summaryRel,
-          `Coverage for "${pkgLabel}" cannot be evaluated. Configure defaults.coverage.command or package coverage.command.`,
+          `No coverage summary found for "${pkgLabel}". Run your test suite with coverage enabled, or set defaults.coverage.command in viberails.config.json.`,
           severity,
         );
         continue;

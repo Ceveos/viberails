@@ -68,6 +68,10 @@ export function generatePackages(scanResult: ScanResult): PackageConfig[] | unde
       conventions: buildPackageConventions(pkg.conventions),
     };
 
+    if (pkg.typesOnly) {
+      packageConfig.rules = { testCoverage: 0 };
+    }
+
     packages.push(packageConfig);
   }
 

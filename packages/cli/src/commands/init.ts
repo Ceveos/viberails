@@ -27,6 +27,12 @@ import {
 
 const CONFIG_FILE = 'viberails.config.json';
 
+function getExemptedPackages(config: import('@viberails/types').ViberailsConfig): string[] {
+  return config.packages
+    .filter((pkg) => pkg.rules?.testCoverage === 0 && pkg.path !== '.')
+    .map((pkg) => pkg.path);
+}
+
 /**
  * Run the viberails init flow.
  *
@@ -79,6 +85,13 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
 
   displayScanResults(scanResult);
   displayRulesPreview(config);
+
+  const exempted = getExemptedPackages(config);
+  if (exempted.length > 0) {
+    console.log(
+      `  ${chalk.dim('Auto-exempted from coverage:')} ${exempted.join(', ')} ${chalk.dim('(types-only)')}`,
+    );
+  }
 
   if (config.packages.length > 1) {
     console.log(chalk.dim('Building import graph...'));
@@ -150,7 +163,13 @@ async function initInteractive(
   }
 
   clack.note(formatScanResultsText(scanResult), 'Scan results');
-  clack.note(formatRulesText(config).join('\n'), 'Rules');
+
+  const interactiveExempted = getExemptedPackages(config);
+  const rulesLines = formatRulesText(config);
+  if (interactiveExempted.length > 0) {
+    rulesLines.push(`Auto-exempted from coverage: ${interactiveExempted.join(', ')} (types-only)`);
+  }
+  clack.note(rulesLines.join('\n'), 'Rules');
 
   const decision = await promptInitDecision();
 
@@ -162,7 +181,7 @@ async function initInteractive(
       enforceNaming: config.rules.enforceNaming,
       fileNamingValue: rootPkg.conventions?.fileNaming,
       coverageSummaryPath: 'coverage/coverage-summary.json',
-      coverageCommand: undefined,
+      coverageCommand: config.defaults?.coverage?.command,
       packageOverrides: config.packages,
     });
 

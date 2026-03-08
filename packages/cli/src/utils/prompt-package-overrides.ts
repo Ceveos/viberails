@@ -28,7 +28,9 @@ function packageCoverageHint(
     pkg.coverage?.command !== undefined && pkg.coverage.command !== defaultCommand;
 
   const tags: string[] = [];
-  tags.push(isExempt ? 'exempt' : `${coverage}%`);
+  const nameSegments = pkg.name.replace(/^@[^/]+\//, '').split(/[-/]/);
+  const isTypesOnly = isExempt && nameSegments.some((s) => s === 'types');
+  tags.push(isExempt ? (isTypesOnly ? 'exempt (types-only)' : 'exempt') : `${coverage}%`);
   if (hasSummaryOverride) tags.push('summary override');
   if (hasCommandOverride) tags.push('command override');
   return tags.join(', ');

@@ -155,7 +155,9 @@ export function displayScanResults(scanResult: ScanResult): void {
 export function displayRulesPreview(config: ViberailsConfig): void {
   const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
 
-  console.log(`${chalk.bold('Rules:')}`);
+  console.log(
+    `${chalk.bold('Rules:')} ${chalk.dim('(warns on violation; use --enforce in CI to block)')}`,
+  );
   console.log(`  ${chalk.dim('\u2022')} Max file size: ${config.rules.maxFileLines} lines`);
 
   if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {

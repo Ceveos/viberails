@@ -4,6 +4,7 @@ import { computeStatistics } from './compute-statistics.js';
 import { detectConventions } from './detect-conventions.js';
 import { detectStack } from './detect-stack.js';
 import { detectStructure } from './detect-structure.js';
+import { detectTypesOnly } from './detect-types-only.js';
 import { walkDirectory } from './utils/walk-directory.js';
 
 /**
@@ -36,7 +37,10 @@ export async function scanPackage(
     computeStatistics(root, dirs),
   ]);
 
-  const conventions = await detectConventions(root, structure, dirs);
+  const [conventions, typesOnly] = await Promise.all([
+    detectConventions(root, structure, dirs),
+    detectTypesOnly(root, name),
+  ]);
 
   return {
     name,
@@ -46,5 +50,6 @@ export async function scanPackage(
     structure,
     conventions,
     statistics,
+    ...(typesOnly ? { typesOnly } : {}),
   };
 }
