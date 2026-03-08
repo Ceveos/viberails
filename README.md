@@ -50,7 +50,7 @@ Scans your project and generates config, context, and hooks.
 | Flag | Effect |
 |------|--------|
 | `--yes` / `-y` | Non-interactive. Uses defaults, keeps high-confidence conventions, and auto-sets up integrations. |
-| `--force` / `-f` | Re-initialize from scratch, replacing existing config. |
+| `--force` / `-f` | Re-initialize from scratch, replacing existing config. Use `viberails config` to edit rules without starting over. |
 
 ### `viberails check`
 
@@ -76,9 +76,21 @@ Auto-fixes naming violations and generates missing test stubs.
 | `--rule <name>` | Fix only `file-naming` or `missing-test`. |
 | `--yes` / `-y` | Apply fixes without confirmation. |
 
+### `viberails config`
+
+Interactively edit existing config rules without re-initializing. Opens the same rule menu used during `init` with your current values pre-filled.
+
+| Flag | Effect |
+|------|--------|
+| `--rescan` | Re-scan the project first, picking up new packages and stack changes. |
+
 ### `viberails sync`
 
 Re-scans and regenerates context files. Preserves manual edits to `viberails.config.json` and reports what changed.
+
+| Flag | Effect |
+|------|--------|
+| `--interactive` / `-i` | Review changes before writing. Choose to accept, customize rules, or cancel. |
 
 ### `viberails boundaries`
 
