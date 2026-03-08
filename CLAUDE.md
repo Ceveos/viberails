@@ -264,6 +264,22 @@ The generated `.viberails/context.md` is the primary output. It must be:
 - No interactive prompts in library packages — only the CLI package prompts
 - No V1.1 features (hooks, guardrails, boundaries, fix command, monorepo support)
 
+## Running viberails locally (dogfooding)
+
+**Always use the local build, never `npx viberails`** — that pulls the published npm version, not your working copy.
+
+```sh
+# Build first (required after code changes)
+pnpm turbo build
+
+# Then run the local CLI directly
+node packages/cli/dist/index.js check
+node packages/cli/dist/index.js sync
+node packages/cli/dist/index.js fix
+```
+
+Run `node packages/cli/dist/index.js check` before pushing to verify this repo passes its own checks.
+
 ## Commit Standards
 
 - Conventional commits: `feat:`, `fix:`, `test:`, `refactor:`, `docs:`, `chore:`

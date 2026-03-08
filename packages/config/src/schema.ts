@@ -4,6 +4,8 @@
  * This schema will eventually be hosted at https://viberails.sh/schema/v1.json.
  * For now it is exported as a TypeScript object that can be serialized to JSON.
  */
+import { boundaryItemSchema, conventionValueDef, packageItemSchema } from './schema-parts.js';
+
 export const configSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   $id: 'https://viberails.sh/schema/v1.json',
@@ -177,29 +179,7 @@ export const configSchema = {
     },
     boundaries: {
       type: 'array',
-      items: {
-        type: 'object',
-        required: ['from', 'to', 'allow'],
-        properties: {
-          from: {
-            type: 'string',
-            description: 'Source package or directory pattern.',
-          },
-          to: {
-            type: 'string',
-            description: 'Target package or directory pattern.',
-          },
-          allow: {
-            type: 'boolean',
-            description: 'Whether this import direction is allowed or disallowed.',
-          },
-          reason: {
-            type: 'string',
-            description: 'Human-readable explanation of why this boundary exists.',
-          },
-        },
-        additionalProperties: false,
-      },
+      items: boundaryItemSchema,
       description: 'Module boundary rules for import enforcement.',
     },
     workspace: {
@@ -221,81 +201,12 @@ export const configSchema = {
     },
     packages: {
       type: 'array',
-      items: {
-        type: 'object',
-        required: ['name', 'path'],
-        properties: {
-          name: { type: 'string', description: 'Package name from package.json.' },
-          path: { type: 'string', description: 'Relative path to the package.' },
-          stack: {
-            type: 'object',
-            properties: {
-              framework: { type: 'string' },
-              language: { type: 'string' },
-              styling: { type: 'string' },
-              backend: { type: 'string' },
-              orm: { type: 'string' },
-              packageManager: { type: 'string' },
-              linter: { type: 'string' },
-              formatter: { type: 'string' },
-              testRunner: { type: 'string' },
-            },
-            additionalProperties: false,
-          },
-          conventions: { $ref: '#/properties/conventions' },
-          rules: {
-            type: 'object',
-            properties: {
-              maxFileLines: { type: 'number' },
-              maxTestFileLines: { type: 'number' },
-              maxFunctionLines: { type: 'number' },
-              requireTests: { type: 'boolean' },
-              enforceNaming: { type: 'boolean' },
-              enforceBoundaries: { type: 'boolean' },
-            },
-            additionalProperties: false,
-          },
-          ignore: { type: 'array', items: { type: 'string' } },
-        },
-        additionalProperties: false,
-      },
+      items: packageItemSchema,
       description: 'Per-package overrides for monorepo projects.',
     },
   },
   additionalProperties: false,
   definitions: {
-    conventionValue: {
-      description:
-        'A convention value — either a plain string (user-confirmed) or an object with scanner metadata.',
-      oneOf: [
-        { type: 'string' },
-        {
-          type: 'object',
-          required: ['value', '_confidence', '_consistency'],
-          properties: {
-            value: {
-              type: 'string',
-              description: 'The convention value.',
-            },
-            _confidence: {
-              type: 'string',
-              enum: ['high', 'medium', 'low'],
-              description: 'Scanner confidence level.',
-            },
-            _consistency: {
-              type: 'number',
-              minimum: 0,
-              maximum: 100,
-              description: 'Scanner consistency percentage.',
-            },
-            _detected: {
-              type: 'boolean',
-              description: 'Set by mergeConfig when a convention is newly detected during sync.',
-            },
-          },
-          additionalProperties: false,
-        },
-      ],
-    },
+    conventionValue: conventionValueDef,
   },
 } as const;
