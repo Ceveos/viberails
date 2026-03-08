@@ -4,7 +4,7 @@ import { generatePackages } from './generate-packages.js';
 
 function makeGlobalConfig(): ViberailsConfig {
   return {
-    version: 2,
+    version: 1,
     name: 'mono',
     rules: {
       maxFileLines: 300,
@@ -125,7 +125,7 @@ describe('generatePackages', () => {
 
     const apiPkg = result?.find((p) => p.path === 'packages/api');
     expect(apiPkg).toBeDefined();
-    // V2: conventions are plain strings, not ConventionValue objects
+    // Conventions are plain strings, not ConventionValue objects
     expect(apiPkg?.conventions?.fileNaming).toBe('PascalCase');
   });
 });

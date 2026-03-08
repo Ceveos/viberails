@@ -55,7 +55,7 @@ describe('resolveWorkspacePackages', () => {
     expect(web).toBeDefined();
     expect(web?.internalDeps).toEqual(['@test/core']);
     // react should be filtered out
-    expect(web!.internalDeps).not.toContain('react');
+    expect(web?.internalDeps).not.toContain('react');
   });
 
   it('skips packages without package.json', () => {

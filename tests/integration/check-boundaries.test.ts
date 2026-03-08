@@ -19,7 +19,7 @@ describe('check command with boundary enforcement', () => {
 
   function writeConfig(overrides: Record<string, unknown> = {}): void {
     const config = {
-      version: 2,
+      version: 1,
       name: 'monorepo-violations',
       rules: {
         maxFileLines: 0,

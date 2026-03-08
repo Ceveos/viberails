@@ -80,7 +80,7 @@ describe('init command', () => {
       const configPath = path.join(monoDir, 'viberails.config.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-      // V2: monorepo is indicated by packages.length > 1
+      // Config: monorepo is indicated by packages.length > 1
       expect(config.packages).toBeDefined();
       expect(config.packages.length).toBeGreaterThan(1);
 
@@ -110,7 +110,7 @@ describe('init command', () => {
     const configPath = path.join(tmpDir, 'viberails.config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-    // V2: conventions are plain strings in packages, metadata is in _meta
+    // Config: conventions are plain strings in packages, metadata is in _meta
     const root =
       config.packages.find((p: { path: string }) => p.path === '.') ?? config.packages[0];
     // All convention values should be plain strings (no ConventionValue objects)

@@ -5,8 +5,8 @@ import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { ConfigConventions } from '@viberails/types';
 import chalk from 'chalk';
-import { formatRulesText, formatScanResultsText } from '../display-text.js';
 import { displayRulesPreview, displayScanResults } from '../display.js';
+import { formatRulesText, formatScanResultsText } from '../display-text.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import {
   confirm,

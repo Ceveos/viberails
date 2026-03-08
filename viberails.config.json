@@ -1,6 +1,6 @@
 {
-  "$schema": "https://viberails.sh/schema/v2.json",
-  "version": 2,
+  "$schema": "https://viberails.sh/schema/v1.json",
+  "version": 1,
   "name": "viberails",
   "ignore": [
     "tests/fixtures/**"

@@ -116,10 +116,11 @@ function diffPackage(
         type: 'added',
         description: `${pkgPrefix}New convention: ${label} (${newVal})`,
       });
-    } else if (oldVal && newVal && isNewlyDetected(mergedConfig, merged.path, key)) {
+    } else if (oldVal && newVal && oldVal !== newVal) {
+      const suffix = isNewlyDetected(mergedConfig, merged.path, key) ? ' (newly detected)' : '';
       changes.push({
         type: 'changed',
-        description: `${pkgPrefix}Convention updated: ${label} (${newVal})`,
+        description: `${pkgPrefix}Convention updated: ${label} (${newVal})${suffix}`,
       });
     }
   }

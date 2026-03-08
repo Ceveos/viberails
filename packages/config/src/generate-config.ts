@@ -137,7 +137,7 @@ export function buildConventionMeta(
 /**
  * Generate a ViberailsConfig from scan results.
  *
- * Produces V2 format: all config lives in `packages[]`.
+ * Produces the packages-first config format: all config lives in `packages[]`.
  * Single projects get one package with `path: "."`.
  * Monorepos get one package per workspace package.
  *
@@ -165,8 +165,8 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
   };
 
   const config: ViberailsConfig = {
-    $schema: 'https://viberails.sh/schema/v2.json',
-    version: 2,
+    $schema: 'https://viberails.sh/schema/v1.json',
+    version: 1,
     name: projectName,
     rules: { ...DEFAULT_RULES },
     ignore: [...DEFAULT_IGNORE],

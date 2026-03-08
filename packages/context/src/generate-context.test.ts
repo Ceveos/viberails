@@ -4,7 +4,7 @@ import { generateContext } from './generate-context.js';
 
 function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
-    version: 2,
+    version: 1,
     name: 'test-app',
     rules: {
       maxFileLines: 300,

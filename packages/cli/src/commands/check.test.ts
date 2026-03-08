@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveConfigForFile } from './check-config.js';
 
 const baseConfig: ViberailsConfig = {
-  version: 2,
+  version: 1,
   name: 'test-monorepo',
   rules: {
     maxFileLines: 300,

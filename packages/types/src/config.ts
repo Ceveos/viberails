@@ -9,7 +9,7 @@ export interface ViberailsConfig {
   /** JSON Schema URL for editor validation. */
   $schema?: string;
 
-  /** Config format version. Always `2`. */
+  /** Config format version. Always `1`. */
   version: number;
 
   /** Project name, typically from package.json. */

@@ -3,7 +3,7 @@ import type { ViberailsConfig } from '@viberails/types';
 import { expandDefaults } from './compact-config.js';
 
 /**
- * Validate that a parsed object has the required ViberailsConfig V2 fields
+ * Validate that a parsed object has the required ViberailsConfig fields
  * and that their types are correct.
  * Throws a descriptive error if validation fails.
  */
@@ -20,11 +20,17 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
   }
 
   // Type checks
-  if (typeof parsed.version !== 'number') errors.push('"version" must be a number');
+  if (typeof parsed.version !== 'number') {
+    errors.push('"version" must be a number');
+  } else if (parsed.version !== 1) {
+    errors.push('"version" must be 1');
+  }
   if (typeof parsed.name !== 'string') errors.push('"name" must be a string');
   // Packages validation
   if (!Array.isArray(parsed.packages)) {
     errors.push('"packages" must be an array');
+  } else if (parsed.packages.length === 0) {
+    errors.push('"packages" must contain at least one package');
   } else {
     for (let i = 0; i < parsed.packages.length; i++) {
       const pkg = parsed.packages[i] as Record<string, unknown>;
@@ -40,8 +46,18 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
     const rules = parsed.rules as Record<string, unknown>;
     if (typeof rules.maxFileLines !== 'number')
       errors.push('"rules.maxFileLines" must be a number');
+    else if (rules.maxFileLines < 0) errors.push('"rules.maxFileLines" must be >= 0');
+    if (rules.maxTestFileLines !== undefined) {
+      if (typeof rules.maxTestFileLines !== 'number') {
+        errors.push('"rules.maxTestFileLines" must be a number');
+      } else if (rules.maxTestFileLines < 0) {
+        errors.push('"rules.maxTestFileLines" must be >= 0');
+      }
+    }
     if (typeof rules.testCoverage !== 'number')
       errors.push('"rules.testCoverage" must be a number');
+    else if (rules.testCoverage < 0 || rules.testCoverage > 100)
+      errors.push('"rules.testCoverage" must be between 0 and 100');
     if (typeof rules.enforceNaming !== 'boolean')
       errors.push('"rules.enforceNaming" must be a boolean');
     if (typeof rules.enforceBoundaries !== 'boolean')

@@ -8,7 +8,7 @@ import { generateTestStub, writeTestStub } from './fix-tests.js';
 let tmpDir: string;
 
 const baseConfig: ViberailsConfig = {
-  version: 2,
+  version: 1,
   name: 'test-project',
   rules: {
     maxFileLines: 300,
@@ -85,7 +85,12 @@ describe('writeTestStub', () => {
       packages: [
         {
           ...baseConfig.packages[0],
-          stack: { ...baseConfig.packages[0].stack!, testRunner: 'jest' },
+          stack: {
+            language: baseConfig.packages[0].stack?.language ?? 'typescript',
+            packageManager: baseConfig.packages[0].stack?.packageManager ?? 'pnpm',
+            ...(baseConfig.packages[0].stack ?? {}),
+            testRunner: 'jest',
+          },
         },
       ],
     };

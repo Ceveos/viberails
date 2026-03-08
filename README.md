@@ -49,7 +49,7 @@ Scans your project and generates config, context, and hooks.
 
 | Flag | Effect |
 |------|--------|
-| `--yes` / `-y` | Non-interactive. Uses defaults, high-confidence only, skips hooks. |
+| `--yes` / `-y` | Non-interactive. Uses defaults, keeps high-confidence conventions, and auto-sets up integrations. |
 | `--force` / `-f` | Re-initialize from scratch, replacing existing config. |
 
 ### `viberails check`
@@ -62,6 +62,7 @@ Validates your project against configured rules.
 | `--files <paths>` | Check specific files. |
 | `--format json` | Machine-readable output for tool integration. |
 | `--quiet` | Summary only. |
+| `--enforce` | Return exit code 1 when violations are found (CI mode). |
 
 ### `viberails fix`
 
@@ -87,7 +88,7 @@ During `viberails init`, you can set up automatic enforcement:
 
 ### Pre-commit hook
 
-Detects your hook manager (Lefthook, Husky, or bare git) and adds `viberails check --staged`. Violations warn by default — set `"enforcement": "enforce"` in config to block commits.
+Detects your hook manager (Lefthook, Husky, or bare git) and adds `viberails check --staged`. Violations warn by default. Use `viberails check --enforce` (for CI) to make violations fail with exit code 1.
 
 ### Claude Code hook
 

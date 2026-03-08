@@ -1,8 +1,8 @@
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { ConfigConventions, ViberailsConfig } from '@viberails/types';
 import { BUILTIN_IGNORE } from '@viberails/config';
+import type { ConfigConventions, ViberailsConfig } from '@viberails/types';
 import picomatch from 'picomatch';
 
 const ALWAYS_SKIP_DIRS = new Set([

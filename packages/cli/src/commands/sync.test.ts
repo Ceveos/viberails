@@ -6,7 +6,7 @@ import { syncCommand } from './sync.js';
 
 function writeMinimalConfig(dir: string, overrides: Record<string, unknown> = {}): void {
   const config = {
-    version: 2,
+    version: 1,
     name: 'test-project',
     rules: {
       maxFileLines: 300,

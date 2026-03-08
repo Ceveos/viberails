@@ -44,15 +44,15 @@ function createNextjs15ScanResult(): ScanResult {
 }
 
 describe('generateConfig', () => {
-  it('generates a complete V2 config from a Next.js 15 scan result', () => {
+  it('generates a complete packages-first config from a Next.js 15 scan result', () => {
     const scanResult = createNextjs15ScanResult();
     const config = generateConfig(scanResult);
 
-    expect(config.$schema).toBe('https://viberails.sh/schema/v2.json');
-    expect(config.version).toBe(2);
+    expect(config.$schema).toBe('https://viberails.sh/schema/v1.json');
+    expect(config.version).toBe(1);
     expect(config.name).toBe('my-app');
 
-    // V2: stack lives inside packages[0]
+    // Config: stack lives inside packages[0]
     expect(config.packages).toHaveLength(1);
     const pkg = config.packages[0];
     expect(pkg.name).toBe('my-app');
@@ -92,7 +92,7 @@ describe('generateConfig', () => {
     const config = generateConfig(scanResult);
 
     const pkg = config.packages[0];
-    // V2: conventions are plain strings
+    // Config: conventions are plain strings
     expect(pkg.conventions?.fileNaming).toBe('kebab-case');
     expect(pkg.conventions?.componentNaming).toBe('PascalCase');
   });
@@ -343,7 +343,7 @@ describe('per-package configs in monorepo', () => {
 
     const mobilePackage = config.packages.find((p) => p.path === 'apps/mobile');
     expect(mobilePackage).toBeDefined();
-    // V2: conventions are plain strings
+    // Config: conventions are plain strings
     expect(mobilePackage?.conventions?.fileNaming).toBe('PascalCase');
   });
 

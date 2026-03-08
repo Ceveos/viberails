@@ -6,16 +6,16 @@ import {
   ORM_NAMES,
   STYLING_NAMES,
 } from '@viberails/types';
+import { formatItem } from './display.js';
 import {
   formatExtensions,
   formatRoleGroup,
   formatSummary,
   groupByRole,
 } from './display-helpers.js';
-import { formatItem } from './display.js';
 import { formatMonorepoResultsText } from './display-monorepo.js';
 
-// Conventions are plain strings in V2 — no extraction needed.
+// Conventions are plain strings — no extraction needed.
 
 /**
  * Format a plain-text confidence label (no chalk).

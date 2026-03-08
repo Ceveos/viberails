@@ -105,18 +105,18 @@ describe('configSchema validation', () => {
     const validate = ajv.compile(configSchema);
 
     expect(validate({})).toBe(false);
-    expect(validate({ version: 2 })).toBe(false);
-    expect(validate({ version: 2, name: 'test' })).toBe(false);
+    expect(validate({ version: 1 })).toBe(false);
+    expect(validate({ version: 1, name: 'test' })).toBe(false);
   });
 
   it('rejects config with invalid version', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
 
-    // V2 schema only accepts version: 2
+    // Schema only accepts version: 1
     expect(
       validate({
-        version: 1,
+        version: 2,
         name: 'test',
         packages: [{ name: 'test', path: '.' }],
         rules: {

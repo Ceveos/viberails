@@ -122,8 +122,7 @@ export async function promptRuleMenu(defaults: {
         const diffs: string[] = [];
         if (pkg.conventions) {
           for (const [key, val] of Object.entries(pkg.conventions)) {
-            const v = typeof val === 'string' ? val : val?.value;
-            if (v) diffs.push(`${key}: ${v}`);
+            if (val) diffs.push(`${key}: ${val}`);
           }
         }
         if (pkg.stack) {
@@ -145,6 +144,7 @@ export async function promptRuleMenu(defaults: {
         message: 'Maximum lines per source file?',
         initialValue: String(state.maxFileLines),
         validate: (v) => {
+          if (typeof v !== 'string') return 'Enter a positive number';
           const n = Number.parseInt(v, 10);
           if (Number.isNaN(n) || n < 1) return 'Enter a positive number';
         },
@@ -158,6 +158,7 @@ export async function promptRuleMenu(defaults: {
         message: 'Test coverage target (0 to disable)?',
         initialValue: String(state.testCoverage),
         validate: (v) => {
+          if (typeof v !== 'string') return 'Enter a number between 0 and 100';
           const n = Number.parseInt(v, 10);
           if (Number.isNaN(n) || n < 0 || n > 100) return 'Enter a number between 0 and 100';
         },

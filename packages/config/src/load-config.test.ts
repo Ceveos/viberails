@@ -17,8 +17,8 @@ afterEach(async () => {
 
 function validConfig(): ViberailsConfig {
   return {
-    $schema: 'https://viberails.sh/schema/v2.json',
-    version: 2,
+    $schema: 'https://viberails.sh/schema/v1.json',
+    version: 1,
     name: 'test-project',
     packages: [
       {
@@ -69,7 +69,7 @@ describe('loadConfig', () => {
 
   it('throws when required fields are missing', async () => {
     const configPath = path.join(tmpDir, 'incomplete.json');
-    await fs.writeFile(configPath, JSON.stringify({ version: 2 }));
+    await fs.writeFile(configPath, JSON.stringify({ version: 1 }));
 
     await expect(loadConfig(configPath)).rejects.toThrow('missing required field(s)');
     await expect(loadConfig(configPath)).rejects.toThrow('name');
@@ -82,7 +82,7 @@ describe('loadConfig', () => {
     await fs.writeFile(
       configPath,
       JSON.stringify({
-        version: 2,
+        version: 1,
         name: 'test',
         packages: [{}],
         rules: {
@@ -103,7 +103,7 @@ describe('loadConfig', () => {
     await fs.writeFile(
       configPath,
       JSON.stringify({
-        version: 2,
+        version: 1,
         name: 'test',
         packages: [{ name: 'test', path: '.' }],
         rules: {
@@ -116,6 +116,48 @@ describe('loadConfig', () => {
     );
 
     await expect(loadConfig(configPath)).rejects.toThrow('rules.maxFileLines');
+  });
+
+  it('throws when version is not supported', async () => {
+    const configPath = path.join(tmpDir, 'bad-version.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 2,
+        name: 'test',
+        packages: [{ name: 'test', path: '.' }],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('"version" must be 1');
+  });
+
+  it('throws when packages array is empty', async () => {
+    const configPath = path.join(tmpDir, 'empty-packages.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow(
+      '"packages" must contain at least one package',
+    );
   });
 });
 

@@ -309,7 +309,7 @@ function makeMonorepoScanResult(): ScanResult {
 describe('displayRulesPreview', () => {
   function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
     return {
-      version: 2,
+      version: 1,
       name: 'test',
       rules: {
         maxFileLines: 300,

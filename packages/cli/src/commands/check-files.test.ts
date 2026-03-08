@@ -119,7 +119,7 @@ describe('getAllSourceFiles', () => {
   let tmpDir: string;
 
   const baseConfig: ViberailsConfig = {
-    version: 2,
+    version: 1,
     name: 'test',
     rules: {
       maxFileLines: 300,

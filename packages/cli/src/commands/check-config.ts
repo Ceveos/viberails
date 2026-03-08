@@ -1,5 +1,5 @@
-import type { ConfigConventions, ConfigRules, ViberailsConfig } from '@viberails/types';
 import { BUILTIN_IGNORE } from '@viberails/config';
+import type { ConfigConventions, ConfigRules, ViberailsConfig } from '@viberails/types';
 
 export interface ResolvedConfig {
   rules: ConfigRules;
@@ -44,11 +44,17 @@ export function getEffectiveIgnore(config: ViberailsConfig): string[] {
  */
 export function resolveIgnoreForFile(relPath: string, config: ViberailsConfig): string[] {
   const base = getEffectiveIgnore(config);
+  const root = config.packages.find((p) => p.path === '.');
+  const withRoot = root?.ignore ? [...base, ...root.ignore] : base;
 
-  for (const pkg of config.packages) {
-    if (pkg.ignore && (relPath.startsWith(`${pkg.path}/`) || pkg.path === '.')) {
-      return [...base, ...pkg.ignore];
-    }
+  const matched = [...config.packages]
+    .filter((p) => p.path !== '.')
+    .sort((a, b) => b.path.length - a.path.length)
+    .find((p) => relPath.startsWith(`${p.path}/`) || relPath === p.path);
+
+  if (matched?.ignore) {
+    return [...withRoot, ...matched.ignore];
   }
-  return base;
+
+  return withRoot;
 }

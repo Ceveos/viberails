@@ -1,14 +1,14 @@
 /**
- * JSON Schema (draft-07) definition for viberails.config.json V2.
+ * JSON Schema (draft-07) definition for viberails.config.json.
  *
- * This schema will eventually be hosted at https://viberails.sh/schema/v2.json.
+ * This schema will eventually be hosted at https://viberails.sh/schema/v1.json.
  * For now it is exported as a TypeScript object that can be serialized to JSON.
  */
 import { boundarySchema, defaultsSchema, packageItemSchema } from './schema-parts.js';
 
 export const configSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
-  $id: 'https://viberails.sh/schema/v2.json',
+  $id: 'https://viberails.sh/schema/v1.json',
   title: 'viberails configuration',
   description: 'Configuration file for viberails — guardrails for vibe coding.',
   type: 'object',
@@ -20,8 +20,8 @@ export const configSchema = {
     },
     version: {
       type: 'number',
-      const: 2,
-      description: 'Config format version. Always 2.',
+      const: 1,
+      description: 'Config format version. Always 1.',
     },
     name: {
       type: 'string',

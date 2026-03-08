@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { loadConfig } from '@viberails/config';
+import { compactConfig, loadConfig } from '@viberails/config';
 import type { ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
@@ -115,7 +115,7 @@ async function inferAndDisplay(
   if (shouldSave) {
     config.boundaries = inferred;
     config.rules.enforceBoundaries = true;
-    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    fs.writeFileSync(configPath, `${JSON.stringify(compactConfig(config), null, 2)}\n`);
     console.log(`${chalk.green('✓')} Saved ${totalRules} rules`);
   }
 }

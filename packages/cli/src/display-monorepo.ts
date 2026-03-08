@@ -1,7 +1,6 @@
 import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { FRAMEWORK_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
-import { formatConventionsText } from './display-text.js';
 import { displayConventions, displaySummarySection, formatItem } from './display.js';
 import {
   formatExtensions,
@@ -9,6 +8,7 @@ import {
   formatSummary,
   groupByRole,
 } from './display-helpers.js';
+import { formatConventionsText } from './display-text.js';
 
 /**
  * Format a package summary line for monorepo display.

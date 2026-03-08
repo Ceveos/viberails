@@ -16,7 +16,7 @@ export interface CheckViolation {
   /** Human-readable description of the violation. */
   message: string;
 
-  /** Severity derived from config.enforcement. */
+  /** Severity derived from CLI mode (warn vs enforce). */
   severity: 'error' | 'warn';
 }
 

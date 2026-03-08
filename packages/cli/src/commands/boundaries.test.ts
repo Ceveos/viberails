@@ -18,7 +18,7 @@ describe('boundaries command', () => {
   function writeConfig(overrides: Record<string, unknown> = {}): void {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
     const config = {
-      version: 2,
+      version: 1,
       name: 'test-project',
       rules: {
         maxFileLines: 300,
@@ -86,7 +86,7 @@ describe('boundaries command', () => {
 
     // Write config with packages
     const config = {
-      version: 2,
+      version: 1,
       name: 'monorepo-basic',
       rules: {
         maxFileLines: 300,

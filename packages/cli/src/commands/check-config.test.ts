@@ -1,10 +1,10 @@
-import type { ViberailsConfig } from '@viberails/types';
 import { BUILTIN_IGNORE } from '@viberails/config';
+import type { ViberailsConfig } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
 
 const baseConfig: ViberailsConfig = {
-  version: 2,
+  version: 1,
   name: 'test-project',
   rules: {
     maxFileLines: 300,
@@ -99,5 +99,30 @@ describe('resolveIgnoreForFile', () => {
     };
     const result = resolveIgnoreForFile('apps/web/src/page.ts', config);
     expect(result).toEqual([...BUILTIN_IGNORE, 'generated/**', '.next/**', 'out/**']);
+  });
+
+  it('applies root ignore and most-specific package ignore', () => {
+    const config: ViberailsConfig = {
+      ...baseConfig,
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          ignore: ['root-only/**'],
+        },
+        {
+          name: '@app',
+          path: 'apps',
+          ignore: ['apps-ignore/**'],
+        },
+        {
+          name: '@app/web',
+          path: 'apps/web',
+          ignore: ['web-ignore/**'],
+        },
+      ],
+    };
+
+    const result = resolveIgnoreForFile('apps/web/src/page.ts', config);
+    expect(result).toEqual([...BUILTIN_IGNORE, 'generated/**', 'root-only/**', 'web-ignore/**']);
   });
 });

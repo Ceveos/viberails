@@ -37,8 +37,8 @@ function createScanResult(): ScanResult {
 
 function createExistingConfig(): ViberailsConfig {
   return {
-    $schema: 'https://viberails.sh/schema/v2.json',
-    version: 2,
+    $schema: 'https://viberails.sh/schema/v1.json',
+    version: 1,
     name: 'my-app',
     packages: [
       {
@@ -98,7 +98,7 @@ describe('mergeConfig', () => {
     const merged = mergeConfig(existing, scanResult);
 
     const pkg = merged.packages.find((p) => p.path === '.');
-    // V2: conventions are plain strings
+    // Config: conventions are plain strings
     expect(pkg?.conventions?.componentNaming).toBe('PascalCase');
     expect(pkg?.conventions?.hookNaming).toBe('useXxx');
 
@@ -124,8 +124,8 @@ describe('mergeConfig', () => {
     const merged = mergeConfig(existing, scanResult);
 
     expect(merged.name).toBe('my-app');
-    expect(merged.version).toBe(2);
-    expect(merged.$schema).toBe('https://viberails.sh/schema/v2.json');
+    expect(merged.version).toBe(1);
+    expect(merged.$schema).toBe('https://viberails.sh/schema/v1.json');
   });
 
   it('fills in undefined stack fields from fresh scan in package', () => {
@@ -250,7 +250,10 @@ describe('mergeConfig', () => {
 
   it('preserves ORM field from existing config package during merge', () => {
     const existing = createExistingConfig();
-    existing.packages[0].stack!.orm = 'prisma';
+    if (!existing.packages[0].stack) {
+      existing.packages[0].stack = { language: 'typescript', packageManager: 'pnpm' };
+    }
+    existing.packages[0].stack.orm = 'prisma';
     const scanResult = createScanResult();
     scanResult.stack.orm = { name: 'drizzle', version: '0' };
 
