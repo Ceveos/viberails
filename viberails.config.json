@@ -16,7 +16,14 @@
     "tests": "tests",
     "testPattern": "*.test.ts"
   },
-  "conventions": {},
+  "conventions": {
+    "fileNaming": {
+      "value": "kebab-case",
+      "_confidence": "medium",
+      "_consistency": 85,
+      "_detected": true
+    }
+  },
   "rules": {
     "maxFileLines": 300,
     "maxTestFileLines": 0,
@@ -28,7 +35,8 @@
   "ignore": [
     "**/*.d.ts",
     "dist/**",
-    "node_modules/**"
+    "node_modules/**",
+    "tests/fixtures/**"
   ],
   "workspace": {
     "packages": [

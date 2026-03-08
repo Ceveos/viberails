@@ -3,6 +3,7 @@
 These rules are checked before commits. Violations will be **warned** but not blocked:
 
 - Files must not exceed **300 lines**. Split into focused modules.
+- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.
 
 ## Per-package rules
