@@ -117,7 +117,8 @@ async function inferAndDisplay(
 
   console.log(`\n  ${allow.length} allowed, ${deny.length} denied`);
 
-  const shouldSave = await confirm('\nSave to viberails.config.json?');
+  console.log('');
+  const shouldSave = await confirm('Save to viberails.config.json?');
   if (shouldSave) {
     config.boundaries = inferred;
     config.rules.enforceBoundaries = true;

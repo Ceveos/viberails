@@ -6,7 +6,8 @@ import { findProjectRoot } from '../utils/find-project-root.js';
 import { resolveConfigForFile } from './check-config.js';
 import { checkNaming, getAllSourceFiles } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
-import { checkGitDirty, getConventionValue, printPlan, promptConfirm } from './fix-helpers.js';
+import { checkGitDirty, getConventionValue, printPlan } from './fix-helpers.js';
+import { confirmDangerous } from '../utils/prompt.js';
 import { updateImportsAfterRenames } from './fix-imports.js';
 import {
   computeRename,
@@ -109,7 +110,7 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
 
   // Confirm
   if (!options.yes) {
-    const confirmed = await promptConfirm('Apply these fixes?');
+    const confirmed = await confirmDangerous('Apply these fixes?');
     if (!confirmed) {
       console.log('Aborted.');
       return 0;

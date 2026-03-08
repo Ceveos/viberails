@@ -23,6 +23,19 @@ export async function confirm(message: string): Promise<boolean> {
   return result;
 }
 
+/**
+ * Prompt the user for a yes/no confirmation that defaults to NO.
+ * Use for destructive or risky actions.
+ *
+ * @param message - The question to display
+ * @returns true if the user confirms, false otherwise
+ */
+export async function confirmDangerous(message: string): Promise<boolean> {
+  const result = await clack.confirm({ message, initialValue: false });
+  assertNotCancelled(result);
+  return result;
+}
+
 export interface IntegrationChoice {
   preCommitHook: boolean;
   claudeCodeHook: boolean;
@@ -35,10 +48,10 @@ export interface IntegrationChoice {
  */
 export async function promptInitDecision(): Promise<'accept' | 'customize'> {
   const result = await clack.select({
-    message: 'How would you like to proceed?',
+    message: 'Accept these settings?',
     options: [
-      { value: 'accept' as const, label: 'Accept defaults', hint: 'recommended' },
-      { value: 'customize' as const, label: 'Customize rules' },
+      { value: 'accept' as const, label: 'Yes, looks good', hint: 'recommended' },
+      { value: 'customize' as const, label: 'Let me customize' },
     ],
   });
   assertNotCancelled(result);
@@ -66,7 +79,8 @@ export async function promptRuleCustomization(defaults: {
   fileNamingValue?: string;
 }): Promise<RuleOverrides> {
   const maxFileLinesResult = await clack.text({
-    message: 'Max file size (lines)?',
+    message: 'Maximum lines per source file?',
+    placeholder: String(defaults.maxFileLines),
     initialValue: String(defaults.maxFileLines),
     validate: (v) => {
       const n = Number.parseInt(v, 10);
@@ -82,8 +96,8 @@ export async function promptRuleCustomization(defaults: {
   assertNotCancelled(requireTestsResult);
 
   const namingLabel = defaults.fileNamingValue
-    ? `Enforce file naming convention? (${defaults.fileNamingValue})`
-    : 'Enforce file naming convention?';
+    ? `Enforce file naming? (detected: ${defaults.fileNamingValue})`
+    : 'Enforce file naming?';
   const enforceNamingResult = await clack.confirm({
     message: namingLabel,
     initialValue: defaults.enforceNaming,
