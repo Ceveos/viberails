@@ -31,7 +31,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@viberails/types": "workspace:*"
+    "@viberails/types": "workspace:*",
+    "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/node": "^25.3.5"

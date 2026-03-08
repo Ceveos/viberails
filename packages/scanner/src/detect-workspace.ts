@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { DetectedWorkspace, WorkspacePackage } from '@viberails/types';
+import { parse as parseYaml } from 'yaml';
 import { readPackageJson } from './utils/read-package-json.js';
 
 /**
@@ -70,33 +71,13 @@ async function readWorkspacePatterns(projectRoot: string): Promise<string[] | un
  * Handles the common format: `packages:\n  - 'packages/*'`
  */
 function parsePnpmWorkspaceYaml(content: string): string[] {
-  const patterns: string[] = [];
-  let inPackages = false;
+  const doc = parseYaml(content);
+  if (!doc || typeof doc !== 'object') return [];
 
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
+  const packages = doc.packages;
+  if (!Array.isArray(packages)) return [];
 
-    if (trimmed === 'packages:') {
-      inPackages = true;
-      continue;
-    }
-
-    // Stop at next top-level key
-    if (inPackages && trimmed.length > 0 && !trimmed.startsWith('-')) {
-      break;
-    }
-
-    if (inPackages && trimmed.startsWith('-')) {
-      // Extract the pattern, stripping quotes and leading dash
-      const value = trimmed
-        .slice(1)
-        .trim()
-        .replace(/^['"]|['"]$/g, '');
-      if (value) patterns.push(value);
-    }
-  }
-
-  return patterns;
+  return packages.filter((p): p is string => typeof p === 'string');
 }
 
 /**

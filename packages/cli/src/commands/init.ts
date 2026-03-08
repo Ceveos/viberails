@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as clack from '@clack/prompts';
 import { generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
-import type { ConfigConventions, ConventionValue, ViberailsConfig } from '@viberails/types';
+import type { ConfigConventions, ConventionValue } from '@viberails/types';
 import chalk from 'chalk';
 import { formatScanResultsText } from '../display-text.js';
 import { displayRulesPreview, displayScanResults } from '../display.js';
@@ -12,7 +12,7 @@ import {
   confirm,
   promptInitDecision,
   promptIntegrations,
-  promptRuleCustomization,
+  promptRuleMenu,
 } from '../utils/prompt.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
@@ -49,14 +49,6 @@ function getConventionStr(
 ): string | undefined {
   if (!cv) return undefined;
   return typeof cv === 'string' ? cv : cv.value;
-}
-
-/**
- * Check if a monorepo config has per-package convention overrides.
- */
-function hasConventionOverrides(config: ViberailsConfig): boolean {
-  if (!config.packages || config.packages.length === 0) return false;
-  return config.packages.some((pkg) => pkg.conventions && Object.keys(pkg.conventions).length > 0);
 }
 
 /**
@@ -160,31 +152,19 @@ export async function initCommand(
   const decision = await promptInitDecision();
 
   if (decision === 'customize') {
-    clack.note(
-      'Rules control what viberails checks for.\nYou can change these later in viberails.config.json.',
-      'Rules',
-    );
-
-    const overrides = await promptRuleCustomization({
+    const overrides = await promptRuleMenu({
       maxFileLines: config.rules.maxFileLines,
       requireTests: config.rules.requireTests,
       enforceNaming: config.rules.enforceNaming,
       enforcement: config.enforcement,
       fileNamingValue: getConventionStr(config.conventions.fileNaming),
+      packageOverrides: config.packages,
     });
 
     config.rules.maxFileLines = overrides.maxFileLines;
     config.rules.requireTests = overrides.requireTests;
     config.rules.enforceNaming = overrides.enforceNaming;
     config.enforcement = overrides.enforcement;
-
-    if (config.workspace?.packages && config.workspace.packages.length > 0) {
-      clack.note(
-        'These rules apply globally. To customize per package,\n' +
-          'edit the "packages" section in viberails.config.json.',
-        'Per-package overrides',
-      );
-    }
   }
 
   // 7. Boundary inference (monorepo only)
@@ -222,17 +202,7 @@ export async function initCommand(
   const hookManager = detectHookManager(projectRoot);
   const integrations = await promptIntegrations(hookManager);
 
-  // 9. Per-package convention differences note
-  if (hasConventionOverrides(config)) {
-    clack.note(
-      'Some packages use different conventions. Per-package\n' +
-        'overrides have been saved in viberails.config.json —\n' +
-        'review and adjust as needed.',
-      'Per-package conventions',
-    );
-  }
-
-  // 10. Write config
+  // 9. Write config
   fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
   // 11. Generate context and scan-result.json
@@ -250,8 +220,7 @@ export async function initCommand(
 
   if (integrations.preCommitHook) {
     setupPreCommitHook(projectRoot);
-    const hookMgr = detectHookManager(projectRoot);
-    if (hookMgr) {
+    if (hookManager === 'Lefthook') {
       createdFiles.push(`lefthook.yml \u2014 added viberails pre-commit`);
     }
   }

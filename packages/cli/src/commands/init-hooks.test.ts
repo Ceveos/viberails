@@ -119,6 +119,27 @@ describe('setupPreCommitHook', () => {
     expect(matches?.length).toBeLessThanOrEqual(3);
   });
 
+  it('correctly inserts under pre-commit when it is not the last section', async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'lefthook.yml'),
+      'pre-commit:\n  commands:\n    lint:\n      run: echo lint\npre-push:\n  commands:\n    deploy:\n      run: echo deploy\n',
+    );
+
+    setupPreCommitHook(tmpDir);
+
+    const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
+    expect(content).toContain('viberails');
+    expect(content).toContain('npx viberails check --staged');
+    // pre-push section should still be intact
+    expect(content).toContain('pre-push');
+    expect(content).toContain('deploy');
+    // Verify valid YAML structure by checking viberails is under pre-commit
+    const { parse } = await import('yaml');
+    const doc = parse(content);
+    expect(doc['pre-commit'].commands.viberails).toBeDefined();
+    expect(doc['pre-push'].commands.deploy).toBeDefined();
+  });
+
   it('detects Husky and writes to .husky/pre-commit', () => {
     fs.mkdirSync(path.join(tmpDir, '.husky'));
     setupPreCommitHook(tmpDir);
@@ -195,19 +216,22 @@ describe('setupClaudeCodeHook', () => {
     expect(settings.hooks.PostToolUse).toHaveLength(1);
   });
 
-  it('handles malformed JSON gracefully with warning and reset', () => {
+  it('skips hook setup and preserves file when settings.json has invalid JSON', () => {
     const claudeDir = path.join(tmpDir, '.claude');
     fs.mkdirSync(claudeDir, { recursive: true });
-    fs.writeFileSync(path.join(claudeDir, 'settings.json'), '{broken json!!!');
+    const invalidContent = '{broken json!!!';
+    fs.writeFileSync(path.join(claudeDir, 'settings.json'), invalidContent);
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     setupClaudeCodeHook(tmpDir);
 
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid JSON'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('skipping hook setup'));
     warnSpy.mockRestore();
 
-    const settings = JSON.parse(fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8'));
-    expect(settings.hooks.PostToolUse).toHaveLength(1);
+    // File should be unchanged — not overwritten
+    const content = fs.readFileSync(path.join(claudeDir, 'settings.json'), 'utf-8');
+    expect(content).toBe(invalidContent);
   });
 
   it('creates .claude directory if it does not exist', () => {

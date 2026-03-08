@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 /**
  * Set up a pre-commit hook that runs viberails check on staged files.
@@ -60,27 +61,20 @@ function addLefthookPreCommit(lefthookPath: string): void {
   const content = fs.readFileSync(lefthookPath, 'utf-8');
   if (content.includes('viberails')) return;
 
-  const hasPreCommit = /^pre-commit:/m.test(content);
-  if (hasPreCommit) {
-    // Append under existing pre-commit section. This appends at the end of the file,
-    // which works when pre-commit is the last section. A full YAML parser would handle
-    // arbitrary section ordering, but we avoid that dependency to stay lightweight.
-    const commandBlock = ['', '    viberails:', '      run: npx viberails check --staged'].join(
-      '\n',
-    );
-    const updated = `${content.trimEnd()}\n${commandBlock}\n`;
-    fs.writeFileSync(lefthookPath, updated);
-  } else {
-    // Add new pre-commit section
-    const section = [
-      '',
-      'pre-commit:',
-      '  commands:',
-      '    viberails:',
-      '      run: npx viberails check --staged',
-    ].join('\n');
-    fs.writeFileSync(lefthookPath, `${content.trimEnd()}\n${section}\n`);
+  const doc = parseYaml(content) ?? {};
+
+  if (!doc['pre-commit']) {
+    doc['pre-commit'] = { commands: {} };
   }
+  if (!doc['pre-commit'].commands) {
+    doc['pre-commit'].commands = {};
+  }
+
+  doc['pre-commit'].commands.viberails = {
+    run: 'npx viberails check --staged',
+  };
+
+  fs.writeFileSync(lefthookPath, stringifyYaml(doc));
 }
 
 /**
@@ -112,9 +106,10 @@ export function setupClaudeCodeHook(projectRoot: string): void {
       settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
     } catch {
       console.warn(
-        `  ${chalk.yellow('!')} .claude/settings.json contains invalid JSON — resetting to add hook`,
+        `  ${chalk.yellow('!')} .claude/settings.json contains invalid JSON — skipping hook setup`,
       );
-      settings = {};
+      console.warn(`  Fix the JSON manually, then re-run ${chalk.cyan('viberails init --force')}`);
+      return;
     }
   }
 
