@@ -158,7 +158,12 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   const violations: CheckViolation[] = [];
   const severity = options.enforce ? 'error' : 'warn';
+  const log =
+    options.format !== 'json' && !options.hook
+      ? (msg: string) => process.stderr.write(chalk.dim(msg))
+      : () => {};
 
+  log('  Checking files...');
   for (const file of filesToCheck) {
     const absPath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
     const relPath = path.relative(projectRoot, absPath);
@@ -198,21 +203,27 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     }
   }
 
+  log(' done\n');
+
   // Check 3: Missing tests (full check or diff-base with added files only)
   if (!options.staged && !options.files) {
+    log('  Checking missing tests...');
     const testViolations = checkMissingTests(projectRoot, config, severity);
-    if (diffAddedFiles) {
-      violations.push(...testViolations.filter((v) => diffAddedFiles.has(v.file)));
-    } else {
-      violations.push(...testViolations);
-    }
+    violations.push(
+      ...(diffAddedFiles
+        ? testViolations.filter((v) => diffAddedFiles.has(v.file))
+        : testViolations),
+    );
+    log(' done\n');
   }
 
   // Check 4: Test coverage threshold (full check only, skip in diff mode)
   if (!options.files && !options.staged && !options.diffBase) {
+    log('  Running test coverage...\n');
     const coverageViolations = checkCoverage(projectRoot, config, filesToCheck, {
       staged: options.staged,
       enforce: options.enforce,
+      onProgress: (pkg) => log(`    Coverage: ${pkg}...\n`),
     });
     violations.push(...coverageViolations);
   }
@@ -257,10 +268,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
       });
     }
 
-    const elapsed = Date.now() - startTime;
-    if (options.format !== 'json') {
-      console.log(chalk.dim(`  Boundary check: ${graph.nodes.length} files in ${elapsed}ms`));
-    }
+    log(`  Boundary check: ${graph.nodes.length} files in ${Date.now() - startTime}ms\n`);
   }
 
   // Output results

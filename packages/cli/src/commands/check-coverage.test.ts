@@ -131,7 +131,7 @@ describe('checkCoverage', () => {
     expect(violations[0].file).toBe('custom/summary.json');
   });
 
-  it('shows helpful message when no summary and no configured command', () => {
+  it('skips packages with no testRunner in stack', () => {
     const config = makeConfig({
       packages: [
         {
@@ -145,27 +145,25 @@ describe('checkCoverage', () => {
     });
 
     const violations = checkCoverage(tmpDir, config, [], {});
-    expect(violations).toHaveLength(1);
-    expect(violations[0].message).toContain('No coverage summary found');
-    expect(violations[0].message).toContain('defaults.coverage.command');
+    expect(violations).toHaveLength(0);
   });
 
-  it('does not auto-run inferred commands — only explicit coverage.command', () => {
-    // Even with a known test runner, check should NOT auto-infer and run
+  it('infers coverage command from package testRunner when no explicit command', () => {
     const config = makeConfig({
       packages: [
         {
           name: 'test-project',
           path: '.',
-          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest@4.0.0' },
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest@4' },
           structure: {},
           conventions: {},
         },
       ],
     });
 
+    // Will attempt to run the inferred vitest command (which fails in test env)
     const violations = checkCoverage(tmpDir, config, [], {});
     expect(violations).toHaveLength(1);
-    expect(violations[0].message).toContain('No coverage summary found');
+    expect(violations[0].message).toContain('Failed to run coverage command');
   });
 });

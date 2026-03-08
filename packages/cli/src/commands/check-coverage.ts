@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { inferCoverageCommand } from '@viberails/config';
 import type {
   CheckViolation,
   ConfigCoverage,
@@ -129,7 +130,7 @@ export function checkCoverage(
   projectRoot: string,
   config: ViberailsConfig,
   filesToCheck: string[],
-  options: { staged?: boolean; enforce?: boolean },
+  options: { staged?: boolean; enforce?: boolean; onProgress?: (pkg: string) => void },
 ): CheckViolation[] {
   const severity: 'warn' | 'error' = options.enforce ? 'error' : 'warn';
   const targets = resolveCoveragePackages(
@@ -143,6 +144,9 @@ export function checkCoverage(
   for (const target of targets) {
     if (target.rules.testCoverage <= 0) continue;
 
+    // Skip packages that have no test runner — they can't produce coverage
+    if (!target.pkg.stack?.testRunner) continue;
+
     const pkgRoot = packageRoot(projectRoot, target.pkg);
     const summaryPath = target.coverage.summaryPath ?? DEFAULT_SUMMARY_PATH;
     const summaryAbs = path.join(pkgRoot, summaryPath);
@@ -151,7 +155,8 @@ export function checkCoverage(
     let pct = readCoveragePercentage(summaryAbs);
 
     if (pct === undefined && !options.staged) {
-      const command = target.coverage.command;
+      // Use explicit command, or infer from this package's test runner
+      const command = target.coverage.command ?? inferCoverageCommand(target.pkg.stack.testRunner);
       if (!command) {
         const pkgLabel = target.pkg.path === '.' ? 'root package' : target.pkg.path;
         pushViolation(
@@ -163,6 +168,7 @@ export function checkCoverage(
         continue;
       }
 
+      options.onProgress?.(target.pkg.path === '.' ? 'root' : target.pkg.path);
       const run = runCoverageCommand(pkgRoot, command);
       if (!run.ok) {
         pushViolation(
