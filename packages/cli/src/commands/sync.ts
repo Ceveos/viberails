@@ -34,15 +34,29 @@ export async function syncCommand(cwd?: string): Promise<void> {
   console.log(chalk.dim('Scanning project...'));
   const scanResult = await scan(projectRoot);
 
-  // 4. Merge config
+  // 4. Merge config and detect changes
   const merged = mergeConfig(existing, scanResult);
-  fs.writeFileSync(configPath, `${JSON.stringify(merged, null, 2)}\n`);
+  const existingJson = JSON.stringify(existing, null, 2);
+  const mergedJson = JSON.stringify(merged, null, 2);
+  const configChanged = existingJson !== mergedJson;
+
+  if (configChanged) {
+    console.log(
+      `  ${chalk.yellow('!')} Config updated — review ${chalk.cyan(CONFIG_FILE)} for changes`,
+    );
+  }
+
+  fs.writeFileSync(configPath, `${mergedJson}\n`);
 
   // 5. Regenerate context and scan-result.json
   writeGeneratedFiles(projectRoot, merged, scanResult);
 
   console.log(`\n${chalk.bold('Synced:')}`);
-  console.log(`  ${chalk.green('✓')} ${CONFIG_FILE} — updated`);
+  if (configChanged) {
+    console.log(`  ${chalk.yellow('!')} ${CONFIG_FILE} — updated (review changes)`);
+  } else {
+    console.log(`  ${chalk.green('✓')} ${CONFIG_FILE} — unchanged`);
+  }
   console.log(`  ${chalk.green('✓')} .viberails/context.md — regenerated`);
   console.log(`  ${chalk.green('✓')} .viberails/scan-result.json — updated`);
 }

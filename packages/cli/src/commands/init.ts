@@ -101,6 +101,7 @@ export async function initCommand(options: { yes?: boolean }, cwd?: string): Pro
   if (config.workspace && config.workspace.packages.length > 0) {
     let shouldInfer = options.yes;
     if (!options.yes) {
+      console.log(chalk.dim('  Scans imports between packages to suggest dependency rules'));
       shouldInfer = await confirm('Infer boundary rules from import patterns?');
     }
 

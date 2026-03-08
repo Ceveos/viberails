@@ -1,4 +1,5 @@
 import * as readline from 'node:readline';
+import chalk from 'chalk';
 
 /**
  * Prompt the user for a yes/no confirmation.
@@ -58,8 +59,10 @@ export async function selectIntegrations(
       });
     });
 
+  console.log(`    ${chalk.dim('Runs viberails check automatically when you commit')}`);
   result.preCommitHook = await askYn(hookLabel, true);
-  result.claudeCodeHook = await askYn('Claude Code hook (check files on edit)', true);
+  console.log(`    ${chalk.dim('Checks files against your rules when Claude edits them')}`);
+  result.claudeCodeHook = await askYn('Claude Code hook', true);
   rl.close();
 
   return result;

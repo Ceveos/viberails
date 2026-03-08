@@ -109,7 +109,7 @@ export async function buildImportGraph(
 function buildSourceGlobs(
   projectRoot: string,
   packages: WorkspacePackage[],
-  _ignore: string[],
+  ignore: string[],
 ): string[] {
   const globs: string[] = [];
 
@@ -122,6 +122,11 @@ function buildSourceGlobs(
     // Single-package project
     globs.push(`${projectRoot}/src/**/*.{ts,tsx,js,jsx}`);
     globs.push(`${projectRoot}/**/*.{ts,tsx,js,jsx}`);
+  }
+
+  // Add negation patterns for ignored paths
+  for (const pattern of ignore) {
+    globs.push(`!${pattern}`);
   }
 
   return globs;
