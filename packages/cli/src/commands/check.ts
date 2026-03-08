@@ -223,7 +223,9 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     }
 
     const elapsed = Date.now() - startTime;
-    console.log(chalk.dim(`  Boundary check: ${graph.nodes.length} files in ${elapsed}ms`));
+    if (options.format !== 'json') {
+      console.log(chalk.dim(`  Boundary check: ${graph.nodes.length} files in ${elapsed}ms`));
+    }
   }
 
   // Output results
