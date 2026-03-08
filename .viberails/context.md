@@ -14,6 +14,7 @@ This project uses **Biome** for formatting and linting.
 - Files must not exceed **300 lines**. Split into focused modules.
 - Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.
+- Test line coverage must meet **80%** threshold.
 
 ## Boundary rules
 
