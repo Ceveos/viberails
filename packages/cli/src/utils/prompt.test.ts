@@ -76,6 +76,7 @@ describe('prompt utils', () => {
       testCoverage: 80,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
     });
 
     expect(result).toEqual({
@@ -83,6 +84,9 @@ describe('prompt utils', () => {
       testCoverage: 90,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+      coverageCommand: undefined,
+      packageOverrides: undefined,
     });
   });
 
@@ -97,6 +101,7 @@ describe('prompt utils', () => {
       testCoverage: 80,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
     });
 
     expect(result.fileNamingValue).toBe('snake_case');
@@ -124,13 +129,17 @@ describe('prompt utils', () => {
       },
     ];
 
-    selectMock.mockResolvedValueOnce('packageOverrides').mockResolvedValueOnce('done');
+    selectMock
+      .mockResolvedValueOnce('packageOverrides')
+      .mockResolvedValueOnce('__done__')
+      .mockResolvedValueOnce('done');
 
     await promptRuleMenu({
       maxFileLines: 300,
       testCoverage: 80,
       enforceNaming: true,
       fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
       packageOverrides: packages,
     });
 
@@ -139,5 +148,66 @@ describe('prompt utils', () => {
     expect(message).toContain('apps/mobile');
     expect(message).toContain('fileNaming: PascalCase');
     expect(message).not.toContain('packages/same');
+  });
+
+  it('promptRuleMenu updates coverage defaults', async () => {
+    selectMock
+      .mockResolvedValueOnce('coverageSummaryPath')
+      .mockResolvedValueOnce('coverageCommand')
+      .mockResolvedValueOnce('done');
+    textMock
+      .mockResolvedValueOnce('artifacts/coverage-summary.json')
+      .mockResolvedValueOnce('pnpm test:coverage');
+
+    const result = await promptRuleMenu({
+      maxFileLines: 300,
+      testCoverage: 80,
+      enforceNaming: true,
+      fileNamingValue: 'kebab-case',
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+    });
+
+    expect(result.coverageSummaryPath).toBe('artifacts/coverage-summary.json');
+    expect(result.coverageCommand).toBe('pnpm test:coverage');
+  });
+
+  it('promptRuleMenu edits per-package coverage overrides', async () => {
+    const packages: PackageConfig[] = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web' },
+    ];
+
+    selectMock
+      // main menu
+      .mockResolvedValueOnce('packageOverrides')
+      // package selector
+      .mockResolvedValueOnce('apps/web')
+      // package edit menu
+      .mockResolvedValueOnce('testCoverage')
+      .mockResolvedValueOnce('summaryPath')
+      .mockResolvedValueOnce('command')
+      .mockResolvedValueOnce('back')
+      // package selector done
+      .mockResolvedValueOnce('__done__')
+      // main menu done
+      .mockResolvedValueOnce('done');
+
+    textMock
+      .mockResolvedValueOnce('0')
+      .mockResolvedValueOnce('custom/coverage-summary.json')
+      .mockResolvedValueOnce('pnpm --filter @app/web test:coverage');
+
+    const result = await promptRuleMenu({
+      maxFileLines: 300,
+      testCoverage: 80,
+      enforceNaming: true,
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+      packageOverrides: packages,
+    });
+
+    const web = result.packageOverrides?.find((pkg) => pkg.path === 'apps/web');
+    expect(web?.rules?.testCoverage).toBe(0);
+    expect(web?.coverage?.summaryPath).toBe('custom/coverage-summary.json');
+    expect(web?.coverage?.command).toBe('pnpm --filter @app/web test:coverage');
   });
 });

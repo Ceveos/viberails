@@ -175,19 +175,39 @@ export async function initCommand(
   const decision = await promptInitDecision();
 
   if (decision === 'customize') {
-    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+    const rootPkgBeforeCustomize =
+      config.packages.find((p) => p.path === '.') ?? config.packages[0];
     const overrides = await promptRuleMenu({
       maxFileLines: config.rules.maxFileLines,
       testCoverage: config.rules.testCoverage,
       enforceNaming: config.rules.enforceNaming,
-      fileNamingValue: rootPkg.conventions?.fileNaming,
+      fileNamingValue: rootPkgBeforeCustomize.conventions?.fileNaming,
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+      coverageCommand: undefined,
       packageOverrides: config.packages,
     });
+
+    if (overrides.packageOverrides) {
+      config.packages = overrides.packageOverrides;
+    }
 
     config.rules.maxFileLines = overrides.maxFileLines;
     config.rules.testCoverage = overrides.testCoverage;
     config.rules.enforceNaming = overrides.enforceNaming;
+
+    // Seed package coverage defaults so compactConfig can extract shared defaults.coverage.
+    for (const pkg of config.packages) {
+      pkg.coverage = pkg.coverage ?? {};
+      if (pkg.coverage.summaryPath === undefined) {
+        pkg.coverage.summaryPath = overrides.coverageSummaryPath;
+      }
+      if (pkg.coverage.command === undefined && overrides.coverageCommand) {
+        pkg.coverage.command = overrides.coverageCommand;
+      }
+    }
+
     if (overrides.fileNamingValue) {
+      const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
       const oldNaming = rootPkg.conventions?.fileNaming;
       rootPkg.conventions = rootPkg.conventions ?? {};
       rootPkg.conventions.fileNaming = overrides.fileNamingValue;

@@ -77,12 +77,14 @@ export function formatRulesText(config: ViberailsConfig): string[] {
 
   if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {
     lines.push(
-      `Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern})`,
+      `Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern}; also gates missing-test checks)`,
     );
   } else if (config.rules.testCoverage > 0) {
-    lines.push(`Test coverage target: ${config.rules.testCoverage}%`);
+    lines.push(
+      `Test coverage target: ${config.rules.testCoverage}% (also gates missing-test checks)`,
+    );
   } else {
-    lines.push('Test coverage target: disabled');
+    lines.push('Test coverage target: disabled (coverage + missing-test checks off)');
   }
 
   if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
