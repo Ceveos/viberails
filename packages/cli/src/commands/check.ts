@@ -6,12 +6,15 @@ import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { resolveConfigForFile, resolveIgnoreForFile } from './check-config.js';
+import { checkCoverage } from './check-coverage.js';
 import {
   checkNaming,
   countFileLines,
   getAllSourceFiles,
+  getDiffFiles,
   getStagedFiles,
   isIgnored,
+  SOURCE_EXTS,
 } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
 
@@ -22,10 +25,12 @@ const CONFIG_FILE = 'viberails.config.json';
 export interface CheckOptions {
   files?: string[];
   staged?: boolean;
+  diffBase?: string;
   noBoundaries?: boolean;
   quiet?: boolean;
   limit?: number;
   format?: 'text' | 'json';
+  enforce?: boolean;
   hook?: boolean;
 }
 
@@ -53,7 +58,13 @@ function printGroupedViolations(violations: CheckViolation[], limit?: number): v
     groups.set(v.rule, existing);
   }
 
-  const ruleOrder = ['file-size', 'file-naming', 'missing-test', 'boundary-violation'];
+  const ruleOrder = [
+    'file-size',
+    'file-naming',
+    'missing-test',
+    'test-coverage',
+    'boundary-violation',
+  ];
   const sortedKeys = [...groups.keys()].sort(
     (a, b) =>
       (ruleOrder.indexOf(a) === -1 ? 99 : ruleOrder.indexOf(a)) -
@@ -123,8 +134,13 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   // Determine which files to check
   let filesToCheck: string[];
+  let diffAddedFiles: Set<string> | null = null;
   if (options.staged) {
     filesToCheck = getStagedFiles(projectRoot);
+  } else if (options.diffBase) {
+    const diff = getDiffFiles(projectRoot, options.diffBase);
+    filesToCheck = diff.all.filter((f) => SOURCE_EXTS.has(path.extname(f)));
+    diffAddedFiles = new Set(diff.added);
   } else if (options.files && options.files.length > 0) {
     filesToCheck = options.files;
   } else {
@@ -133,9 +149,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   if (filesToCheck.length === 0) {
     if (options.format === 'json') {
-      console.log(
-        JSON.stringify({ violations: [], checkedFiles: 0, enforcement: config.enforcement }),
-      );
+      console.log(JSON.stringify({ violations: [], checkedFiles: 0 }));
     } else {
       console.log(`${chalk.green('✓')} No files to check.`);
     }
@@ -143,7 +157,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   }
 
   const violations: CheckViolation[] = [];
-  const severity = config.enforcement === 'enforce' ? 'error' : 'warn';
+  const severity = options.enforce ? 'error' : 'warn';
 
   for (const file of filesToCheck) {
     const absPath = path.isAbsolute(file) ? file : path.join(projectRoot, file);
@@ -184,13 +198,26 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     }
   }
 
-  // Check 3: Missing tests (only on full project check, not staged/specific files)
-  if (config.rules.requireTests && !options.staged && !options.files) {
+  // Check 3: Missing tests (full check or diff-base with added files only)
+  if (!options.staged && !options.files) {
     const testViolations = checkMissingTests(projectRoot, config, severity);
-    violations.push(...testViolations);
+    if (diffAddedFiles) {
+      violations.push(...testViolations.filter((v) => diffAddedFiles.has(v.file)));
+    } else {
+      violations.push(...testViolations);
+    }
   }
 
-  // Check 4: Boundary violations
+  // Check 4: Test coverage threshold (full check only, skip in diff mode)
+  if (!options.files && !options.staged && !options.diffBase) {
+    const coverageViolations = checkCoverage(projectRoot, config, filesToCheck, {
+      staged: options.staged,
+      enforce: options.enforce,
+    });
+    violations.push(...coverageViolations);
+  }
+
+  // Check 5: Boundary violations
   if (
     config.rules.enforceBoundaries &&
     config.boundaries &&
@@ -200,9 +227,10 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     const startTime = Date.now();
     const { buildImportGraph, checkBoundaries } = await import('@viberails/graph');
 
-    const packages = config.workspace
-      ? resolveWorkspacePackages(projectRoot, config.workspace)
-      : undefined;
+    const packages =
+      config.packages.length > 1
+        ? resolveWorkspacePackages(projectRoot, config.packages)
+        : undefined;
 
     const graph = await buildImportGraph(projectRoot, {
       packages,
@@ -211,9 +239,9 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
     const boundaryViolations = checkBoundaries(graph, config.boundaries);
 
-    // In staged/files mode, only report violations in those files
+    // In staged/files/diff mode, only report violations in those files
     const filterSet =
-      options.staged || options.files
+      options.staged || options.files || options.diffBase
         ? new Set(filesToCheck.map((f) => path.resolve(projectRoot, f)))
         : null;
 
@@ -241,10 +269,9 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
       JSON.stringify({
         violations,
         checkedFiles: filesToCheck.length,
-        enforcement: config.enforcement,
       }),
     );
-    return config.enforcement === 'enforce' && violations.length > 0 ? 1 : 0;
+    return options.enforce && violations.length > 0 ? 1 : 0;
   }
 
   if (violations.length === 0) {
@@ -258,7 +285,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   printSummary(violations);
 
-  if (config.enforcement === 'enforce') {
+  if (options.enforce) {
     console.log(chalk.red('Fix violations before committing.'));
     return 1;
   }

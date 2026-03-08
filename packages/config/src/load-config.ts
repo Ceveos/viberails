@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import type { ViberailsConfig } from '@viberails/types';
+import { expandDefaults } from './compact-config.js';
 
 /**
  * Validate that a parsed object has the required ViberailsConfig fields
@@ -10,7 +11,7 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
   const errors: string[] = [];
 
   // Required top-level fields
-  const required = ['version', 'name', 'stack', 'rules'] as const;
+  const required = ['version', 'name', 'packages', 'rules'] as const;
   const missing = required.filter((field) => parsed[field] === undefined);
   if (missing.length > 0) {
     throw new Error(
@@ -19,24 +20,36 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
   }
 
   // Type checks
-  if (typeof parsed.version !== 'number') errors.push('"version" must be a number');
-  if (typeof parsed.name !== 'string') errors.push('"name" must be a string');
-  if (
-    parsed.enforcement !== undefined &&
-    parsed.enforcement !== 'warn' &&
-    parsed.enforcement !== 'enforce'
-  ) {
-    errors.push('"enforcement" must be "warn" or "enforce"');
+  if (typeof parsed.version !== 'number') {
+    errors.push('"version" must be a number');
+  } else if (parsed.version !== 1) {
+    errors.push('"version" must be 1');
   }
-
-  // Stack validation
-  if (typeof parsed.stack !== 'object' || parsed.stack === null) {
-    errors.push('"stack" must be an object');
+  if (typeof parsed.name !== 'string') errors.push('"name" must be a string');
+  // Packages validation
+  if (!Array.isArray(parsed.packages)) {
+    errors.push('"packages" must be an array');
+  } else if (parsed.packages.length === 0) {
+    errors.push('"packages" must contain at least one package');
   } else {
-    const stack = parsed.stack as Record<string, unknown>;
-    if (typeof stack.language !== 'string') errors.push('"stack.language" must be a string');
-    if (typeof stack.packageManager !== 'string')
-      errors.push('"stack.packageManager" must be a string');
+    for (let i = 0; i < parsed.packages.length; i++) {
+      const pkg = parsed.packages[i] as Record<string, unknown>;
+      if (typeof pkg.name !== 'string') errors.push(`"packages[${i}].name" must be a string`);
+      if (typeof pkg.path !== 'string') errors.push(`"packages[${i}].path" must be a string`);
+      if (pkg.coverage !== undefined) {
+        if (typeof pkg.coverage !== 'object' || pkg.coverage === null) {
+          errors.push(`"packages[${i}].coverage" must be an object`);
+        } else {
+          const coverage = pkg.coverage as Record<string, unknown>;
+          if (coverage.command !== undefined && typeof coverage.command !== 'string') {
+            errors.push(`"packages[${i}].coverage.command" must be a string`);
+          }
+          if (coverage.summaryPath !== undefined && typeof coverage.summaryPath !== 'string') {
+            errors.push(`"packages[${i}].coverage.summaryPath" must be a string`);
+          }
+        }
+      }
+    }
   }
 
   // Rules validation
@@ -46,10 +59,18 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
     const rules = parsed.rules as Record<string, unknown>;
     if (typeof rules.maxFileLines !== 'number')
       errors.push('"rules.maxFileLines" must be a number');
-    if (typeof rules.maxFunctionLines !== 'number')
-      errors.push('"rules.maxFunctionLines" must be a number');
-    if (typeof rules.requireTests !== 'boolean')
-      errors.push('"rules.requireTests" must be a boolean');
+    else if (rules.maxFileLines < 0) errors.push('"rules.maxFileLines" must be >= 0');
+    if (rules.maxTestFileLines !== undefined) {
+      if (typeof rules.maxTestFileLines !== 'number') {
+        errors.push('"rules.maxTestFileLines" must be a number');
+      } else if (rules.maxTestFileLines < 0) {
+        errors.push('"rules.maxTestFileLines" must be >= 0');
+      }
+    }
+    if (typeof rules.testCoverage !== 'number')
+      errors.push('"rules.testCoverage" must be a number');
+    else if (rules.testCoverage < 0 || rules.testCoverage > 100)
+      errors.push('"rules.testCoverage" must be between 0 and 100');
     if (typeof rules.enforceNaming !== 'boolean')
       errors.push('"rules.enforceNaming" must be a boolean');
     if (typeof rules.enforceBoundaries !== 'boolean')
@@ -61,6 +82,28 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
     errors.push('"ignore" must be an array');
   }
 
+  // Defaults validation
+  if (parsed.defaults !== undefined) {
+    if (typeof parsed.defaults !== 'object' || parsed.defaults === null) {
+      errors.push('"defaults" must be an object');
+    } else {
+      const defaults = parsed.defaults as Record<string, unknown>;
+      if (defaults.coverage !== undefined) {
+        if (typeof defaults.coverage !== 'object' || defaults.coverage === null) {
+          errors.push('"defaults.coverage" must be an object');
+        } else {
+          const coverage = defaults.coverage as Record<string, unknown>;
+          if (coverage.command !== undefined && typeof coverage.command !== 'string') {
+            errors.push('"defaults.coverage.command" must be a string');
+          }
+          if (coverage.summaryPath !== undefined && typeof coverage.summaryPath !== 'string') {
+            errors.push('"defaults.coverage.summaryPath" must be a string');
+          }
+        }
+      }
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(`Invalid viberails config at ${configPath}: ${errors.join('; ')}`);
   }
@@ -70,11 +113,11 @@ function validateConfig(parsed: Record<string, unknown>, configPath: string): vo
  * Load and parse a viberails config file.
  *
  * Reads the JSON file at the given path, validates that it contains
- * the required fields (version, name, stack, rules), and returns
- * the parsed config.
+ * the required fields (version, name, packages, rules), expands
+ * defaults into packages, and returns the parsed config.
  *
  * @param configPath - Absolute or relative path to viberails.config.json
- * @returns The parsed ViberailsConfig
+ * @returns The parsed ViberailsConfig with defaults expanded
  * @throws If the file doesn't exist, contains invalid JSON, or is missing required fields
  */
 export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
@@ -98,14 +141,27 @@ export async function loadConfig(configPath: string): Promise<ViberailsConfig> {
 
   validateConfig(parsed, configPath);
 
-  // Apply defaults for optional fields added after V1.0
+  // Apply defaults for optional fields added after initial release
   const rules = parsed.rules as Record<string, unknown>;
   if (rules.maxTestFileLines === undefined) {
     rules.maxTestFileLines = 0;
   }
+  if (rules.enforceMissingTests === undefined) {
+    rules.enforceMissingTests = true;
+  }
+
+  // Default ignore to [] if missing
+  if (parsed.ignore === undefined) {
+    parsed.ignore = [];
+  }
 
   // Safe to cast: validateConfig has verified all required fields and types
-  return parsed as unknown as ViberailsConfig;
+  let config = parsed as unknown as ViberailsConfig;
+
+  // Expand defaults into packages so they are self-contained
+  config = expandDefaults(config);
+
+  return config;
 }
 
 /**

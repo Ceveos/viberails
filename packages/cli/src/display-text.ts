@@ -6,23 +6,16 @@ import {
   ORM_NAMES,
   STYLING_NAMES,
 } from '@viberails/types';
+import { formatItem } from './display.js';
 import {
   formatExtensions,
   formatRoleGroup,
   formatSummary,
   groupByRole,
 } from './display-helpers.js';
-import { formatItem } from './display.js';
 import { formatMonorepoResultsText } from './display-monorepo.js';
 
-/**
- * Extract the convention value string from a ConventionValue.
- */
-function getConventionStr(
-  cv: string | { value: string; _confidence: string; _consistency: number },
-): string {
-  return typeof cv === 'string' ? cv : cv.value;
-}
+// Conventions are plain strings — no extraction needed.
 
 /**
  * Format a plain-text confidence label (no chalk).
@@ -78,26 +71,28 @@ export function formatConventionsText(scanResult: ScanResult): string[] {
  * Build rules preview as plain text lines.
  */
 export function formatRulesText(config: ViberailsConfig): string[] {
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   const lines: string[] = [];
-  lines.push('');
-  lines.push('Rules:');
-  lines.push(`  \u2022 Max file size: ${config.rules.maxFileLines} lines`);
+  lines.push(`Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.requireTests && config.structure.testPattern) {
-    lines.push(`  \u2022 Require test files: yes (${config.structure.testPattern})`);
-  } else if (config.rules.requireTests) {
-    lines.push('  \u2022 Require test files: yes');
+  if (config.rules.testCoverage > 0) {
+    lines.push(`Test coverage target: ${config.rules.testCoverage}%`);
   } else {
-    lines.push('  \u2022 Require test files: no');
+    lines.push('Test coverage target: disabled');
   }
 
-  if (config.rules.enforceNaming && config.conventions.fileNaming) {
-    lines.push(`  \u2022 Enforce file naming: ${getConventionStr(config.conventions.fileNaming)}`);
+  const enforceMissing = config.rules.enforceMissingTests ?? config.rules.testCoverage > 0;
+  if (enforceMissing && root?.structure?.testPattern) {
+    lines.push(`Enforce missing tests: yes (${root.structure.testPattern})`);
   } else {
-    lines.push('  \u2022 Enforce file naming: no');
+    lines.push('Enforce missing tests: no');
   }
 
-  lines.push(`  \u2022 Enforcement mode: ${config.enforcement}`);
+  if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
+    lines.push(`Enforce file naming: ${root.conventions.fileNaming}`);
+  } else {
+    lines.push('Enforce file naming: no');
+  }
 
   return lines;
 }
@@ -110,9 +105,9 @@ export function formatRulesText(config: ViberailsConfig): string[] {
  * @param config - The generated config (for rules preview)
  * @returns Formatted multi-line string
  */
-export function formatScanResultsText(scanResult: ScanResult, config: ViberailsConfig): string {
+export function formatScanResultsText(scanResult: ScanResult): string {
   if (scanResult.packages.length > 1) {
-    return formatMonorepoResultsText(scanResult, config);
+    return formatMonorepoResultsText(scanResult);
   }
 
   const lines: string[] = [];
@@ -170,9 +165,6 @@ export function formatScanResultsText(scanResult: ScanResult, config: ViberailsC
   if (ext) {
     lines.push(ext);
   }
-
-  // Rules
-  lines.push(...formatRulesText(config));
 
   return lines.join('\n');
 }

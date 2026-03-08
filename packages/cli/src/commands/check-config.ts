@@ -1,45 +1,74 @@
-import type { ConfigConventions, ConfigRules, ViberailsConfig } from '@viberails/types';
+import { BUILTIN_IGNORE } from '@viberails/config';
+import type {
+  ConfigConventions,
+  ConfigCoverage,
+  ConfigRules,
+  ViberailsConfig,
+} from '@viberails/types';
 
 export interface ResolvedConfig {
   rules: ConfigRules;
   conventions: ConfigConventions;
+  coverage: ConfigCoverage;
 }
 
 /**
- * Resolve the effective config for a file by finding its package override.
- * Returns the global config merged with any matching package overrides.
+ * Resolve the effective config for a file by finding its package.
+ * Returns the global rules merged with any matching package overrides.
  */
 export function resolveConfigForFile(relPath: string, config: ViberailsConfig): ResolvedConfig {
-  if (!config.packages || config.packages.length === 0) {
-    return { rules: config.rules, conventions: config.conventions };
-  }
-
   // Sort by path length descending to match the most specific package first
   const sortedPackages = [...config.packages].sort((a, b) => b.path.length - a.path.length);
 
   for (const pkg of sortedPackages) {
+    if (pkg.path === '.') continue; // Check non-root packages first
     if (relPath.startsWith(`${pkg.path}/`) || relPath === pkg.path) {
       return {
         rules: { ...config.rules, ...pkg.rules },
-        conventions: { ...config.conventions, ...pkg.conventions },
+        conventions: pkg.conventions ?? {},
+        coverage: {
+          ...(config.defaults?.coverage ?? {}),
+          ...(pkg.coverage ?? {}),
+        },
       };
     }
   }
 
-  return { rules: config.rules, conventions: config.conventions };
+  // Fall back to root package
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  return {
+    rules: { ...config.rules, ...root.rules },
+    conventions: root.conventions ?? {},
+    coverage: {
+      ...(config.defaults?.coverage ?? {}),
+      ...(root.coverage ?? {}),
+    },
+  };
+}
+
+/**
+ * Get effective ignore patterns: BUILTIN_IGNORE + config.ignore + package-specific.
+ */
+export function getEffectiveIgnore(config: ViberailsConfig): string[] {
+  return [...BUILTIN_IGNORE, ...(config.ignore ?? [])];
 }
 
 /**
  * Resolve ignore patterns for a file, appending any package-specific patterns.
  */
 export function resolveIgnoreForFile(relPath: string, config: ViberailsConfig): string[] {
-  const globalIgnore = config.ignore;
-  if (!config.packages) return globalIgnore;
+  const base = getEffectiveIgnore(config);
+  const root = config.packages.find((p) => p.path === '.');
+  const withRoot = root?.ignore ? [...base, ...root.ignore] : base;
 
-  for (const pkg of config.packages) {
-    if (pkg.ignore && relPath.startsWith(`${pkg.path}/`)) {
-      return [...globalIgnore, ...pkg.ignore];
-    }
+  const matched = [...config.packages]
+    .filter((p) => p.path !== '.')
+    .sort((a, b) => b.path.length - a.path.length)
+    .find((p) => relPath.startsWith(`${p.path}/`) || relPath === p.path);
+
+  if (matched?.ignore) {
+    return [...withRoot, ...matched.ignore];
   }
-  return globalIgnore;
+
+  return withRoot;
 }

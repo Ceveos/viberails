@@ -1,32 +1,6 @@
-import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
+import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
-import { conventionsDiffer, generatePackageOverrides } from './generate-overrides.js';
-
-function makeGlobalConfig(): ViberailsConfig {
-  return {
-    version: 1,
-    name: 'mono',
-    enforcement: 'warn',
-    stack: {
-      language: 'typescript',
-      packageManager: 'pnpm',
-      framework: 'nextjs@15',
-    },
-    structure: {},
-    conventions: {
-      fileNaming: 'kebab-case',
-    },
-    rules: {
-      maxFileLines: 300,
-      maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: false,
-      enforceNaming: true,
-      enforceBoundaries: false,
-    },
-    ignore: [],
-  };
-}
+import { generatePackages } from './generate-packages.js';
 
 function makePackage(overrides: Partial<PackageScanResult> = {}): PackageScanResult {
   return {
@@ -75,33 +49,8 @@ function makeScanResult(packages: PackageScanResult[]): ScanResult {
   };
 }
 
-describe('conventionsDiffer', () => {
-  it('returns undefined when all conventions match global', () => {
-    const result = conventionsDiffer(
-      { fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 } },
-      { fileNaming: 'kebab-case' },
-    );
-    expect(result).toBeUndefined();
-  });
-
-  it('returns overrides when a convention differs', () => {
-    const result = conventionsDiffer(
-      {
-        fileNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 30, consistency: 100 },
-      },
-      { fileNaming: 'kebab-case' },
-    );
-    expect(result).toBeDefined();
-    expect(result?.fileNaming).toEqual({
-      value: 'PascalCase',
-      _confidence: 'high',
-      _consistency: 100,
-    });
-  });
-});
-
-describe('generatePackageOverrides', () => {
-  it('generates override when package ORM differs from global', () => {
+describe('generatePackages', () => {
+  it('generates package config when package ORM differs', () => {
     const pkg = makePackage({
       stack: {
         language: { name: 'typescript' },
@@ -112,24 +61,39 @@ describe('generatePackageOverrides', () => {
       },
     });
 
-    const globalConfig = makeGlobalConfig();
-    globalConfig.stack.orm = 'prisma@5';
-
-    const result = generatePackageOverrides(makeScanResult([pkg, makePackage()]), globalConfig);
-    const webOverride = result?.find((o) => o.path === 'packages/web');
-    expect(webOverride?.stack?.orm).toBe('drizzle@0');
-  });
-
-  it('returns undefined when all packages match global config', () => {
-    const result = generatePackageOverrides(
-      makeScanResult([makePackage(), makePackage()]),
-      makeGlobalConfig(),
-    );
-    expect(result).toBeUndefined();
+    const result = generatePackages(makeScanResult([pkg, makePackage()]));
+    const webPkg = result?.find((p) => p.path === 'packages/web');
+    expect(webPkg?.stack?.orm).toBe('drizzle@0');
   });
 
   it('returns undefined for single-package scan results', () => {
-    const result = generatePackageOverrides(makeScanResult([makePackage()]), makeGlobalConfig());
+    const result = generatePackages(makeScanResult([makePackage()]));
     expect(result).toBeUndefined();
+  });
+
+  it('generates self-contained package configs with conventions as plain strings', () => {
+    const pkg1 = makePackage({
+      name: '@mono/web',
+      relativePath: 'packages/web',
+      conventions: {
+        fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 50, consistency: 97 },
+      },
+    });
+    const pkg2 = makePackage({
+      name: '@mono/api',
+      root: '/project/packages/api',
+      relativePath: 'packages/api',
+      conventions: {
+        fileNaming: { value: 'PascalCase', confidence: 'high', sampleSize: 30, consistency: 100 },
+      },
+    });
+
+    const result = generatePackages(makeScanResult([pkg1, pkg2]));
+    expect(result).toBeDefined();
+
+    const apiPkg = result?.find((p) => p.path === 'packages/api');
+    expect(apiPkg).toBeDefined();
+    // Conventions are plain strings, not ConventionValue objects
+    expect(apiPkg?.conventions?.fileNaming).toBe('PascalCase');
   });
 });

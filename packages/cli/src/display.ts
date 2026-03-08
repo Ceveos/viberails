@@ -113,11 +113,15 @@ export function displayScanResults(scanResult: ScanResult): void {
   if (stack.orm) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.orm, ORM_NAMES)}`);
   }
-  if (stack.linter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
-  }
-  if (stack.formatter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
+    }
+    if (stack.formatter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+    }
   }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
@@ -146,35 +150,28 @@ export function displayScanResults(scanResult: ScanResult): void {
 }
 
 /**
- * Extract the convention value string from a ConventionValue.
- */
-function getConventionStr(
-  cv: string | { value: string; _confidence: string; _consistency: number },
-): string {
-  return typeof cv === 'string' ? cv : cv.value;
-}
-
-/**
  * Display a preview of the rules that will be enforced.
  */
 export function displayRulesPreview(config: ViberailsConfig): void {
-  console.log(`${chalk.bold('Rules:')}`);
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+
+  console.log(
+    `${chalk.bold('Rules:')} ${chalk.dim('(warns on violation; use --enforce in CI to block)')}`,
+  );
   console.log(`  ${chalk.dim('\u2022')} Max file size: ${config.rules.maxFileLines} lines`);
 
-  if (config.rules.requireTests && config.structure.testPattern) {
+  if (config.rules.testCoverage > 0 && root?.structure?.testPattern) {
     console.log(
-      `  ${chalk.dim('\u2022')} Require test files: yes (${config.structure.testPattern})`,
+      `  ${chalk.dim('\u2022')} Test coverage target: ${config.rules.testCoverage}% (${root.structure.testPattern})`,
     );
-  } else if (config.rules.requireTests) {
-    console.log(`  ${chalk.dim('\u2022')} Require test files: yes`);
+  } else if (config.rules.testCoverage > 0) {
+    console.log(`  ${chalk.dim('\u2022')} Test coverage target: ${config.rules.testCoverage}%`);
   } else {
-    console.log(`  ${chalk.dim('\u2022')} Require test files: no`);
+    console.log(`  ${chalk.dim('\u2022')} Test coverage target: disabled`);
   }
 
-  if (config.rules.enforceNaming && config.conventions.fileNaming) {
-    console.log(
-      `  ${chalk.dim('\u2022')} Enforce file naming: ${getConventionStr(config.conventions.fileNaming)}`,
-    );
+  if (config.rules.enforceNaming && root?.conventions?.fileNaming) {
+    console.log(`  ${chalk.dim('\u2022')} Enforce file naming: ${root.conventions.fileNaming}`);
   } else {
     console.log(`  ${chalk.dim('\u2022')} Enforce file naming: no`);
   }
@@ -183,14 +180,5 @@ export function displayRulesPreview(config: ViberailsConfig): void {
     `  ${chalk.dim('\u2022')} Enforce boundaries: ${config.rules.enforceBoundaries ? 'yes' : 'no'}`,
   );
 
-  console.log('');
-
-  if (config.enforcement === 'enforce') {
-    console.log(`${chalk.bold('Enforcement mode:')} enforce (violations will block commits)`);
-  } else {
-    console.log(
-      `${chalk.bold('Enforcement mode:')} warn (violations shown but won't block commits)`,
-    );
-  }
   console.log('');
 }

@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { CheckViolation, ViberailsConfig } from '@viberails/types';
+import type { CheckViolation, PackageConfig, ViberailsConfig } from '@viberails/types';
 import { collectSourceFiles } from './check-files.js';
 
 const SOURCE_EXTS = new Set([
@@ -22,55 +22,75 @@ export function checkMissingTests(
   severity: 'error' | 'warn',
 ): CheckViolation[] {
   const violations: CheckViolation[] = [];
-  const { testPattern } = config.structure;
-  if (!testPattern) return violations;
+  for (const pkg of config.packages) {
+    const effectiveRules = { ...config.rules, ...pkg.rules };
+    const enforceMissing = effectiveRules.enforceMissingTests ?? effectiveRules.testCoverage > 0;
+    if (!enforceMissing) continue;
 
-  const srcDir = config.structure.srcDir;
-  if (!srcDir) return violations;
+    const testPattern = pkg.structure?.testPattern;
+    const srcDir = pkg.structure?.srcDir;
+    if (!testPattern || !srcDir) continue;
 
-  const srcPath = path.join(projectRoot, srcDir);
-  if (!fs.existsSync(srcPath)) return violations;
+    const packageRoot = pkg.path === '.' ? projectRoot : path.join(projectRoot, pkg.path);
+    const srcPath = path.join(packageRoot, srcDir);
+    if (!fs.existsSync(srcPath)) continue;
 
-  const testSuffix = testPattern.replace('*', '');
-  const sourceFiles = collectSourceFiles(srcPath, projectRoot);
+    const testSuffix = testPattern.replace('*', '');
+    const sourceFiles = collectSourceFiles(srcPath, projectRoot);
 
-  for (const relFile of sourceFiles) {
-    const basename = path.basename(relFile);
+    for (const relFile of sourceFiles) {
+      const basename = path.basename(relFile);
 
-    // Skip test files, index files, type definition files
-    if (
-      basename.includes('.test.') ||
-      basename.includes('.spec.') ||
-      basename.startsWith('index.') ||
-      basename.endsWith('.d.ts')
-    ) {
-      continue;
-    }
+      // Skip test files, index files, type definition files
+      if (
+        basename.includes('.test.') ||
+        basename.includes('.spec.') ||
+        basename.startsWith('index.') ||
+        basename.endsWith('.d.ts')
+      ) {
+        continue;
+      }
 
-    const ext = path.extname(basename);
-    if (!SOURCE_EXTS.has(ext)) continue;
+      const ext = path.extname(basename);
+      if (!SOURCE_EXTS.has(ext)) continue;
 
-    const stem = basename.slice(0, basename.indexOf('.'));
-    const expectedTestFile = `${stem}${testSuffix}`;
+      const stem = basename.slice(0, -ext.length);
+      const expectedTestFile = `${stem}${testSuffix}`;
 
-    // Look for the test file next to the source or in the tests directory
-    const dir = path.dirname(path.join(projectRoot, relFile));
-    const colocatedTest = path.join(dir, expectedTestFile);
-    const testsDir = config.structure.tests;
-    const dedicatedTest = testsDir ? path.join(projectRoot, testsDir, expectedTestFile) : null;
+      // Look for the test file next to the source or in the package tests directory
+      const dir = path.dirname(path.join(projectRoot, relFile));
+      const colocatedTest = path.join(dir, expectedTestFile);
+      const testsDir = pkg.structure?.tests;
+      const dedicatedTest = testsDir ? path.join(packageRoot, testsDir, expectedTestFile) : null;
 
-    const hasTest =
-      fs.existsSync(colocatedTest) || (dedicatedTest !== null && fs.existsSync(dedicatedTest));
+      const hasTest =
+        fs.existsSync(colocatedTest) || (dedicatedTest !== null && fs.existsSync(dedicatedTest));
 
-    if (!hasTest) {
-      violations.push({
-        file: relFile,
-        rule: 'missing-test',
-        message: `No test file found. Expected \`${expectedTestFile}\`.`,
-        severity,
-      });
+      if (!hasTest) {
+        violations.push({
+          file: relFile,
+          rule: 'missing-test',
+          message: `No test file found. Expected \`${expectedTestFile}\`.`,
+          severity,
+        });
+      }
     }
   }
 
   return violations;
+}
+
+export function resolvePackageForFile(
+  sourceRelPath: string,
+  config: ViberailsConfig,
+): PackageConfig | undefined {
+  const sorted = [...config.packages]
+    .filter((p) => p.path !== '.')
+    .sort((a, b) => b.path.length - a.path.length);
+  for (const pkg of sorted) {
+    if (sourceRelPath.startsWith(`${pkg.path}/`) || sourceRelPath === pkg.path) {
+      return pkg;
+    }
+  }
+  return config.packages.find((p) => p.path === '.') ?? config.packages[0];
 }

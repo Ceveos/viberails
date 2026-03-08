@@ -8,18 +8,24 @@ function writeMinimalConfig(dir: string, overrides: Record<string, unknown> = {}
   const config = {
     version: 1,
     name: 'test-project',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
-      maxFunctionLines: 50,
-      requireTests: false,
+      maxTestFileLines: 0,
+      testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
     ...overrides,
   };
   fs.writeFileSync(path.join(dir, 'viberails.config.json'), JSON.stringify(config, null, 2));
@@ -57,7 +63,16 @@ describe('sync command', () => {
   });
 
   it('preserves existing config values on sync', async () => {
-    writeMinimalConfig(tmpDir, { enforcement: 'enforce' });
+    writeMinimalConfig(tmpDir, {
+      rules: {
+        maxFileLines: 500,
+        maxTestFileLines: 0,
+        testCoverage: 0,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+    });
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
@@ -67,7 +82,7 @@ describe('sync command', () => {
       const configContent = JSON.parse(
         fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'),
       );
-      expect(configContent.enforcement).toBe('enforce');
+      expect(configContent.rules.maxFileLines).toBe(500);
     } finally {
       logSpy.mockRestore();
     }

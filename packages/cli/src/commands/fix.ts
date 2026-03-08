@@ -3,11 +3,11 @@ import * as path from 'node:path';
 import { loadConfig } from '@viberails/config';
 import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
+import { confirmDangerous } from '../utils/prompt.js';
 import { resolveConfigForFile } from './check-config.js';
 import { checkNaming, getAllSourceFiles } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
 import { checkGitDirty, getConventionValue, printPlan } from './fix-helpers.js';
-import { confirmDangerous } from '../utils/prompt.js';
 import { updateImportsAfterRenames } from './fix-imports.js';
 import {
   computeRename,
@@ -86,7 +86,7 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
 
   // Compute test stubs
   const testStubs: TestStubRecord[] = [];
-  if (shouldFixTests && config.rules.requireTests) {
+  if (shouldFixTests) {
     const testViolations = checkMissingTests(projectRoot, config, 'warn');
     for (const v of testViolations) {
       const stub = generateTestStub(v.file, config, projectRoot);

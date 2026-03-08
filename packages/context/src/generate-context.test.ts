@@ -6,21 +6,26 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 1,
     name: 'test-app',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: { srcDir: 'src', testPattern: '*.test.ts', tests: '__tests__' },
-    conventions: {
-      fileNaming: { value: 'kebab-case', _confidence: 'high', _consistency: 97 },
-    },
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-app',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: { srcDir: 'src', testPattern: '*.test.ts', tests: '__tests__' },
+        conventions: {
+          fileNaming: 'kebab-case',
+        },
+      },
+    ],
     ...overrides,
   };
 }
@@ -60,15 +65,9 @@ describe('generateContext (rules-focused)', () => {
     expect(output).toContain('src/');
   });
 
-  it('says commits will be rejected in enforce mode', () => {
-    const output = generateContext(makeConfig({ enforcement: 'enforce' }));
-    expect(output).toContain('Commits will be rejected');
-  });
-
-  it('says violations will be warned in warn mode', () => {
-    const output = generateContext(makeConfig({ enforcement: 'warn' }));
-    expect(output).toContain('warned');
-    expect(output).not.toContain('rejected');
+  it('mentions viberails check --enforce for blocking commits', () => {
+    const output = generateContext(makeConfig());
+    expect(output).toContain('viberails check --enforce');
   });
 
   it('does not describe the project stack or architecture', () => {
@@ -84,7 +83,19 @@ describe('generateContext (rules-focused)', () => {
   });
 
   it('handles missing conventions gracefully', () => {
-    const output = generateContext(makeConfig({ conventions: {} }));
+    const output = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: { srcDir: 'src', testPattern: '*.test.ts', tests: '__tests__' },
+            conventions: {},
+          },
+        ],
+      }),
+    );
     expect(output).not.toContain('kebab-case');
     expect(output).toContain('300 lines');
   });
@@ -95,19 +106,39 @@ describe('generateContext (rules-focused)', () => {
         rules: {
           maxFileLines: 0,
           maxTestFileLines: 0,
-          maxFunctionLines: 0,
-          requireTests: false,
+          testCoverage: 0,
           enforceNaming: false,
           enforceBoundaries: false,
+          enforceMissingTests: false,
         },
-        conventions: {},
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: {},
+          },
+        ],
       }),
     );
     expect(output).toContain('No rules configured');
   });
 
   it('handles string convention values', () => {
-    const output = generateContext(makeConfig({ conventions: { fileNaming: 'camelCase' } }));
+    const output = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: { srcDir: 'src', testPattern: '*.test.ts' },
+            conventions: { fileNaming: 'camelCase' },
+          },
+        ],
+      }),
+    );
     expect(output).toContain('camelCase');
     expect(output).toContain('userProfile.ts');
   });
@@ -155,13 +186,25 @@ describe('generateContext (rules-focused)', () => {
 });
 
 describe('per-package rules', () => {
-  it('omits per-package section when no package overrides', () => {
+  it('omits per-package section when only root package', () => {
     const result = generateContext(makeConfig());
     expect(result).not.toContain('Per-package rules');
   });
 
-  it('does not include per-package section for empty overrides array', () => {
-    const result = generateContext(makeConfig({ packages: [] }));
+  it('does not include per-package section when only root package exists', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: {},
+          },
+        ],
+      }),
+    );
     expect(result).not.toContain('Per-package rules');
   });
 
@@ -170,9 +213,16 @@ describe('per-package rules', () => {
       makeConfig({
         packages: [
           {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: { srcDir: 'src', testPattern: '*.test.ts' },
+            conventions: { fileNaming: 'kebab-case' },
+          },
+          {
             name: '@app/mobile',
             path: 'apps/mobile',
-            stack: { framework: 'expo@53' },
+            stack: { framework: 'expo@53', language: 'typescript', packageManager: 'pnpm' },
             conventions: { fileNaming: 'PascalCase' },
           },
         ],
@@ -188,6 +238,13 @@ describe('per-package rules', () => {
       makeConfig({
         packages: [
           {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: { srcDir: 'src', testPattern: '*.test.ts' },
+            conventions: { fileNaming: 'kebab-case' },
+          },
+          {
             name: '@app/shared',
             path: 'packages/shared',
             conventions: { fileNaming: 'camelCase' },
@@ -199,26 +256,39 @@ describe('per-package rules', () => {
     expect(result).not.toContain('(');
   });
 
-  it('includes rule overrides for maxFileLines and maxFunctionLines', () => {
+  it('includes rule overrides for maxFileLines', () => {
     const result = generateContext(
       makeConfig({
         packages: [
           {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: {},
+          },
+          {
             name: '@app/web',
             path: 'apps/web',
-            rules: { maxFileLines: 200, maxFunctionLines: 30 },
+            rules: { maxFileLines: 200 },
           },
         ],
       }),
     );
     expect(result).toContain('**200 lines**');
-    expect(result).toContain('**30 lines**');
   });
 
   it('includes all convention overrides, not just fileNaming', () => {
     const result = generateContext(
       makeConfig({
         packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: {},
+          },
           {
             name: '@app/mobile',
             path: 'apps/mobile',
@@ -237,21 +307,53 @@ describe('per-package rules', () => {
     expect(result).toContain('Hooks use **useXxx** naming');
     expect(result).toContain('Import alias: `~/*`');
   });
+
+  it('omits per-package section when packages match root defaults', () => {
+    const result = generateContext(
+      makeConfig({
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: {},
+            conventions: { fileNaming: 'kebab-case' },
+          },
+          {
+            name: '@app/web',
+            path: 'apps/web',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            conventions: { fileNaming: 'kebab-case' },
+          },
+        ],
+      }),
+    );
+    expect(result).not.toContain('## Per-package rules');
+  });
 });
 
 describe('development setup section', () => {
-  it('does not include development setup section', () => {
+  it('includes development setup section when formatter/linter is detected', () => {
     const output = generateContext(
       makeConfig({
-        stack: {
-          language: 'typescript',
-          packageManager: 'pnpm',
-          formatter: 'biome@2',
-          linter: 'biome@2',
-        },
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: {
+              language: 'typescript',
+              packageManager: 'pnpm',
+              formatter: 'biome@2',
+              linter: 'biome@2',
+            },
+            structure: {},
+            conventions: {},
+          },
+        ],
       }),
     );
-    expect(output).not.toContain('## Development setup');
+    expect(output).toContain('## Development setup');
+    expect(output).toContain('Biome');
   });
 });
 
@@ -259,7 +361,15 @@ describe('flat project handling', () => {
   it('omits srcDir from test requirement when project has no srcDir', () => {
     const output = generateContext(
       makeConfig({
-        structure: { testPattern: '*.test.ts' },
+        packages: [
+          {
+            name: 'test-app',
+            path: '.',
+            stack: { language: 'typescript', packageManager: 'pnpm' },
+            structure: { testPattern: '*.test.ts' },
+            conventions: { fileNaming: 'kebab-case' },
+          },
+        ],
       }),
     );
     expect(output).toContain('Every source file must have a corresponding');

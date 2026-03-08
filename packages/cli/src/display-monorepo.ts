@@ -1,7 +1,6 @@
-import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
+import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { FRAMEWORK_NAMES, STYLING_NAMES } from '@viberails/types';
 import chalk from 'chalk';
-import { formatConventionsText, formatRulesText } from './display-text.js';
 import { displayConventions, displaySummarySection, formatItem } from './display.js';
 import {
   formatExtensions,
@@ -9,6 +8,7 @@ import {
   formatSummary,
   groupByRole,
 } from './display-helpers.js';
+import { formatConventionsText } from './display-text.js';
 
 /**
  * Format a package summary line for monorepo display.
@@ -39,11 +39,15 @@ export function displayMonorepoResults(scanResult: ScanResult): void {
   if (stack.packageManager) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.packageManager)}`);
   }
-  if (stack.linter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
-  }
-  if (stack.formatter) {
-    console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.linter)}`);
+    }
+    if (stack.formatter) {
+      console.log(`  ${chalk.green('✓')} ${formatItem(stack.formatter)}`);
+    }
   }
   if (stack.testRunner) {
     console.log(`  ${chalk.green('✓')} ${formatItem(stack.testRunner)}`);
@@ -96,7 +100,7 @@ function formatPackageSummaryPlain(pkg: PackageScanResult): string {
  * Build monorepo scan results as a multi-line string for clack.note().
  * Returns plain text without chalk colors.
  */
-export function formatMonorepoResultsText(scanResult: ScanResult, config: ViberailsConfig): string {
+export function formatMonorepoResultsText(scanResult: ScanResult): string {
   const lines: string[] = [];
   const { stack, packages } = scanResult;
 
@@ -105,8 +109,12 @@ export function formatMonorepoResultsText(scanResult: ScanResult, config: Vibera
   // Shared stack items as compact line
   const sharedParts: string[] = [formatItem(stack.language)];
   if (stack.packageManager) sharedParts.push(formatItem(stack.packageManager));
-  if (stack.linter) sharedParts.push(formatItem(stack.linter));
-  if (stack.formatter) sharedParts.push(formatItem(stack.formatter));
+  if (stack.linter && stack.formatter && stack.linter.name === stack.formatter.name) {
+    sharedParts.push(`${formatItem(stack.linter)} (lint + format)`);
+  } else {
+    if (stack.linter) sharedParts.push(formatItem(stack.linter));
+    if (stack.formatter) sharedParts.push(formatItem(stack.formatter));
+  }
   if (stack.testRunner) sharedParts.push(formatItem(stack.testRunner));
   lines.push(`  \u2713 ${sharedParts.join(' \u00b7 ')}`);
 
@@ -144,9 +152,6 @@ export function formatMonorepoResultsText(scanResult: ScanResult, config: Vibera
   if (ext) {
     lines.push(ext);
   }
-
-  // Rules
-  lines.push(...formatRulesText(config));
 
   return lines.join('\n');
 }

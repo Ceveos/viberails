@@ -2,143 +2,158 @@
   "$schema": "https://viberails.sh/schema/v1.json",
   "version": 1,
   "name": "viberails",
-  "enforcement": "warn",
-  "stack": {
-    "language": "typescript@5",
-    "packageManager": "pnpm",
-    "linter": "biome@2",
-    "formatter": "biome@2",
-    "testRunner": "vitest@4"
-  },
-  "structure": {
-    "srcDir": "src",
-    "utils": "packages/cli/src/utils",
-    "tests": "tests",
-    "testPattern": "*.test.ts"
-  },
-  "conventions": {
-    "fileNaming": {
-      "value": "kebab-case",
-      "_confidence": "medium",
-      "_consistency": 85,
-      "_detected": true
-    }
-  },
   "rules": {
     "maxFileLines": 300,
     "maxTestFileLines": 0,
-    "maxFunctionLines": 50,
-    "requireTests": true,
+    "testCoverage": 80,
     "enforceNaming": true,
-    "enforceBoundaries": true
+    "enforceBoundaries": true,
+    "enforceMissingTests": true
   },
   "ignore": [
-    "**/*.d.ts",
-    "dist/**",
-    "node_modules/**",
     "tests/fixtures/**"
   ],
-  "workspace": {
-    "packages": [
-      "packages/cli",
-      "packages/config",
-      "packages/context",
-      "packages/graph",
-      "packages/scanner",
-      "packages/types"
-    ],
-    "isMonorepo": true
-  },
   "boundaries": {
     "deny": {
-      "@viberails/types": [
-        "@viberails/scanner",
-        "@viberails/config",
-        "@viberails/context",
-        "@viberails/graph",
-        "viberails"
-      ],
-      "@viberails/scanner": [
-        "@viberails/config",
-        "@viberails/context",
-        "@viberails/graph",
-        "viberails"
-      ],
       "@viberails/config": [
-        "@viberails/scanner",
+        "viberails",
         "@viberails/context",
         "@viberails/graph",
-        "viberails"
+        "@viberails/scanner"
       ],
       "@viberails/context": [
-        "@viberails/scanner",
+        "viberails",
         "@viberails/graph",
-        "viberails"
+        "@viberails/scanner"
       ],
       "@viberails/graph": [
-        "@viberails/scanner",
+        "viberails",
         "@viberails/config",
         "@viberails/context",
-        "viberails"
+        "@viberails/scanner"
+      ],
+      "@viberails/scanner": [
+        "viberails",
+        "@viberails/config",
+        "@viberails/context",
+        "@viberails/graph"
+      ],
+      "@viberails/types": [
+        "viberails",
+        "@viberails/config",
+        "@viberails/context",
+        "@viberails/graph",
+        "@viberails/scanner"
       ]
+    }
+  },
+  "defaults": {
+    "stack": {
+      "language": "typescript@5",
+      "packageManager": "pnpm",
+      "linter": "biome@2",
+      "formatter": "biome@2",
+      "testRunner": "vitest@4"
+    },
+    "structure": {
+      "srcDir": "src",
+      "testPattern": "*.test.ts"
     }
   },
   "packages": [
     {
       "name": "viberails",
       "path": "packages/cli",
-      "stack": {
-        "formatter": "biome@2"
+      "structure": {
+        "utils": "src/utils",
+        "tests": "src/commands"
+      },
+      "rules": {
+        "testCoverage": 75
+      },
+      "conventions": {
+        "fileNaming": "kebab-case"
       }
     },
     {
       "name": "@viberails/config",
       "path": "packages/config",
-      "stack": {
-        "formatter": "biome@2"
+      "structure": {
+        "tests": "src"
+      },
+      "conventions": {
+        "fileNaming": "kebab-case"
       }
     },
     {
       "name": "@viberails/context",
-      "path": "packages/context",
-      "stack": {
-        "formatter": "biome@2"
-      }
+      "path": "packages/context"
     },
     {
       "name": "@viberails/graph",
       "path": "packages/graph",
-      "stack": {
-        "formatter": "biome@2"
-      },
       "conventions": {
-        "fileNaming": {
-          "value": "kebab-case",
-          "_confidence": "high",
-          "_consistency": 100
-        }
+        "fileNaming": "kebab-case"
       }
     },
     {
       "name": "@viberails/scanner",
       "path": "packages/scanner",
-      "stack": {
-        "formatter": "biome@2"
+      "structure": {
+        "utils": "src/utils"
       },
       "conventions": {
-        "fileNaming": {
-          "value": "kebab-case",
-          "_confidence": "medium",
-          "_consistency": 83
-        }
+        "fileNaming": "kebab-case"
       }
     },
     {
       "name": "@viberails/types",
       "path": "packages/types",
-      "stack": {
-        "formatter": "biome@2"
+      "rules": {
+        "testCoverage": 0,
+        "enforceMissingTests": false
       }
     }
-  ]
+  ],
+  "_meta": {
+    "lastSync": "2026-03-08T21:22:44.381Z",
+    "packages": {
+      "packages/cli": {
+        "conventions": {
+          "fileNaming": {
+            "value": "kebab-case",
+            "confidence": "medium",
+            "consistency": 78
+          }
+        }
+      },
+      "packages/config": {
+        "conventions": {
+          "fileNaming": {
+            "value": "kebab-case",
+            "confidence": "medium",
+            "consistency": 78
+          }
+        }
+      },
+      "packages/graph": {
+        "conventions": {
+          "fileNaming": {
+            "value": "kebab-case",
+            "confidence": "high",
+            "consistency": 100
+          }
+        }
+      },
+      "packages/scanner": {
+        "conventions": {
+          "fileNaming": {
+            "value": "kebab-case",
+            "confidence": "medium",
+            "consistency": 86
+          }
+        }
+      }
+    }
+  }
 }

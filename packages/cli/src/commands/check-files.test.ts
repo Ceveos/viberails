@@ -1,9 +1,10 @@
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkNaming, getAllSourceFiles, isIgnored } from './check-files.js';
+import { checkNaming, getAllSourceFiles, getDiffFiles, isIgnored } from './check-files.js';
 
 describe('checkNaming', () => {
   const conventions = { fileNaming: 'kebab-case' as const };
@@ -115,25 +116,100 @@ describe('isIgnored', () => {
   });
 });
 
+describe('getDiffFiles', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'diff-files-'));
+    execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'existing.ts'), 'const a = 1;\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tmpDir, stdio: 'ignore' });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns added and modified files since base', () => {
+    const baseRef = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+    execSync('git checkout -b feature', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'new-file.ts'), 'export const b = 2;\n');
+    fs.writeFileSync(path.join(tmpDir, 'existing.ts'), 'const a = 2;\n');
+    execSync('git add . && git commit -m "changes"', { cwd: tmpDir, stdio: 'ignore' });
+
+    const result = getDiffFiles(tmpDir, baseRef);
+    expect(result.all).toContain('new-file.ts');
+    expect(result.all).toContain('existing.ts');
+    expect(result.added).toContain('new-file.ts');
+    expect(result.added).not.toContain('existing.ts');
+  });
+
+  it('excludes deleted files from results', () => {
+    const baseRef = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+    execSync('git checkout -b feature', { cwd: tmpDir, stdio: 'ignore' });
+    fs.unlinkSync(path.join(tmpDir, 'existing.ts'));
+    execSync('git add . && git commit -m "delete file"', { cwd: tmpDir, stdio: 'ignore' });
+
+    const result = getDiffFiles(tmpDir, baseRef);
+    expect(result.all).not.toContain('existing.ts');
+    expect(result.added).not.toContain('existing.ts');
+  });
+
+  it('handles multiple commits on the branch', () => {
+    const baseRef = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+    execSync('git checkout -b feature', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'first.ts'), 'export const a = 1;\n');
+    execSync('git add . && git commit -m "first"', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'second.ts'), 'export const b = 2;\n');
+    execSync('git add . && git commit -m "second"', { cwd: tmpDir, stdio: 'ignore' });
+
+    const result = getDiffFiles(tmpDir, baseRef);
+    expect(result.all).toContain('first.ts');
+    expect(result.all).toContain('second.ts');
+    expect(result.added).toContain('first.ts');
+    expect(result.added).toContain('second.ts');
+  });
+
+  it('returns empty arrays when no changes exist', () => {
+    const baseRef = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+    const result = getDiffFiles(tmpDir, baseRef);
+    expect(result.all).toEqual([]);
+    expect(result.added).toEqual([]);
+  });
+
+  it('returns empty arrays for invalid base ref', () => {
+    const result = getDiffFiles(tmpDir, 'nonexistent-branch');
+    expect(result.all).toEqual([]);
+    expect(result.added).toEqual([]);
+  });
+});
+
 describe('getAllSourceFiles', () => {
   let tmpDir: string;
 
   const baseConfig: ViberailsConfig = {
     version: 1,
     name: 'test',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
   };
 
   beforeEach(() => {

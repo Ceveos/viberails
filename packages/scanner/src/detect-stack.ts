@@ -47,6 +47,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 export async function detectStack(
   projectPath: string,
   additionalDeps?: Record<string, string>,
+  rootPackageManager?: StackItem,
 ): Promise<DetectedStack> {
   const pkg = await readPackageJson(projectPath);
   const allDeps: Record<string, string> = {
@@ -60,7 +61,7 @@ export async function detectStack(
   const styling = detectFirst(allDeps, STYLING_MAPPINGS);
   const backend = detectFirst(allDeps, BACKEND_MAPPINGS);
   const orm = detectFirst(allDeps, ORM_MAPPINGS);
-  const packageManager = await detectPackageManager(projectPath);
+  const packageManager = rootPackageManager ?? (await detectPackageManager(projectPath));
   const linter = detectLinter(allDeps);
   const formatter = detectFormatter(allDeps);
   const testRunner = detectTestRunner(allDeps);
@@ -127,7 +128,13 @@ function detectFirst(
   return undefined;
 }
 
-async function detectPackageManager(projectPath: string): Promise<StackItem> {
+/**
+ * Detects the package manager by checking for lock files.
+ *
+ * @param projectPath - Directory to check for lock files.
+ * @returns The detected package manager (defaults to npm if none found).
+ */
+export async function detectPackageManager(projectPath: string): Promise<StackItem> {
   for (const entry of LOCK_FILE_MAP) {
     if (await fileExists(join(projectPath, entry.file))) {
       return { name: entry.name };

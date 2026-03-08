@@ -4,8 +4,8 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
 {
   "conventions": {
     "componentNaming": {
-      "confidence": "low",
-      "consistency": 0,
+      "confidence": "high",
+      "consistency": 100,
       "sampleSize": 5,
       "value": "camelCase",
     },
@@ -32,8 +32,8 @@ exports[`scan > matches snapshot for nextjs-15 fixture 1`] = `
     {
       "conventions": {
         "componentNaming": {
-          "confidence": "low",
-          "consistency": 0,
+          "confidence": "high",
+          "consistency": 100,
           "sampleSize": 5,
           "value": "camelCase",
         },

@@ -10,19 +10,24 @@ let tmpDir: string;
 const baseConfig: ViberailsConfig = {
   version: 1,
   name: 'test-project',
-  enforcement: 'warn',
-  stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest' },
-  structure: { testPattern: '*.test.ts' },
-  conventions: {},
   rules: {
     maxFileLines: 300,
     maxTestFileLines: 0,
-    maxFunctionLines: 50,
-    requireTests: true,
+    testCoverage: 80,
     enforceNaming: true,
     enforceBoundaries: false,
+    enforceMissingTests: true,
   },
   ignore: [],
+  packages: [
+    {
+      name: 'test-project',
+      path: '.',
+      stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest' },
+      structure: { testPattern: '*.test.ts' },
+      conventions: {},
+    },
+  ],
 };
 
 beforeEach(() => {
@@ -51,9 +56,20 @@ describe('generateTestStub', () => {
   });
 
   it('returns null when no test pattern configured', () => {
-    const config = { ...baseConfig, structure: {} };
+    const config: ViberailsConfig = {
+      ...baseConfig,
+      packages: [{ ...baseConfig.packages[0], structure: {} }],
+    };
     const stub = generateTestStub('src/utils.ts', config, tmpDir);
     expect(stub).toBeNull();
+  });
+
+  it('preserves dotted file names when generating stub path', () => {
+    fs.writeFileSync(path.join(tmpDir, 'src/date.util.ts'), 'export const now = Date.now;');
+    const stub = generateTestStub('src/date.util.ts', baseConfig, tmpDir);
+    expect(stub).not.toBeNull();
+    expect(stub?.path).toBe(path.join('src', 'date.util.test.ts'));
+    expect(stub?.moduleName).toBe('date.util');
   });
 });
 
@@ -73,9 +89,19 @@ describe('writeTestStub', () => {
   });
 
   it('writes a jest stub file without import', () => {
-    const jestConfig = {
+    const jestConfig: ViberailsConfig = {
       ...baseConfig,
-      stack: { ...baseConfig.stack, testRunner: 'jest' },
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          stack: {
+            language: baseConfig.packages[0].stack?.language ?? 'typescript',
+            packageManager: baseConfig.packages[0].stack?.packageManager ?? 'pnpm',
+            ...(baseConfig.packages[0].stack ?? {}),
+            testRunner: 'jest',
+          },
+        },
+      ],
     };
     const stub = {
       path: 'src/utils.test.ts',
@@ -86,6 +112,33 @@ describe('writeTestStub', () => {
 
     const content = fs.readFileSync(stub.absPath, 'utf-8');
     expect(content).not.toContain('import');
+    expect(content).toContain("describe('utils'");
+  });
+
+  it('treats versioned jest runner as jest', () => {
+    const jestConfig: ViberailsConfig = {
+      ...baseConfig,
+      packages: [
+        {
+          ...baseConfig.packages[0],
+          stack: {
+            language: baseConfig.packages[0].stack?.language ?? 'typescript',
+            packageManager: baseConfig.packages[0].stack?.packageManager ?? 'pnpm',
+            ...(baseConfig.packages[0].stack ?? {}),
+            testRunner: 'jest@29',
+          },
+        },
+      ],
+    };
+    const stub = {
+      path: 'src/utils.test.ts',
+      absPath: path.join(tmpDir, 'src/utils.test.ts'),
+      moduleName: 'utils',
+    };
+    writeTestStub(stub, jestConfig);
+
+    const content = fs.readFileSync(stub.absPath, 'utf-8');
+    expect(content).not.toContain('vitest');
     expect(content).toContain("describe('utils'");
   });
 

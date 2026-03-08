@@ -1,10 +1,10 @@
 import type { ViberailsConfig } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
 import {
-  conventionValue,
   formatBoundaryRules,
   formatDevelopmentSetup,
   formatPackageOverrides,
+  getRootPackage,
   packageHeader,
 } from './format-helpers.js';
 
@@ -12,32 +12,47 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 1,
     name: 'test-app',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-app',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
     ...overrides,
   };
 }
 
-describe('conventionValue', () => {
-  it('extracts string from string input', () => {
-    expect(conventionValue('kebab-case')).toBe('kebab-case');
+describe('getRootPackage', () => {
+  it('returns the package with path "."', () => {
+    const config = makeConfig();
+    const root = getRootPackage(config);
+    expect(root.path).toBe('.');
   });
 
-  it('extracts value from object input', () => {
-    expect(conventionValue({ value: 'PascalCase', _confidence: 'high', _consistency: 95 })).toBe(
-      'PascalCase',
-    );
+  it('falls back to first package when no root package', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'sub',
+          path: 'packages/sub',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+        },
+      ],
+    });
+    const root = getRootPackage(config);
+    expect(root.path).toBe('packages/sub');
   });
 });
 
@@ -49,12 +64,20 @@ describe('formatDevelopmentSetup', () => {
 
   it('handles Biome as both formatter and linter', () => {
     const config = makeConfig({
-      stack: {
-        language: 'typescript',
-        packageManager: 'pnpm',
-        formatter: 'biome',
-        linter: 'biome',
-      },
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: {
+            language: 'typescript',
+            packageManager: 'pnpm',
+            formatter: 'biome',
+            linter: 'biome',
+          },
+          structure: {},
+          conventions: {},
+        },
+      ],
     });
     const lines = formatDevelopmentSetup(config);
     expect(lines).toContain('This project uses **Biome** for formatting and linting.\n');
@@ -63,12 +86,20 @@ describe('formatDevelopmentSetup', () => {
 
   it('handles separate Prettier formatter and ESLint linter', () => {
     const config = makeConfig({
-      stack: {
-        language: 'typescript',
-        packageManager: 'pnpm',
-        formatter: 'prettier',
-        linter: 'eslint',
-      },
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: {
+            language: 'typescript',
+            packageManager: 'pnpm',
+            formatter: 'prettier',
+            linter: 'eslint',
+          },
+          structure: {},
+          conventions: {},
+        },
+      ],
     });
     const lines = formatDevelopmentSetup(config);
     expect(lines).toContain(
@@ -79,7 +110,15 @@ describe('formatDevelopmentSetup', () => {
 
   it('handles formatter only', () => {
     const config = makeConfig({
-      stack: { language: 'typescript', packageManager: 'pnpm', formatter: 'prettier' },
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', formatter: 'prettier' },
+          structure: {},
+          conventions: {},
+        },
+      ],
     });
     const lines = formatDevelopmentSetup(config);
     expect(lines).toContain('This project uses **Prettier** for formatting.\n');
@@ -99,10 +138,10 @@ describe('formatBoundaryRules', () => {
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        maxFunctionLines: 50,
-        requireTests: true,
+        testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
+        enforceMissingTests: true,
       },
       boundaries: { deny: {} },
     });
@@ -114,10 +153,10 @@ describe('formatBoundaryRules', () => {
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        maxFunctionLines: 50,
-        requireTests: true,
+        testCoverage: 80,
         enforceNaming: true,
         enforceBoundaries: true,
+        enforceMissingTests: true,
       },
       boundaries: { deny: { '@app/types': ['@app/db', '@app/api'] } },
     });
@@ -128,18 +167,42 @@ describe('formatBoundaryRules', () => {
 });
 
 describe('formatPackageOverrides', () => {
-  it('returns empty when no packages', () => {
+  it('returns empty when only root package', () => {
     const config = makeConfig();
     expect(formatPackageOverrides(config)).toEqual([]);
   });
 
-  it('formats package with file naming convention', () => {
+  it('formats non-root package with file naming convention', () => {
     const config = makeConfig({
-      packages: [{ name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } }],
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+        { name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } },
+      ],
     });
     const lines = formatPackageOverrides(config);
     expect(lines).toContain('### apps/web');
     expect(lines.some((l) => l.includes('**PascalCase**'))).toBe(true);
+  });
+
+  it('returns empty when package conventions match root defaults', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'test-app',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          conventions: { fileNaming: 'kebab-case' },
+        },
+        { name: '@app/web', path: 'apps/web', conventions: { fileNaming: 'kebab-case' } },
+      ],
+    });
+    expect(formatPackageOverrides(config)).toEqual([]);
   });
 });
 
@@ -148,7 +211,7 @@ describe('packageHeader', () => {
     const result = packageHeader({
       name: '@app/web',
       path: 'apps/web',
-      stack: { framework: 'nextjs' },
+      stack: { framework: 'nextjs', language: 'typescript', packageManager: 'pnpm' },
     });
     expect(result).toBe('### apps/web (nextjs)');
   });

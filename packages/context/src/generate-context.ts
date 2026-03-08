@@ -1,8 +1,9 @@
 import type { ViberailsConfig } from '@viberails/types';
 import {
-  conventionValue,
   formatBoundaryRules,
+  formatDevelopmentSetup,
   formatPackageOverrides,
+  getRootPackage,
   NAMING_EXAMPLES,
 } from './format-helpers.js';
 
@@ -10,7 +11,8 @@ import {
  * Build the list of enforced rules as markdown bullet points.
  */
 function formatEnforcedRules(config: ViberailsConfig): string[] {
-  const { rules, conventions, structure } = config;
+  const root = getRootPackage(config);
+  const { rules } = config;
   const lines: string[] = [];
 
   if (rules.maxFileLines > 0) {
@@ -19,22 +21,27 @@ function formatEnforcedRules(config: ViberailsConfig): string[] {
     );
   }
 
-  if (rules.enforceNaming && conventions.fileNaming) {
-    const val = conventionValue(conventions.fileNaming);
+  if (rules.enforceNaming && root.conventions?.fileNaming) {
+    const val = root.conventions.fileNaming;
     const examples = NAMING_EXAMPLES[val] ?? `e.g. \`my-module.ts\``;
     lines.push(`- Source files use **${val}**: ${examples}.`);
   }
 
-  if (rules.requireTests && structure.testPattern) {
-    if (structure.srcDir) {
+  const enforceMissing = rules.enforceMissingTests ?? rules.testCoverage > 0;
+  if (enforceMissing && root.structure?.testPattern) {
+    if (root.structure.srcDir) {
       lines.push(
-        `- Every source file in \`${structure.srcDir}/\` must have a corresponding \`${structure.testPattern}\` file.`,
+        `- Every source file in \`${root.structure.srcDir}/\` must have a corresponding \`${root.structure.testPattern}\` file.`,
       );
     } else {
       lines.push(
-        `- Every source file must have a corresponding \`${structure.testPattern}\` file.`,
+        `- Every source file must have a corresponding \`${root.structure.testPattern}\` file.`,
       );
     }
+  }
+
+  if (rules.testCoverage > 0) {
+    lines.push(`- Test line coverage must meet **${rules.testCoverage}%** threshold.`);
   }
 
   return lines;
@@ -58,12 +65,14 @@ export function generateContext(config: ViberailsConfig): string {
   );
   sections.push('# viberails enforced rules\n');
 
-  if (config.enforcement === 'enforce') {
-    sections.push('Commits will be rejected if these rules are violated:\n');
-  } else {
-    sections.push(
-      'These rules are checked before commits. Violations will be **warned** but not blocked:\n',
-    );
+  sections.push(
+    'These rules are checked by viberails. Use `viberails check --enforce` to block commits on violation:\n',
+  );
+
+  const setupLines = formatDevelopmentSetup(config);
+  if (setupLines.length > 0) {
+    sections.push(setupLines.join('\n'));
+    sections.push('');
   }
 
   const ruleLines = formatEnforcedRules(config);

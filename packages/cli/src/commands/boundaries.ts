@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { loadConfig } from '@viberails/config';
+import { compactConfig, loadConfig } from '@viberails/config';
 import type { ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
 import { findProjectRoot } from '../utils/find-project-root.js';
@@ -81,9 +81,8 @@ async function inferAndDisplay(
   console.log(chalk.dim('Analyzing imports...'));
   const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
 
-  const packages = config.workspace
-    ? resolveWorkspacePackages(projectRoot, config.workspace)
-    : undefined;
+  const packages =
+    config.packages.length > 1 ? resolveWorkspacePackages(projectRoot, config.packages) : undefined;
 
   const graph = await buildImportGraph(projectRoot, {
     packages,
@@ -116,7 +115,7 @@ async function inferAndDisplay(
   if (shouldSave) {
     config.boundaries = inferred;
     config.rules.enforceBoundaries = true;
-    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+    fs.writeFileSync(configPath, `${JSON.stringify(compactConfig(config), null, 2)}\n`);
     console.log(`${chalk.green('✓')} Saved ${totalRules} rules`);
   }
 }
@@ -126,9 +125,8 @@ async function showGraph(projectRoot: string, config: ViberailsConfig): Promise<
   console.log(chalk.dim('Building import graph...'));
   const { buildImportGraph } = await import('@viberails/graph');
 
-  const packages = config.workspace
-    ? resolveWorkspacePackages(projectRoot, config.workspace)
-    : undefined;
+  const packages =
+    config.packages.length > 1 ? resolveWorkspacePackages(projectRoot, config.packages) : undefined;
 
   const graph = await buildImportGraph(projectRoot, {
     packages,

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
+import { resolvePackageForFile } from './check-tests.js';
 
 export interface TestStubRecord {
   path: string;
@@ -17,11 +18,14 @@ export function generateTestStub(
   config: ViberailsConfig,
   projectRoot: string,
 ): TestStubRecord | null {
-  const { testPattern } = config.structure;
+  const pkg = resolvePackageForFile(sourceRelPath, config);
+  const testPattern = pkg?.structure?.testPattern;
   if (!testPattern) return null;
 
   const basename = path.basename(sourceRelPath);
-  const stem = basename.slice(0, basename.indexOf('.'));
+  const ext = path.extname(basename);
+  if (!ext) return null;
+  const stem = basename.slice(0, -ext.length);
   const testSuffix = testPattern.replace('*', '');
   const testFilename = `${stem}${testSuffix}`;
 
@@ -41,7 +45,9 @@ export function generateTestStub(
  * Write a test stub file to disk.
  */
 export function writeTestStub(stub: TestStubRecord, config: ViberailsConfig): void {
-  const runner = config.stack.testRunner === 'jest' ? 'jest' : 'vitest';
+  const pkg = resolvePackageForFile(stub.path, config);
+  const testRunner = pkg?.stack?.testRunner ?? '';
+  const runner = testRunner.startsWith('jest') ? 'jest' : 'vitest';
   const importLine =
     runner === 'jest'
       ? '' // jest globals are available without import

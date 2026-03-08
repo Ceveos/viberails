@@ -7,13 +7,17 @@ export type { Confidence, DetectedConvention } from './confidence.js';
 export { confidenceFromConsistency } from './confidence.js';
 export type {
   ConfigConventions,
+  ConfigCoverage,
+  ConfigDefaults,
+  ConfigMeta,
   ConfigRules,
   ConfigStack,
   ConfigStructure,
-  ConventionValue,
-  PackageConfigOverrides,
+  ConventionMeta,
+  PackageBoundary,
+  PackageConfig,
+  PackageMeta,
   ViberailsConfig,
-  WorkspaceConfig,
 } from './config.js';
 export {
   CONVENTION_LABELS,

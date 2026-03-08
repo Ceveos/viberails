@@ -8,18 +8,24 @@ function writeConfig(dir: string, overrides: Record<string, unknown> = {}): void
   const config = {
     version: 1,
     name: 'test-project',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: { fileNaming: 'kebab-case' },
     rules: {
       maxFileLines: 300,
-      maxFunctionLines: 50,
-      requireTests: false,
+      maxTestFileLines: 0,
+      testCoverage: 0,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: { fileNaming: 'kebab-case' },
+      },
+    ],
     ...overrides,
   };
   fs.writeFileSync(path.join(dir, 'viberails.config.json'), JSON.stringify(config, null, 2));
@@ -93,6 +99,45 @@ describe('fix command', () => {
       logSpy.mockRestore();
       errorSpy.mockRestore();
       fs.rmSync(noConfigDir, { recursive: true, force: true });
+    }
+  });
+
+  it('generates missing test stubs when test coverage is enabled', async () => {
+    writeConfig(tmpDir, {
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      packages: [
+        {
+          name: 'test-project',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', testRunner: 'vitest' },
+          structure: { srcDir: 'src', testPattern: '*.test.ts' },
+          conventions: {},
+        },
+      ],
+    });
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'src', 'math.ts'),
+      'export const add = (a:number,b:number)=>a+b;\n',
+    );
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const exitCode = await fixCommand({ yes: true }, tmpDir);
+      expect(exitCode).toBe(0);
+      expect(fs.existsSync(path.join(tmpDir, 'src', 'math.test.ts'))).toBe(true);
+    } finally {
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
     }
   });
 });

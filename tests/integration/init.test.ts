@@ -26,8 +26,12 @@ describe('init command', () => {
     expect(fs.existsSync(configPath)).toBe(true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     expect(config.version).toBe(1);
-    expect(config.stack.framework).toContain('nextjs');
-    expect(config.stack.language).toContain('typescript');
+    expect(config.packages).toBeDefined();
+    expect(config.packages.length).toBeGreaterThan(0);
+    const root =
+      config.packages.find((p: { path: string }) => p.path === '.') ?? config.packages[0];
+    expect(root.stack.framework).toContain('nextjs');
+    expect(root.stack.language).toContain('typescript');
 
     // .viberails/context.md — should contain enforced rules, not project description
     const contextPath = path.join(tmpDir, '.viberails', 'context.md');
@@ -40,6 +44,7 @@ describe('init command', () => {
     const claudeMd = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf-8');
     expect(claudeMd).toContain('@.viberails/context.md');
     expect(fs.existsSync(path.join(tmpDir, '.cursorrules'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.claude', 'settings.json'))).toBe(true);
 
     // .gitignore — should include scan-result.json but not .cursorrules
     const gitignorePath = path.join(tmpDir, '.gitignore');
@@ -76,9 +81,13 @@ describe('init command', () => {
       const configPath = path.join(monoDir, 'viberails.config.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-      expect(config.workspace).toBeDefined();
-      expect(config.workspace.isMonorepo).toBe(true);
-      expect(config.workspace.packages).toEqual(
+      // Config: monorepo is indicated by packages.length > 1
+      expect(config.packages).toBeDefined();
+      expect(config.packages.length).toBeGreaterThan(1);
+
+      // Package paths should include core, web, api
+      const paths = config.packages.map((p: { path: string }) => p.path);
+      expect(paths).toEqual(
         expect.arrayContaining([
           expect.stringContaining('core'),
           expect.stringContaining('web'),
@@ -102,11 +111,12 @@ describe('init command', () => {
     const configPath = path.join(tmpDir, 'viberails.config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
-    // All convention values should be high confidence or plain strings
-    for (const value of Object.values(config.conventions)) {
-      if (typeof value === 'object' && value !== null) {
-        expect((value as { _confidence: string })._confidence).toBe('high');
-      }
+    // Config: conventions are plain strings in packages, metadata is in _meta
+    const root =
+      config.packages.find((p: { path: string }) => p.path === '.') ?? config.packages[0];
+    // All convention values should be plain strings (no ConventionValue objects)
+    for (const value of Object.values(root.conventions ?? {})) {
+      expect(typeof value).toBe('string');
     }
   });
 });

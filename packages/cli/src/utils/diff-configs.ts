@@ -3,7 +3,7 @@ import type {
   ConfigConventions,
   ConfigStack,
   ConfigStructure,
-  ConventionValue,
+  PackageConfig,
   ViberailsConfig,
 } from '@viberails/types';
 import { CONVENTION_LABELS, FRAMEWORK_NAMES, ORM_NAMES, STYLING_NAMES } from '@viberails/types';
@@ -26,7 +26,6 @@ function parseStackString(s: string): { name: string; version?: string } {
 
 /**
  * Resolve a stack string to a human-readable display name.
- * e.g. "tailwindcss@4" → "Tailwind CSS 4", "typescript" → "typescript"
  */
 function displayStackName(s: string): string {
   const { name, version } = parseStackString(s);
@@ -40,17 +39,10 @@ function displayStackName(s: string): string {
 }
 
 /**
- * Extract the string value from a ConventionValue.
+ * Check if a convention was newly detected during sync (via _meta).
  */
-function conventionStr(cv: ConventionValue): string {
-  return typeof cv === 'string' ? cv : cv.value;
-}
-
-/**
- * Check if a convention value was newly detected during sync.
- */
-function isDetected(cv: ConventionValue): boolean {
-  return typeof cv !== 'string' && cv._detected === true;
+function isNewlyDetected(config: ViberailsConfig, pkgPath: string, key: string): boolean {
+  return config._meta?.packages?.[pkgPath]?.conventions?.[key]?.detected === true;
 }
 
 /** Stack fields to compare (excluding language and packageManager which rarely change). */
@@ -85,6 +77,71 @@ const STRUCTURE_FIELDS: { key: keyof ConfigStructure; label: string }[] = [
 ];
 
 /**
+ * Diff a single package between existing and merged configs.
+ */
+function diffPackage(
+  existing: PackageConfig,
+  merged: PackageConfig,
+  mergedConfig: ViberailsConfig,
+): ConfigChange[] {
+  const changes: ConfigChange[] = [];
+  const pkgPrefix = existing.path === '.' ? '' : `${existing.path}: `;
+
+  // Stack changes
+  for (const field of STACK_FIELDS) {
+    const oldVal = existing.stack?.[field];
+    const newVal = merged.stack?.[field];
+
+    if (!oldVal && newVal) {
+      changes.push({
+        type: 'added',
+        description: `${pkgPrefix}Stack: added ${displayStackName(newVal)}`,
+      });
+    } else if (oldVal && newVal && oldVal !== newVal) {
+      changes.push({
+        type: 'changed',
+        description: `${pkgPrefix}Stack: ${displayStackName(oldVal)} → ${displayStackName(newVal)}`,
+      });
+    }
+  }
+
+  // Convention changes
+  for (const key of CONVENTION_KEYS) {
+    const oldVal = existing.conventions?.[key];
+    const newVal = merged.conventions?.[key];
+    const label = CONVENTION_LABELS[key] ?? key;
+
+    if (!oldVal && newVal) {
+      changes.push({
+        type: 'added',
+        description: `${pkgPrefix}New convention: ${label} (${newVal})`,
+      });
+    } else if (oldVal && newVal && oldVal !== newVal) {
+      const suffix = isNewlyDetected(mergedConfig, merged.path, key) ? ' (newly detected)' : '';
+      changes.push({
+        type: 'changed',
+        description: `${pkgPrefix}Convention updated: ${label} (${newVal})${suffix}`,
+      });
+    }
+  }
+
+  // Structure changes
+  for (const { key, label } of STRUCTURE_FIELDS) {
+    const oldVal = existing.structure?.[key];
+    const newVal = merged.structure?.[key];
+
+    if (!oldVal && newVal) {
+      changes.push({
+        type: 'added',
+        description: `${pkgPrefix}Structure: detected ${label} (${newVal})`,
+      });
+    }
+  }
+
+  return changes;
+}
+
+/**
  * Compare two ViberailsConfig objects and return a list of human-readable changes.
  *
  * @param existing - The config before sync
@@ -94,70 +151,22 @@ const STRUCTURE_FIELDS: { key: keyof ConfigStructure; label: string }[] = [
 export function diffConfigs(existing: ViberailsConfig, merged: ViberailsConfig): ConfigChange[] {
   const changes: ConfigChange[] = [];
 
-  // Stack changes
-  for (const field of STACK_FIELDS) {
-    const oldVal = existing.stack[field];
-    const newVal = merged.stack[field];
+  // Build lookup maps by path
+  const existingByPath = new Map(existing.packages.map((p) => [p.path, p]));
+  const mergedByPath = new Map(merged.packages.map((p) => [p.path, p]));
 
-    if (!oldVal && newVal) {
-      changes.push({ type: 'added', description: `Stack: added ${displayStackName(newVal)}` });
-    } else if (oldVal && newVal && oldVal !== newVal) {
-      changes.push({
-        type: 'changed',
-        description: `Stack: ${displayStackName(oldVal)} → ${displayStackName(newVal)}`,
-      });
+  // Diff existing packages against merged
+  for (const existingPkg of existing.packages) {
+    const mergedPkg = mergedByPath.get(existingPkg.path);
+    if (mergedPkg) {
+      changes.push(...diffPackage(existingPkg, mergedPkg, merged));
     }
   }
 
-  // Convention changes
-  for (const key of CONVENTION_KEYS) {
-    const oldVal = existing.conventions[key];
-    const newVal = merged.conventions[key];
-    const label = CONVENTION_LABELS[key] ?? key;
-
-    if (!oldVal && newVal) {
-      changes.push({
-        type: 'added',
-        description: `New convention: ${label} (${conventionStr(newVal)})`,
-      });
-    } else if (oldVal && newVal && isDetected(newVal)) {
-      changes.push({
-        type: 'changed',
-        description: `Convention updated: ${label} (${conventionStr(newVal)})`,
-      });
-    }
-  }
-
-  // Structure changes
-  for (const { key, label } of STRUCTURE_FIELDS) {
-    const oldVal = existing.structure[key];
-    const newVal = merged.structure[key];
-
-    if (!oldVal && newVal) {
-      changes.push({ type: 'added', description: `Structure: detected ${label} (${newVal})` });
-    }
-  }
-
-  // Package changes (monorepo per-package overrides)
-  const existingPaths = new Set((existing.packages ?? []).map((p) => p.path));
-  for (const pkg of merged.packages ?? []) {
-    if (!existingPaths.has(pkg.path)) {
-      changes.push({ type: 'added', description: `New package: ${pkg.path}` });
-    }
-  }
-
-  // Workspace changes
-  const existingWsPkgs = new Set(existing.workspace?.packages ?? []);
-  const mergedWsPkgs = new Set(merged.workspace?.packages ?? []);
-
-  for (const pkg of mergedWsPkgs) {
-    if (!existingWsPkgs.has(pkg)) {
-      changes.push({ type: 'added', description: `Workspace: added ${pkg}` });
-    }
-  }
-  for (const pkg of existingWsPkgs) {
-    if (!mergedWsPkgs.has(pkg)) {
-      changes.push({ type: 'removed', description: `Workspace: removed ${pkg}` });
+  // New packages
+  for (const mergedPkg of merged.packages) {
+    if (!existingByPath.has(mergedPkg.path)) {
+      changes.push({ type: 'added', description: `New package: ${mergedPkg.path}` });
     }
   }
 
@@ -166,10 +175,6 @@ export function diffConfigs(existing: ViberailsConfig, merged: ViberailsConfig):
 
 /**
  * Format a stats delta as a human-readable string.
- *
- * @param oldStats - Statistics from the previous scan
- * @param newStats - Statistics from the current scan
- * @returns e.g. "+45 files, +3,200 lines since last sync", or undefined if no change
  */
 export function formatStatsDelta(
   oldStats: CodebaseStatistics,

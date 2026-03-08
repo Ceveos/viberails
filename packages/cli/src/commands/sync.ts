@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { loadConfig, mergeConfig } from '@viberails/config';
+import { compactConfig, loadConfig, mergeConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { CodebaseStatistics } from '@viberails/types';
 import chalk from 'chalk';
@@ -57,9 +57,14 @@ export async function syncCommand(cwd?: string): Promise<void> {
 
   // 4. Merge config and detect changes
   const merged = mergeConfig(existing, scanResult);
-  const existingJson = JSON.stringify(existing, null, 2);
-  const mergedJson = JSON.stringify(merged, null, 2);
-  const configChanged = existingJson !== mergedJson;
+  const compacted = compactConfig(merged);
+  const compactedJson = JSON.stringify(compacted, null, 2);
+
+  // Compare against raw disk JSON (ignoring lastSync timestamp)
+  const rawDisk = fs.readFileSync(configPath, 'utf-8').trim();
+  const diskWithoutSync = rawDisk.replace(/"lastSync":\s*"[^"]*"/, '"lastSync": ""');
+  const mergedWithoutSync = compactedJson.replace(/"lastSync":\s*"[^"]*"/, '"lastSync": ""');
+  const configChanged = diskWithoutSync !== mergedWithoutSync;
 
   // 5. Report specific changes
   const changes = configChanged ? diffConfigs(existing, merged) : [];
@@ -78,8 +83,8 @@ export async function syncCommand(cwd?: string): Promise<void> {
     }
   }
 
-  // 6. Write config
-  fs.writeFileSync(configPath, `${mergedJson}\n`);
+  // 6. Write config (compacted)
+  fs.writeFileSync(configPath, `${compactedJson}\n`);
 
   // 7. Regenerate context and scan-result.json
   writeGeneratedFiles(projectRoot, merged, scanResult);

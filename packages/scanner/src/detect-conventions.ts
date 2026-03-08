@@ -117,12 +117,17 @@ function detectComponentNaming(
   if (tsxFiles.length < 3) return undefined;
 
   const pascalCount = tsxFiles.filter((f) => /^[A-Z]/.test(stripExtension(f))).length;
-  const consistency = Math.round((pascalCount / tsxFiles.length) * 100);
-  const dominantValue = pascalCount >= tsxFiles.length / 2 ? 'PascalCase' : 'camelCase';
+  const isPascal = pascalCount >= tsxFiles.length / 2;
+  const dominantCount = isPascal ? pascalCount : tsxFiles.length - pascalCount;
+  const consistency = Math.round((dominantCount / tsxFiles.length) * 100);
+  const confidence = confidenceFromConsistency(consistency);
+
+  // Skip reporting when confidence is low (neither convention dominates)
+  if (confidence === 'low') return undefined;
 
   return {
-    value: dominantValue,
-    confidence: confidenceFromConsistency(consistency),
+    value: isPascal ? 'PascalCase' : 'camelCase',
+    confidence,
     sampleSize: tsxFiles.length,
     consistency,
   };

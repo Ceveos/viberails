@@ -47,19 +47,23 @@ program
   .description('Check files against enforced rules')
   .option('--staged', 'Check only staged files (for pre-commit hooks)')
   .option('--files <files...>', 'Check specific files')
+  .option('--diff-base <ref>', 'Only check files changed since <ref> (for CI on PRs)')
   .option('--no-boundaries', 'Skip boundary checking')
   .option('--quiet', 'Show only summary counts, not individual violations')
   .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
   .option('--format <format>', 'Output format: text (default) or json')
+  .option('--enforce', 'Exit with error on violations (for CI)')
   .option('--hook', 'Claude Code hook mode: read file from stdin, output to stderr')
   .action(
     async (options: {
       staged?: boolean;
       files?: string[];
+      diffBase?: string;
       boundaries?: boolean;
       quiet?: boolean;
       limit?: number;
       format?: string;
+      enforce?: boolean;
       hook?: boolean;
     }) => {
       try {
@@ -69,6 +73,8 @@ program
         }
         const exitCode = await checkCommand({
           ...options,
+          diffBase: options.diffBase,
+          enforce: options.enforce,
           noBoundaries: options.boundaries === false,
           format: options.format === 'json' ? 'json' : 'text',
         });

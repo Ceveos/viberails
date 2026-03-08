@@ -1,24 +1,26 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { WorkspaceConfig, WorkspacePackage } from '@viberails/types';
+import type { PackageConfig, WorkspacePackage } from '@viberails/types';
 
 /**
- * Resolve WorkspacePackage[] from config workspace relative paths.
+ * Resolve WorkspacePackage[] from config packages.
  *
  * Reads each package's package.json to get the name and dependencies,
  * then filters internalDeps to only include workspace-internal packages.
  *
  * @param projectRoot - Absolute path to the project root
- * @param workspace - The workspace config from viberails.config.json
+ * @param packages - The packages array from viberails.config.json
  * @returns Array of resolved WorkspacePackage objects
  */
 export function resolveWorkspacePackages(
   projectRoot: string,
-  workspace: WorkspaceConfig,
+  packages: PackageConfig[],
 ): WorkspacePackage[] {
-  const packages: WorkspacePackage[] = [];
+  const resolved: WorkspacePackage[] = [];
 
-  for (const relativePath of workspace.packages) {
+  for (const pkgConfig of packages) {
+    if (pkgConfig.path === '.') continue; // Skip root package
+    const relativePath = pkgConfig.path;
     const absPath = path.join(projectRoot, relativePath);
     const pkgJsonPath = path.join(absPath, 'package.json');
 
@@ -39,14 +41,14 @@ export function resolveWorkspacePackages(
       ...Object.keys((pkg.devDependencies as Record<string, unknown>) ?? {}),
     ];
 
-    packages.push({ name, path: absPath, relativePath, internalDeps: allDeps });
+    resolved.push({ name, path: absPath, relativePath, internalDeps: allDeps });
   }
 
   // Filter internalDeps to only workspace-internal package names
-  const packageNames = new Set(packages.map((p) => p.name));
-  for (const pkg of packages) {
+  const packageNames = new Set(resolved.map((p) => p.name));
+  for (const pkg of resolved) {
     pkg.internalDeps = pkg.internalDeps.filter((dep) => packageNames.has(dep));
   }
 
-  return packages;
+  return resolved;
 }

@@ -51,6 +51,9 @@ export interface PackageScanResult {
   conventions: Record<string, DetectedConvention>;
   /** Quantitative statistics for this package. */
   statistics: CodebaseStatistics;
+
+  /** Whether this package appears to be types-only (no runtime dependencies). */
+  typesOnly?: boolean;
 }
 
 /**

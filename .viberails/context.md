@@ -2,27 +2,26 @@
 
 # viberails enforced rules
 
-These rules are checked before commits. Violations will be **warned** but not blocked:
+These rules are checked by viberails. Use `viberails check --enforce` to block commits on violation:
+
+## Development setup
+
+This project uses **Biome** for formatting and linting.
+
+- Enable format-on-save in your editor to avoid lint failures on commit.
+- If using VS Code, install the [Biome extension](https://marketplace.visualstudio.com/items?itemName=biomejs.biome) and enable format-on-save.
 
 - Files must not exceed **300 lines**. Split into focused modules.
 - Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
 - Every source file in `src/` must have a corresponding `*.test.ts` file.
-
-## Per-package rules
-
-The following packages have rules that differ from the global defaults:
-
-### packages/graph
-- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
-### packages/scanner
-- Source files use **kebab-case**: `user-profile.ts`, not `UserProfile.ts`.
+- Test line coverage must meet **80%** threshold.
 
 ## Boundary rules
 
 These import boundaries are enforced:
 
-- `@viberails/types` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/scanner` must NOT import from: `@viberails/config`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/config` must NOT import from: `@viberails/scanner`, `@viberails/context`, `@viberails/graph`, `viberails`
-- `@viberails/context` must NOT import from: `@viberails/scanner`, `@viberails/graph`, `viberails`
-- `@viberails/graph` must NOT import from: `@viberails/scanner`, `@viberails/config`, `@viberails/context`, `viberails`
+- `@viberails/config` must NOT import from: `viberails`, `@viberails/context`, `@viberails/graph`, `@viberails/scanner`
+- `@viberails/context` must NOT import from: `viberails`, `@viberails/graph`, `@viberails/scanner`
+- `@viberails/graph` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/scanner`
+- `@viberails/scanner` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/graph`
+- `@viberails/types` must NOT import from: `viberails`, `@viberails/config`, `@viberails/context`, `@viberails/graph`, `@viberails/scanner`

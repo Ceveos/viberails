@@ -7,13 +7,13 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
  * Set up a pre-commit hook that runs viberails check on staged files.
  * Detects Lefthook, Husky, or falls back to a raw git hook.
  */
-export function setupPreCommitHook(projectRoot: string): void {
+export function setupPreCommitHook(projectRoot: string): string | undefined {
   // Check for Lefthook
   const lefthookPath = path.join(projectRoot, 'lefthook.yml');
   if (fs.existsSync(lefthookPath)) {
     addLefthookPreCommit(lefthookPath);
     console.log(`  ${chalk.green('✓')} lefthook.yml — added viberails pre-commit`);
-    return;
+    return 'lefthook.yml';
   }
 
   // Check for Husky
@@ -21,7 +21,7 @@ export function setupPreCommitHook(projectRoot: string): void {
   if (fs.existsSync(huskyDir)) {
     writeHuskyPreCommit(huskyDir);
     console.log(`  ${chalk.green('✓')} .husky/pre-commit — added viberails check`);
-    return;
+    return '.husky/pre-commit';
   }
 
   // Fall back to raw git hook
@@ -33,7 +33,10 @@ export function setupPreCommitHook(projectRoot: string): void {
     }
     writeGitHookPreCommit(hooksDir);
     console.log(`  ${chalk.green('✓')} .git/hooks/pre-commit`);
+    return '.git/hooks/pre-commit';
   }
+
+  return undefined;
 }
 
 function writeGitHookPreCommit(hooksDir: string): void {
@@ -161,6 +164,67 @@ export function setupClaudeMdReference(projectRoot: string): void {
   const prefix = content.length === 0 ? '' : content.trimEnd();
   fs.writeFileSync(claudeMdPath, prefix + ref);
   console.log(`  ${chalk.green('✓')} CLAUDE.md — added @.viberails/context.md reference`);
+}
+
+/**
+ * Generate a GitHub Actions workflow that runs viberails check --enforce on PRs.
+ * Detects the project's package manager for correct install/run commands.
+ */
+export function setupGithubAction(projectRoot: string, packageManager: string): string | undefined {
+  const workflowDir = path.join(projectRoot, '.github', 'workflows');
+  const workflowPath = path.join(workflowDir, 'viberails.yml');
+
+  if (fs.existsSync(workflowPath)) {
+    const existing = fs.readFileSync(workflowPath, 'utf-8');
+    if (existing.includes('viberails')) return undefined;
+  }
+
+  fs.mkdirSync(workflowDir, { recursive: true });
+
+  const pm = packageManager || 'npm';
+  const installCmd =
+    pm === 'yarn'
+      ? 'yarn install --frozen-lockfile'
+      : pm === 'pnpm'
+        ? 'pnpm install --frozen-lockfile'
+        : 'npm ci';
+  const runPrefix = pm === 'npm' ? 'npx' : `${pm} exec`;
+
+  const lines = [
+    'name: viberails',
+    '',
+    'on:',
+    '  pull_request:',
+    '    branches: [main]',
+    '',
+    'jobs:',
+    '  check:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - uses: actions/checkout@v4',
+    '        with:',
+    '          fetch-depth: 0',
+    '',
+  ];
+
+  if (pm === 'pnpm') {
+    lines.push('      - uses: pnpm/action-setup@v4', '');
+  }
+
+  lines.push(
+    '      - uses: actions/setup-node@v4',
+    '        with:',
+    '          node-version: 22',
+    pm !== 'npm' ? `          cache: ${pm}` : '',
+    '',
+    `      - run: ${installCmd}`,
+    `      - run: ${runPrefix} viberails check --enforce --diff-base origin/\${{ github.event.pull_request.base.ref }}`,
+    '',
+  );
+
+  const content = lines.filter((l) => l !== undefined).join('\n');
+  fs.writeFileSync(workflowPath, content);
+  return '.github/workflows/viberails.yml';
 }
 
 function writeHuskyPreCommit(huskyDir: string): void {

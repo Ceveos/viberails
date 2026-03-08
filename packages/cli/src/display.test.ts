@@ -311,19 +311,24 @@ describe('displayRulesPreview', () => {
     return {
       version: 1,
       name: 'test',
-      enforcement: 'warn',
-      stack: { language: 'typescript', packageManager: 'pnpm' },
-      structure: {},
-      conventions: {},
       rules: {
         maxFileLines: 300,
         maxTestFileLines: 0,
-        maxFunctionLines: 50,
-        requireTests: false,
+        testCoverage: 0,
         enforceNaming: false,
         enforceBoundaries: false,
+        enforceMissingTests: true,
       },
       ignore: [],
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+      ],
       ...overrides,
     };
   }
@@ -340,16 +345,24 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
-            requireTests: true,
+            testCoverage: 80,
             enforceNaming: false,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
-          structure: { testPattern: '*.test.ts' },
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: { testPattern: '*.test.ts' },
+              conventions: {},
+            },
+          ],
         }),
       ),
     );
-    expect(output).toContain('Require test files: yes');
+    expect(output).toContain('Test coverage target: 80%');
     expect(output).toContain('*.test.ts');
   });
 
@@ -360,28 +373,24 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
-            requireTests: false,
+            testCoverage: 0,
             enforceNaming: true,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
-          conventions: { fileNaming: 'kebab-case' },
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: {},
+              conventions: { fileNaming: 'kebab-case' },
+            },
+          ],
         }),
       ),
     );
     expect(output).toContain('Enforce file naming: kebab-case');
-  });
-
-  it('shows enforcement mode warn', () => {
-    const output = captureOutput(() => displayRulesPreview(makeConfig()));
-    expect(output).toContain('Enforcement mode:');
-    expect(output).toContain('warn');
-  });
-
-  it('shows enforcement mode enforce', () => {
-    const output = captureOutput(() => displayRulesPreview(makeConfig({ enforcement: 'enforce' })));
-    expect(output).toContain('enforce');
-    expect(output).toContain('violations will block commits');
   });
 
   it('handles missing conventions gracefully', () => {
@@ -391,18 +400,25 @@ describe('displayRulesPreview', () => {
           rules: {
             maxFileLines: 300,
             maxTestFileLines: 0,
-            maxFunctionLines: 50,
-            requireTests: true,
+            testCoverage: 80,
             enforceNaming: true,
             enforceBoundaries: false,
+            enforceMissingTests: true,
           },
-          conventions: {},
-          structure: {},
+          packages: [
+            {
+              name: 'test',
+              path: '.',
+              stack: { language: 'typescript', packageManager: 'pnpm' },
+              structure: {},
+              conventions: {},
+            },
+          ],
         }),
       ),
     );
     expect(output).toContain('Enforce file naming: no');
-    expect(output).toContain('Require test files: yes');
+    expect(output).toContain('Test coverage target: 80%');
   });
 });
 

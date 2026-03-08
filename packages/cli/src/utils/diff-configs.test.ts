@@ -6,19 +6,24 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {
     version: 1,
     name: 'test',
-    enforcement: 'warn',
-    stack: { language: 'typescript', packageManager: 'pnpm' },
-    structure: {},
-    conventions: {},
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: false,
+      testCoverage: 0,
       enforceNaming: false,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
+    packages: [
+      {
+        name: 'test',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: {},
+        conventions: {},
+      },
+    ],
     ...overrides,
   };
 }
@@ -31,27 +36,68 @@ describe('diffConfigs', () => {
 
   it('detects new stack field addition', () => {
     const existing = makeConfig();
-    const merged = makeConfig({ stack: { ...existing.stack, styling: 'tailwindcss@4' } });
+    const merged = makeConfig({
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', styling: 'tailwindcss@4' },
+          structure: {},
+          conventions: {},
+        },
+      ],
+    });
     const changes = diffConfigs(existing, merged);
     expect(changes).toEqual([{ type: 'added', description: 'Stack: added Tailwind CSS 4' }]);
   });
 
   it('detects stack field value change', () => {
     const existing = makeConfig({
-      stack: { language: 'typescript', packageManager: 'pnpm', framework: 'nextjs@14' },
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', framework: 'nextjs@14' },
+          structure: {},
+          conventions: {},
+        },
+      ],
     });
     const merged = makeConfig({
-      stack: { language: 'typescript', packageManager: 'pnpm', framework: 'nextjs@15' },
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm', framework: 'nextjs@15' },
+          structure: {},
+          conventions: {},
+        },
+      ],
     });
     const changes = diffConfigs(existing, merged);
     expect(changes).toEqual([{ type: 'changed', description: 'Stack: Next.js 14 → Next.js 15' }]);
   });
 
-  it('detects new convention with _detected flag', () => {
+  it('detects new convention with _meta detected flag', () => {
     const existing = makeConfig();
     const merged = makeConfig({
-      conventions: {
-        hookNaming: { value: 'use-*', _confidence: 'high', _consistency: 95, _detected: true },
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: { hookNaming: 'use-*' },
+        },
+      ],
+      _meta: {
+        packages: {
+          '.': {
+            conventions: {
+              hookNaming: { value: 'use-*', confidence: 'high', consistency: 95, detected: true },
+            },
+          },
+        },
       },
     });
     const changes = diffConfigs(existing, merged);
@@ -62,7 +108,17 @@ describe('diffConfigs', () => {
 
   it('detects new convention as plain string', () => {
     const existing = makeConfig();
-    const merged = makeConfig({ conventions: { fileNaming: 'kebab-case' } });
+    const merged = makeConfig({
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: { fileNaming: 'kebab-case' },
+        },
+      ],
+    });
     const changes = diffConfigs(existing, merged);
     expect(changes).toEqual([
       { type: 'added', description: 'New convention: File naming (kebab-case)' },
@@ -70,14 +126,42 @@ describe('diffConfigs', () => {
   });
 
   it('ignores conventions that already existed', () => {
-    const config = makeConfig({ conventions: { fileNaming: 'kebab-case' } });
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: { fileNaming: 'kebab-case' },
+        },
+      ],
+    });
     expect(diffConfigs(config, config)).toEqual([]);
   });
 
   it('detects new package added', () => {
-    const existing = makeConfig({ packages: [{ name: 'web', path: 'packages/web' }] });
+    const existing = makeConfig({
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
+        { name: 'web', path: 'packages/web' },
+      ],
+    });
     const merged = makeConfig({
       packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: {},
+          conventions: {},
+        },
         { name: 'web', path: 'packages/web' },
         { name: 'auth', path: 'packages/auth' },
       ],
@@ -86,27 +170,19 @@ describe('diffConfigs', () => {
     expect(changes).toEqual([{ type: 'added', description: 'New package: packages/auth' }]);
   });
 
-  it('detects workspace package additions and removals', () => {
-    const existing = makeConfig({
-      workspace: { isMonorepo: true, packages: ['packages/web', 'packages/api'] },
-    });
-    const merged = makeConfig({
-      workspace: { isMonorepo: true, packages: ['packages/web', 'packages/auth'] },
-    });
-    const changes = diffConfigs(existing, merged);
-    expect(changes).toContainEqual({
-      type: 'added',
-      description: 'Workspace: added packages/auth',
-    });
-    expect(changes).toContainEqual({
-      type: 'removed',
-      description: 'Workspace: removed packages/api',
-    });
-  });
-
   it('detects new structure field', () => {
     const existing = makeConfig();
-    const merged = makeConfig({ structure: { hooks: 'src/hooks' } });
+    const merged = makeConfig({
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: { hooks: 'src/hooks' },
+          conventions: {},
+        },
+      ],
+    });
     const changes = diffConfigs(existing, merged);
     expect(changes).toEqual([
       { type: 'added', description: 'Structure: detected hooks directory (src/hooks)' },

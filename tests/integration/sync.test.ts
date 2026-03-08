@@ -35,7 +35,7 @@ describe('sync command', () => {
     // Config should still be valid JSON with expected structure
     const updatedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     expect(updatedConfig.version).toBe(1);
-    expect(updatedConfig.stack).toBeDefined();
+    expect(updatedConfig.packages).toBeDefined();
     expect(updatedConfig.rules).toBeDefined();
 
     // Context should be regenerated with rules format
@@ -50,7 +50,6 @@ describe('sync command', () => {
 
     // Simulate user editing the config
     config.rules.maxFileLines = 500;
-    config.enforcement = 'enforce';
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
     // Run sync
@@ -59,7 +58,6 @@ describe('sync command', () => {
     // User values should be preserved
     const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     expect(updated.rules.maxFileLines).toBe(500);
-    expect(updated.enforcement).toBe('enforce');
   });
 
   it('fails gracefully when no config exists', async () => {

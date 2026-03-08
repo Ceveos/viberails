@@ -1,11 +1,14 @@
+import { createRequire } from 'node:module';
 import type { ScanResult } from '@viberails/types';
-import Ajv from 'ajv';
 import { describe, expect, it } from 'vitest';
 import { generateConfig } from './generate-config.js';
 import { configSchema } from './schema.js';
 
+const require = createRequire(import.meta.url);
+const Ajv = require('ajv');
+
 function makeMinimalScanResult(): ScanResult {
-  return {
+  const result: ScanResult = {
     root: '/project/my-app',
     stack: {
       language: { name: 'typescript' },
@@ -23,11 +26,24 @@ function makeMinimalScanResult(): ScanResult {
       largestFiles: [],
       filesByExtension: { '.ts': 10 },
     },
+    packages: [],
   };
+  result.packages = [
+    {
+      name: 'my-app',
+      root: result.root,
+      relativePath: '',
+      stack: result.stack,
+      structure: result.structure,
+      conventions: result.conventions,
+      statistics: result.statistics,
+    },
+  ];
+  return result;
 }
 
 function makeFullScanResult(): ScanResult {
-  return {
+  const result: ScanResult = {
     root: '/project/my-app',
     stack: {
       framework: { name: 'nextjs', version: '15' },
@@ -68,7 +84,20 @@ function makeFullScanResult(): ScanResult {
       largestFiles: [{ path: 'src/components/data-table.tsx', lines: 487 }],
       filesByExtension: { '.ts': 60, '.tsx': 40 },
     },
+    packages: [],
   };
+  result.packages = [
+    {
+      name: 'my-app',
+      root: result.root,
+      relativePath: '',
+      stack: result.stack,
+      structure: result.structure,
+      conventions: result.conventions,
+      statistics: result.statistics,
+    },
+  ];
+  return result;
 }
 
 describe('configSchema validation', () => {
@@ -113,23 +142,24 @@ describe('configSchema validation', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
 
+    // Schema only accepts version: 1
     expect(
       validate({
         version: 2,
         name: 'test',
-        stack: { language: 'typescript', packageManager: 'npm' },
+        packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 300,
-          maxFunctionLines: 50,
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     ).toBe(false);
   });
 
-  it('validates a config with boundaries and workspace', () => {
+  it('validates a config with boundaries and packages', () => {
     const ajv = new Ajv();
     const validate = ajv.compile(configSchema);
     const config = generateConfig(makeMinimalScanResult());
@@ -141,13 +171,39 @@ describe('configSchema validation', () => {
           '@mono/web': ['@mono/api'],
         },
       },
-      workspace: {
-        packages: ['packages/web', 'packages/api', 'packages/core'],
-        isMonorepo: true,
-      },
     };
 
     const valid = validate(withBoundaries);
+    if (!valid) {
+      console.error('Validation errors:', validate.errors);
+    }
+    expect(valid).toBe(true);
+  });
+
+  it('validates defaults.coverage and package coverage overrides', () => {
+    const ajv = new Ajv();
+    const validate = ajv.compile(configSchema);
+    const config = generateConfig(makeMinimalScanResult());
+
+    const withCoverage = {
+      ...config,
+      defaults: {
+        coverage: {
+          command: 'pnpm test:coverage',
+          summaryPath: 'coverage/coverage-summary.json',
+        },
+      },
+      packages: [
+        {
+          ...config.packages[0],
+          coverage: {
+            summaryPath: 'custom/coverage-summary.json',
+          },
+        },
+      ],
+    };
+
+    const valid = validate(withCoverage);
     if (!valid) {
       console.error('Validation errors:', validate.errors);
     }

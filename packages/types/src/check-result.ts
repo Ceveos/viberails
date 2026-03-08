@@ -1,7 +1,12 @@
 /**
  * The type of rule that was violated.
  */
-export type CheckRule = 'file-size' | 'file-naming' | 'missing-test' | 'boundary-violation';
+export type CheckRule =
+  | 'file-size'
+  | 'file-naming'
+  | 'missing-test'
+  | 'test-coverage'
+  | 'boundary-violation';
 
 /**
  * A single rule violation detected by `viberails check`.
@@ -16,7 +21,7 @@ export interface CheckViolation {
   /** Human-readable description of the violation. */
   message: string;
 
-  /** Severity derived from config.enforcement. */
+  /** Severity derived from CLI mode (warn vs enforce). */
   severity: 'error' | 'warn';
 }
 
@@ -29,7 +34,4 @@ export interface CheckResult {
 
   /** Number of files that were checked. */
   checkedFiles: number;
-
-  /** The enforcement mode from config. */
-  enforcement: 'enforce' | 'warn';
 }

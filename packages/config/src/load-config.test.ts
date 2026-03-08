@@ -20,20 +20,25 @@ function validConfig(): ViberailsConfig {
     $schema: 'https://viberails.sh/schema/v1.json',
     version: 1,
     name: 'test-project',
-    enforcement: 'warn',
-    stack: {
-      language: 'typescript',
-      packageManager: 'pnpm',
-    },
-    structure: {},
-    conventions: {},
+    packages: [
+      {
+        name: 'test-project',
+        path: '.',
+        stack: {
+          language: 'typescript',
+          packageManager: 'pnpm',
+        },
+        structure: {},
+        conventions: {},
+      },
+    ],
     rules: {
       maxFileLines: 300,
       maxTestFileLines: 0,
-      maxFunctionLines: 50,
-      requireTests: true,
+      testCoverage: 80,
       enforceNaming: true,
       enforceBoundaries: false,
+      enforceMissingTests: true,
     },
     ignore: [],
   };
@@ -69,30 +74,30 @@ describe('loadConfig', () => {
 
     await expect(loadConfig(configPath)).rejects.toThrow('missing required field(s)');
     await expect(loadConfig(configPath)).rejects.toThrow('name');
-    await expect(loadConfig(configPath)).rejects.toThrow('stack');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages');
     await expect(loadConfig(configPath)).rejects.toThrow('rules');
   });
 
-  it('throws when stack is missing required fields', async () => {
-    const configPath = path.join(tmpDir, 'bad-stack.json');
+  it('throws when packages have missing required fields', async () => {
+    const configPath = path.join(tmpDir, 'bad-packages.json');
     await fs.writeFile(
       configPath,
       JSON.stringify({
         version: 1,
         name: 'test',
-        stack: {},
+        packages: [{}],
         rules: {
           maxFileLines: 300,
-          maxFunctionLines: 50,
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
 
-    await expect(loadConfig(configPath)).rejects.toThrow('stack.language');
-    await expect(loadConfig(configPath)).rejects.toThrow('stack.packageManager');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages[0].name');
+    await expect(loadConfig(configPath)).rejects.toThrow('packages[0].path');
   });
 
   it('throws when rules have wrong types', async () => {
@@ -102,13 +107,13 @@ describe('loadConfig', () => {
       JSON.stringify({
         version: 1,
         name: 'test',
-        stack: { language: 'typescript', packageManager: 'pnpm' },
+        packages: [{ name: 'test', path: '.' }],
         rules: {
           maxFileLines: 'not-a-number',
-          maxFunctionLines: 50,
-          requireTests: true,
+          testCoverage: 80,
           enforceNaming: true,
           enforceBoundaries: false,
+          enforceMissingTests: true,
         },
       }),
     );
@@ -116,13 +121,103 @@ describe('loadConfig', () => {
     await expect(loadConfig(configPath)).rejects.toThrow('rules.maxFileLines');
   });
 
-  it('throws when enforcement has invalid value', async () => {
-    const configPath = path.join(tmpDir, 'bad-enforcement.json');
-    const config = validConfig();
-    (config as Record<string, unknown>).enforcement = 'strict';
-    await fs.writeFile(configPath, JSON.stringify(config));
+  it('throws when version is not supported', async () => {
+    const configPath = path.join(tmpDir, 'bad-version.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 2,
+        name: 'test',
+        packages: [{ name: 'test', path: '.' }],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+          enforceMissingTests: true,
+        },
+      }),
+    );
 
-    await expect(loadConfig(configPath)).rejects.toThrow('enforcement');
+    await expect(loadConfig(configPath)).rejects.toThrow('"version" must be 1');
+  });
+
+  it('throws when packages array is empty', async () => {
+    const configPath = path.join(tmpDir, 'empty-packages.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+          enforceMissingTests: true,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow(
+      '"packages" must contain at least one package',
+    );
+  });
+
+  it('throws when defaults.coverage fields have wrong types', async () => {
+    const configPath = path.join(tmpDir, 'bad-defaults-coverage.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [{ name: 'test', path: '.' }],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+          enforceMissingTests: true,
+        },
+        defaults: {
+          coverage: {
+            command: 123,
+          },
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('"defaults.coverage.command"');
+  });
+
+  it('throws when packages coverage fields have wrong types', async () => {
+    const configPath = path.join(tmpDir, 'bad-package-coverage.json');
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({
+        version: 1,
+        name: 'test',
+        packages: [
+          {
+            name: 'test',
+            path: '.',
+            coverage: {
+              summaryPath: 123,
+            },
+          },
+        ],
+        rules: {
+          maxFileLines: 300,
+          testCoverage: 80,
+          enforceNaming: true,
+          enforceBoundaries: false,
+          enforceMissingTests: true,
+        },
+      }),
+    );
+
+    await expect(loadConfig(configPath)).rejects.toThrow('"packages[0].coverage.summaryPath"');
   });
 });
 

@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { detectHookManager, setupClaudeCodeHook, setupPreCommitHook } from './init-hooks.js';
+import {
+  detectHookManager,
+  setupClaudeCodeHook,
+  setupGithubAction,
+  setupPreCommitHook,
+} from './init-hooks.js';
 
 describe('detectHookManager', () => {
   let tmpDir: string;
@@ -56,7 +61,8 @@ describe('setupPreCommitHook', () => {
 
   it('creates .git/hooks/pre-commit when no hook manager exists', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'), { recursive: true });
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('.git/hooks/pre-commit');
 
     const hookPath = path.join(tmpDir, '.git', 'hooks', 'pre-commit');
     expect(fs.existsSync(hookPath)).toBe(true);
@@ -84,7 +90,8 @@ describe('setupPreCommitHook', () => {
       'pre-push:\n  commands:\n    lint:\n      run: echo lint\n',
     );
 
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('lefthook.yml');
 
     const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
     expect(content).toContain('pre-commit:');
@@ -142,7 +149,8 @@ describe('setupPreCommitHook', () => {
 
   it('detects Husky and writes to .husky/pre-commit', () => {
     fs.mkdirSync(path.join(tmpDir, '.husky'));
-    setupPreCommitHook(tmpDir);
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBe('.husky/pre-commit');
 
     const hookPath = path.join(tmpDir, '.husky', 'pre-commit');
     expect(fs.existsSync(hookPath)).toBe(true);
@@ -161,6 +169,11 @@ describe('setupPreCommitHook', () => {
     const content = fs.readFileSync(path.join(huskyDir, 'pre-commit'), 'utf-8');
     const matches = content.match(/viberails/g);
     expect(matches).toHaveLength(1);
+  });
+
+  it('returns undefined when no hook manager or git directory exists', () => {
+    const target = setupPreCommitHook(tmpDir);
+    expect(target).toBeUndefined();
   });
 });
 
@@ -249,5 +262,50 @@ describe('setupClaudeCodeHook', () => {
     expect(command).toContain('viberails check --hook');
     expect(command).toContain('./node_modules/.bin/viberails');
     expect(command).toContain('npx viberails check --hook');
+  });
+});
+
+describe('setupGithubAction', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-action-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('creates workflow file for pnpm projects', () => {
+    const target = setupGithubAction(tmpDir, 'pnpm');
+    expect(target).toBe('.github/workflows/viberails.yml');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('pnpm install --frozen-lockfile');
+    expect(content).toContain('pnpm exec viberails check --enforce --diff-base');
+    expect(content).toContain('pnpm/action-setup@v4');
+    expect(content).toContain('fetch-depth: 0');
+  });
+
+  it('creates workflow file for npm projects', () => {
+    setupGithubAction(tmpDir, 'npm');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('npm ci');
+    expect(content).toContain('npx viberails check --enforce --diff-base');
+    expect(content).not.toContain('pnpm/action-setup');
+  });
+
+  it('creates workflow file for yarn projects', () => {
+    setupGithubAction(tmpDir, 'yarn');
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('yarn install --frozen-lockfile');
+    expect(content).toContain('yarn exec viberails check --enforce --diff-base');
+  });
+
+  it('skips if workflow already contains viberails', () => {
+    const workflowDir = path.join(tmpDir, '.github', 'workflows');
+    fs.mkdirSync(workflowDir, { recursive: true });
+    fs.writeFileSync(path.join(workflowDir, 'viberails.yml'), 'name: viberails\n');
+    const target = setupGithubAction(tmpDir, 'pnpm');
+    expect(target).toBeUndefined();
   });
 });

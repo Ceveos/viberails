@@ -7,6 +7,7 @@ import {
   aggregateStatistics,
   aggregateStructures,
 } from './aggregate.js';
+import { detectPackageManager } from './detect-stack.js';
 import { detectWorkspace } from './detect-workspace.js';
 import { scanPackage } from './scan-package.js';
 import { readPackageJson } from './utils/read-package-json.js';
@@ -48,16 +49,19 @@ export async function scan(projectPath: string, _options?: ScanOptions): Promise
   const workspace = await detectWorkspace(root);
 
   if (workspace && workspace.packages.length > 0) {
-    // Read root deps for sharing with workspace packages
+    // Read root deps and detect root package manager for sharing with workspace packages
     const rootPkg = await readPackageJson(root);
     const rootDeps: Record<string, string> = {
       ...rootPkg?.dependencies,
       ...rootPkg?.devDependencies,
     };
+    const rootPackageManager = await detectPackageManager(root);
 
     // Scan each workspace package in parallel
     const packages = await Promise.all(
-      workspace.packages.map((wp) => scanPackage(wp.path, wp.name, wp.relativePath, rootDeps)),
+      workspace.packages.map((wp) =>
+        scanPackage(wp.path, wp.name, wp.relativePath, rootDeps, rootPackageManager),
+      ),
     );
 
     return {
