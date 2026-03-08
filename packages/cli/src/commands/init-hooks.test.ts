@@ -240,16 +240,14 @@ describe('setupClaudeCodeHook', () => {
     expect(fs.existsSync(path.join(tmpDir, '.claude'))).toBe(true);
   });
 
-  it('hook command uses node, exits 2 on violations and 0 when clean', () => {
+  it('hook command uses --hook flag with local binary preference', () => {
     setupClaudeCodeHook(tmpDir);
 
     const settingsPath = path.join(tmpDir, '.claude', 'settings.json');
     const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
     const command = settings.hooks.PostToolUse[0].hooks[0].command;
-    expect(command).not.toContain('jq');
-    expect(command).toContain('node -e');
-    expect(command).toContain('exit 2');
-    expect(command).toContain('exit 0');
-    expect(command).toContain('>&2');
+    expect(command).toContain('viberails check --hook');
+    expect(command).toContain('./node_modules/.bin/viberails');
+    expect(command).toContain('npx viberails check --hook');
   });
 });

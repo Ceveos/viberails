@@ -119,24 +119,11 @@ export function setupClaudeCodeHook(projectRoot: string): void {
   const existing = hooks.PostToolUse ?? [];
   if (existing.some((h) => JSON.stringify(h).includes('viberails'))) return;
 
-  // The hook command reads the tool input from stdin, extracts file_path, and checks it.
-  // Uses Node.js to parse JSON (no external dependency like jq required).
-  // readFileSync(0) reads stdin synchronously via file descriptor 0.
-  // Exit 2 with stderr output when violations are found, so Claude sees the feedback.
-  // Exit 0 when clean or no file to check.
-  const extractFile =
-    "node -e \"try{process.stdout.write(JSON.parse(require('fs').readFileSync(0,'utf8')).tool_input?.file_path??'')}catch{}\"";
-  const checkAndReport = [
-    `FILE=$(${extractFile})`,
-    'if [ -z "$FILE" ]; then exit 0; fi',
-    'OUTPUT=$(npx viberails check --files "$FILE" --format json 2>&1)',
-    `if echo "$OUTPUT" | node -e "process.exit(JSON.parse(require('fs').readFileSync(0,'utf8')).violations?.length?0:1)" 2>/dev/null; then`,
-    '  echo "$OUTPUT" >&2',
-    '  exit 2',
-    'fi',
-    'exit 0',
-  ].join('\n');
-  const hookCommand = checkAndReport;
+  // The --hook flag handles everything: reads stdin JSON, extracts file_path,
+  // runs the check, outputs violations to stderr, and exits 2 on violations.
+  // Prefer the local binary (fast) over npx (slow cold-start).
+  const hookCommand =
+    'if [ -x ./node_modules/.bin/viberails ]; then ./node_modules/.bin/viberails check --hook; else npx viberails check --hook; fi';
 
   hooks.PostToolUse = [
     ...existing,

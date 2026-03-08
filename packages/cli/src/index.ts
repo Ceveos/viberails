@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { boundariesCommand } from './commands/boundaries.js';
 import { checkCommand } from './commands/check.js';
+import { hookCheckCommand } from './commands/check-hook.js';
 import { fixCommand } from './commands/fix.js';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
@@ -50,6 +51,7 @@ program
   .option('--quiet', 'Show only summary counts, not individual violations')
   .option('--limit <n>', 'Maximum number of violations to display', Number.parseInt)
   .option('--format <format>', 'Output format: text (default) or json')
+  .option('--hook', 'Claude Code hook mode: read file from stdin, output to stderr')
   .action(
     async (options: {
       staged?: boolean;
@@ -58,8 +60,13 @@ program
       quiet?: boolean;
       limit?: number;
       format?: string;
+      hook?: boolean;
     }) => {
       try {
+        if (options.hook) {
+          const exitCode = await hookCheckCommand();
+          process.exit(exitCode);
+        }
         const exitCode = await checkCommand({
           ...options,
           noBoundaries: options.boundaries === false,
