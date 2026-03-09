@@ -285,7 +285,7 @@ describe('setupGithubAction', () => {
     expect(target).toBe('.github/workflows/viberails.yml');
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('pnpm install --frozen-lockfile');
-    expect(content).toContain('pnpm exec viberails check --enforce --diff-base');
+    expect(content).toContain('npx viberails check --enforce --diff-base');
     expect(content).toContain('pnpm/action-setup@v4');
     expect(content).toContain('fetch-depth: 0');
   });
@@ -302,7 +302,7 @@ describe('setupGithubAction', () => {
     setupGithubAction(tmpDir, 'yarn');
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('yarn install --frozen-lockfile');
-    expect(content).toContain('yarn exec viberails check --enforce --diff-base');
+    expect(content).toContain('npx viberails check --enforce --diff-base');
   });
 
   it('skips if workflow already contains viberails', () => {

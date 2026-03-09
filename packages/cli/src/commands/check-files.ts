@@ -100,7 +100,7 @@ export function checkNaming(relPath: string, conventions: ConfigConventions): st
 /** Get staged files from git. */
 export function getStagedFiles(projectRoot: string): string[] {
   try {
-    const output = execSync('git diff --cached --name-only --diff-filter=ACM', {
+    const output = execSync('git diff --cached --name-only --diff-filter=ACMR', {
       cwd: projectRoot,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -135,6 +135,102 @@ export function getDiffFiles(
     const msg = `git diff failed for base '${base}' — no files will be checked`;
     process.stderr.write(`Warning: ${msg}\n`);
     return { all: [], added: [], error: msg };
+  }
+}
+
+/** Map a test file path to its corresponding source file path. Returns null for non-test files. */
+export function testFileToSourceFile(testFile: string): string | null {
+  // Match patterns like foo.test.ts, foo.spec.tsx, foo.test.js, etc.
+  const match = testFile.match(/^(.+)\.(test|spec)(\.[^.]+)$/);
+  if (!match) return null;
+  return `${match[1]}${match[3]}`;
+}
+
+/**
+ * Map a deleted test file to the corresponding source file path.
+ * Supports both colocated tests and dedicated tests directories.
+ */
+export function deletedTestFileToSourceFile(
+  deletedTestFile: string,
+  config: ViberailsConfig,
+): string | null {
+  const normalized = deletedTestFile.replaceAll('\\', '/');
+  const sortedPackages = [...config.packages].sort((a, b) => b.path.length - a.path.length);
+
+  for (const pkg of sortedPackages) {
+    const relInPkg =
+      pkg.path === '.'
+        ? normalized
+        : normalized.startsWith(`${pkg.path}/`)
+          ? normalized.slice(pkg.path.length + 1)
+          : null;
+    if (relInPkg === null) continue;
+
+    const srcDir = pkg.structure?.srcDir;
+    if (!srcDir) continue;
+
+    const testsDir = pkg.structure?.tests;
+    if (testsDir && relInPkg.startsWith(`${testsDir}/`)) {
+      const relWithinTests = relInPkg.slice(testsDir.length + 1);
+      const relWithinSrc = testFileToSourceFile(relWithinTests);
+      if (relWithinSrc) {
+        return pkg.path === '.'
+          ? path.posix.join(srcDir, relWithinSrc)
+          : path.posix.join(pkg.path, srcDir, relWithinSrc);
+      }
+    }
+
+    const colocated = testFileToSourceFile(relInPkg);
+    if (colocated) {
+      return pkg.path === '.' ? colocated : path.posix.join(pkg.path, colocated);
+    }
+  }
+
+  return null;
+}
+
+/** Get source files whose tests were deleted in the staged area. */
+export function getStagedDeletedTestSourceFiles(
+  projectRoot: string,
+  config: ViberailsConfig,
+): string[] {
+  try {
+    const output = execSync('git diff --cached --name-only --diff-filter=D', {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return output
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((file) => deletedTestFileToSourceFile(file, config))
+      .filter((f): f is string => f !== null);
+  } catch {
+    return [];
+  }
+}
+
+/** Get source files whose tests were deleted between a base ref and HEAD. */
+export function getDiffDeletedTestSourceFiles(
+  projectRoot: string,
+  base: string,
+  config: ViberailsConfig,
+): string[] {
+  try {
+    const output = execSync(`git diff --name-only --diff-filter=D ${base}...HEAD`, {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    return output
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((file) => deletedTestFileToSourceFile(file, config))
+      .filter((f): f is string => f !== null);
+  } catch {
+    return [];
   }
 }
 

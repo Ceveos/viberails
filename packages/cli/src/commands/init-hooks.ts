@@ -249,7 +249,7 @@ export function setupGithubAction(
   }
 
   lines.push(
-    `      - run: ${runPrefix} viberails check --enforce --diff-base origin/\${{ github.event.pull_request.base.ref }}`,
+    `      - run: npx viberails check --enforce --diff-base origin/\${{ github.event.pull_request.base.ref }}`,
     '',
   );
 

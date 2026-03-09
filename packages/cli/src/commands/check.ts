@@ -11,7 +11,9 @@ import {
   checkNaming,
   countFileLines,
   getAllSourceFiles,
+  getDiffDeletedTestSourceFiles,
   getDiffFiles,
+  getStagedDeletedTestSourceFiles,
   getStagedFiles,
   isIgnored,
   SOURCE_EXTS,
@@ -74,8 +76,10 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   // Determine which files to check
   let filesToCheck: string[];
   let diffAddedFiles: Set<string> | null = null;
+  let deletedTestSourceFiles: string[] = [];
   if (options.staged) {
     filesToCheck = getStagedFiles(projectRoot).filter((f) => SOURCE_EXTS.has(path.extname(f)));
+    deletedTestSourceFiles = getStagedDeletedTestSourceFiles(projectRoot, config);
   } else if (options.diffBase) {
     const diff = getDiffFiles(projectRoot, options.diffBase);
     if (diff.error && options.enforce) {
@@ -84,13 +88,14 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     }
     filesToCheck = diff.all.filter((f) => SOURCE_EXTS.has(path.extname(f)));
     diffAddedFiles = new Set(diff.added);
+    deletedTestSourceFiles = getDiffDeletedTestSourceFiles(projectRoot, options.diffBase, config);
   } else if (options.files && options.files.length > 0) {
     filesToCheck = options.files;
   } else {
     filesToCheck = getAllSourceFiles(projectRoot, config);
   }
 
-  if (filesToCheck.length === 0) {
+  if (filesToCheck.length === 0 && deletedTestSourceFiles.length === 0) {
     if (options.format === 'json') {
       console.log(JSON.stringify({ violations: [], checkedFiles: 0 }));
     } else {
@@ -154,9 +159,12 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     const testViolations = checkMissingTests(projectRoot, config, severity);
     if (options.staged) {
       const stagedSet = new Set(filesToCheck);
+      for (const f of deletedTestSourceFiles) stagedSet.add(f);
       violations.push(...testViolations.filter((v) => stagedSet.has(v.file)));
     } else if (diffAddedFiles) {
-      violations.push(...testViolations.filter((v) => diffAddedFiles.has(v.file)));
+      const checkSet = new Set(diffAddedFiles);
+      for (const f of deletedTestSourceFiles) checkSet.add(f);
+      violations.push(...testViolations.filter((v) => checkSet.has(v.file)));
     } else {
       violations.push(...testViolations);
     }

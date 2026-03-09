@@ -260,4 +260,209 @@ describe('check --diff-base', () => {
     );
     expect(exitCode).toBe(0);
   });
+
+  it('catches missing-test when a test file is deleted', async () => {
+    // Add a source file with its test in the base commit
+    const srcFile = path.join(tmpDir, 'src', 'lib', 'helper.ts');
+    const testFile = path.join(tmpDir, 'src', 'lib', 'helper.test.ts');
+    fs.writeFileSync(srcFile, 'export const helper = true;\n');
+    fs.writeFileSync(testFile, 'import { helper } from "./helper";\ntest("ok", () => {});\n');
+    execSync('git add -A && git commit --no-verify -m "add helper with test"', {
+      cwd: tmpDir,
+      stdio: 'pipe',
+    });
+    const newBase = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+    execSync('git checkout -b delete-test', { cwd: tmpDir, stdio: 'ignore' });
+
+    // Delete only the test file
+    fs.unlinkSync(testFile);
+    execSync('git add -A && git commit --no-verify -m "delete test"', {
+      cwd: tmpDir,
+      stdio: 'pipe',
+    });
+
+    const exitCode = await checkCommand(
+      { enforce: true, diffBase: newBase, noBoundaries: true, format: 'json' },
+      tmpDir,
+    );
+
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const missingTests = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'missing-test',
+    );
+    expect(missingTests.length).toBeGreaterThan(0);
+    expect(missingTests[0].file).toContain('helper');
+    expect(exitCode).toBe(1);
+  });
+
+  it('catches missing-test when a test file is deleted in staged mode', async () => {
+    // Add a source file with its test
+    const srcFile = path.join(tmpDir, 'src', 'lib', 'staged-util.ts');
+    const testFile = path.join(tmpDir, 'src', 'lib', 'staged-util.test.ts');
+    fs.writeFileSync(srcFile, 'export const util = true;\n');
+    fs.writeFileSync(testFile, 'import { util } from "./staged-util";\ntest("ok", () => {});\n');
+    execSync('git add -A && git commit --no-verify -m "add staged-util with test"', {
+      cwd: tmpDir,
+      stdio: 'pipe',
+    });
+
+    // Stage deletion of the test file only
+    fs.unlinkSync(testFile);
+    execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
+
+    const exitCode = await checkCommand(
+      { enforce: true, staged: true, noBoundaries: true, format: 'json' },
+      tmpDir,
+    );
+
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const missingTests = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'missing-test',
+    );
+    expect(missingTests.length).toBeGreaterThan(0);
+    expect(missingTests[0].file).toContain('staged-util');
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('check with dedicated test directories', () => {
+  let tmpDir: string;
+  let baseRef: string;
+
+  beforeEach(async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-dedicated-tests-'));
+    const fixtureSrc = path.resolve(__dirname, '../fixtures/dedicated-tests');
+    fs.cpSync(fixtureSrc, tmpDir, { recursive: true });
+
+    execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'ignore' });
+
+    await initCommand({ yes: true }, tmpDir);
+
+    execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
+    execSync('git commit --no-verify -m "initial"', { cwd: tmpDir, stdio: 'pipe' });
+    baseRef = execSync('git rev-parse HEAD', { cwd: tmpDir, encoding: 'utf-8' }).trim();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('catches missing-test when a dedicated test file is deleted in staged mode', async () => {
+    fs.unlinkSync(path.join(tmpDir, '__tests__', 'lib', 'foo.test.ts'));
+    execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
+
+    const exitCode = await checkCommand(
+      { enforce: true, staged: true, noBoundaries: true, format: 'json' },
+      tmpDir,
+    );
+
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const missingTests = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'missing-test',
+    );
+    expect(missingTests.length).toBeGreaterThan(0);
+    expect(missingTests[0].file).toBe('src/lib/foo.ts');
+    expect(exitCode).toBe(1);
+  });
+
+  it('catches missing-test when a dedicated test file is deleted in diff mode', async () => {
+    execSync('git checkout -b delete-dedicated-test', { cwd: tmpDir, stdio: 'ignore' });
+    fs.unlinkSync(path.join(tmpDir, '__tests__', 'lib', 'foo.test.ts'));
+    execSync('git add -A && git commit --no-verify -m "delete test"', {
+      cwd: tmpDir,
+      stdio: 'pipe',
+    });
+
+    const exitCode = await checkCommand(
+      { enforce: true, diffBase: baseRef, noBoundaries: true, format: 'json' },
+      tmpDir,
+    );
+
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const missingTests = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'missing-test',
+    );
+    expect(missingTests.length).toBeGreaterThan(0);
+    expect(missingTests[0].file).toBe('src/lib/foo.ts');
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('check --staged with renamed files', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-rename-'));
+    const fixtureSrc = path.resolve(__dirname, '../fixtures/kebab-rename');
+    fs.cpSync(fixtureSrc, tmpDir, { recursive: true });
+
+    execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'ignore' });
+
+    await initCommand({ yes: true }, tmpDir);
+
+    const configPath = path.join(tmpDir, 'viberails.config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    config.rules.testCoverage = 0;
+    config.rules.enforceMissingTests = false;
+    config.packages[0].conventions = {
+      ...(config.packages[0].conventions ?? {}),
+      fileNaming: 'kebab-case',
+    };
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+    execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
+    execSync('git commit --no-verify -m "initial"', { cwd: tmpDir, stdio: 'pipe' });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('checks renamed files in staged mode', async () => {
+    execSync('git mv src/good-name.ts src/BadName.ts', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git add -A', { cwd: tmpDir, stdio: 'pipe' });
+
+    const exitCode = await checkCommand(
+      { enforce: true, staged: true, noBoundaries: true, format: 'json' },
+      tmpDir,
+    );
+
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const namingViolations = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'file-naming',
+    );
+    expect(namingViolations.length).toBeGreaterThan(0);
+    expect(namingViolations[0].file).toBe('src/BadName.ts');
+    expect(exitCode).toBe(1);
+  });
 });

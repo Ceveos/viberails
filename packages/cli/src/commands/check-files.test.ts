@@ -4,7 +4,14 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkNaming, getAllSourceFiles, getDiffFiles, isIgnored } from './check-files.js';
+import {
+  checkNaming,
+  deletedTestFileToSourceFile,
+  getAllSourceFiles,
+  getDiffFiles,
+  getStagedFiles,
+  isIgnored,
+} from './check-files.js';
 
 describe('checkNaming', () => {
   const conventions = { fileNaming: 'kebab-case' as const };
@@ -183,6 +190,64 @@ describe('getDiffFiles', () => {
     const result = getDiffFiles(tmpDir, 'nonexistent-branch');
     expect(result.all).toEqual([]);
     expect(result.added).toEqual([]);
+  });
+});
+
+describe('getStagedFiles', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'staged-files-'));
+    execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'good-name.ts'), 'export const a = 1;\n');
+    execSync('git add . && git commit -m "initial"', { cwd: tmpDir, stdio: 'ignore' });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('includes renamed files in staged results', () => {
+    execSync('git mv good-name.ts BadName.ts', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git add -A', { cwd: tmpDir, stdio: 'ignore' });
+
+    const staged = getStagedFiles(tmpDir);
+    expect(staged).toContain('BadName.ts');
+  });
+});
+
+describe('deletedTestFileToSourceFile', () => {
+  const config: ViberailsConfig = {
+    version: 1,
+    name: 'test',
+    rules: {
+      maxFileLines: 300,
+      maxTestFileLines: 0,
+      testCoverage: 80,
+      enforceNaming: true,
+      enforceBoundaries: false,
+      enforceMissingTests: true,
+    },
+    ignore: [],
+    packages: [
+      {
+        name: 'test',
+        path: '.',
+        stack: { language: 'typescript', packageManager: 'pnpm' },
+        structure: { srcDir: 'src', tests: '__tests__', testPattern: '*.test.ts' },
+        conventions: {},
+      },
+    ],
+  };
+
+  it('maps colocated test files back to source files', () => {
+    expect(deletedTestFileToSourceFile('src/lib/foo.test.ts', config)).toBe('src/lib/foo.ts');
+  });
+
+  it('maps dedicated test directory files back to src files', () => {
+    expect(deletedTestFileToSourceFile('__tests__/lib/foo.test.ts', config)).toBe('src/lib/foo.ts');
   });
 });
 

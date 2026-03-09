@@ -108,8 +108,10 @@ if [[ -z "$DRY_RUN" ]]; then
   echo "==> Tagged v$NEW_VERSION (run 'git push && git push --tags' to push)"
 else
   echo "==> Dry run complete. Would have published v$NEW_VERSION"
-  # Revert version changes
-  git checkout -- .
+  # Revert version changes — only the files we bumped
+  for pkg in "${PACKAGES[@]}"; do
+    git checkout -- "$pkg/package.json"
+  done
 fi
 
 echo "==> Done."
