@@ -9,6 +9,7 @@ import {
   setupGithubAction,
   setupPreCommitHook,
 } from './init-hooks.js';
+import { resolveTypecheckCommand } from './resolve-typecheck.js';
 
 /**
  * Add a named pre-commit command to the detected hook manager.
@@ -65,30 +66,19 @@ export function addPreCommitStep(
   return undefined;
 }
 
-/**
- * Check if turbo.json defines a specific task.
- * Supports both Turbo v2 ("tasks") and v1 ("pipeline") schemas.
- */
-export function hasTurboTask(projectRoot: string, taskName: string): boolean {
-  const turboPath = path.join(projectRoot, 'turbo.json');
-  if (!fs.existsSync(turboPath)) return false;
-  try {
-    const turbo = JSON.parse(fs.readFileSync(turboPath, 'utf-8'));
-    const tasks = turbo.tasks ?? turbo.pipeline ?? {};
-    return taskName in tasks;
-  } catch {
-    return false;
+/** Set up a typecheck pre-commit step. Skips if no safe command can be inferred. */
+export function setupTypecheckHook(
+  projectRoot: string,
+  packageManager?: string,
+): string | undefined {
+  const resolved = resolveTypecheckCommand(projectRoot, packageManager);
+  if (!resolved.command) {
+    console.log(`  ${chalk.yellow('!')} Skipped typecheck hook: ${resolved.reason}`);
+    return undefined;
   }
-}
-
-/** Set up a tsc --noEmit pre-commit step. Uses turbo typecheck if the task exists. */
-export function setupTypecheckHook(projectRoot: string): string | undefined {
-  const useTurbo = hasTurboTask(projectRoot, 'typecheck');
-  const command = useTurbo ? 'npx turbo typecheck' : 'npx tsc --noEmit';
-  const label = useTurbo ? 'turbo typecheck' : 'tsc --noEmit';
-  const target = addPreCommitStep(projectRoot, 'typecheck', command, 'typecheck');
+  const target = addPreCommitStep(projectRoot, 'typecheck', resolved.command, 'typecheck');
   if (target) {
-    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (${label})`);
+    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (${resolved.label})`);
   }
   return target;
 }

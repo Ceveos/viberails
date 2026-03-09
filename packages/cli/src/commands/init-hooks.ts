@@ -2,22 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-
-/**
- * Check if turbo.json defines a "typecheck" task.
- * Supports both Turbo v2 ("tasks") and v1 ("pipeline") schemas.
- */
-function hasTurboTypecheckTask(projectRoot: string): boolean {
-  const turboPath = path.join(projectRoot, 'turbo.json');
-  if (!fs.existsSync(turboPath)) return false;
-  try {
-    const turbo = JSON.parse(fs.readFileSync(turboPath, 'utf-8'));
-    const tasks = turbo.tasks ?? turbo.pipeline ?? {};
-    return 'typecheck' in tasks;
-  } catch {
-    return false;
-  }
-}
+import { resolveTypecheckCommand } from './resolve-typecheck.js';
 
 /**
  * Set up a pre-commit hook that runs viberails check on staged files.
@@ -248,9 +233,15 @@ export function setupGithubAction(
   );
 
   if (options?.typecheck) {
-    const useTurbo = hasTurboTypecheckTask(projectRoot);
-    const tsCmd = useTurbo ? `${runPrefix} turbo typecheck` : `${runPrefix} tsc --noEmit`;
-    lines.push(`      - run: ${tsCmd}`);
+    const resolved = resolveTypecheckCommand(projectRoot, pm);
+    if (resolved.command) {
+      // resolved.command is a shell command like "npx tsc --noEmit" or "pnpm run typecheck"
+      // For CI, use runPrefix for npx-style commands, or the command directly for script runners
+      const ciCmd = resolved.command.startsWith('npx ')
+        ? `${runPrefix} ${resolved.command.slice(4)}`
+        : resolved.command;
+      lines.push(`      - run: ${ciCmd}`);
+    }
   }
   if (options?.linter) {
     const lintCmd = options.linter === 'biome' ? 'biome check .' : 'eslint .';

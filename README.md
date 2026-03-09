@@ -2,11 +2,11 @@
 
 Guardrails for vibe coding.
 
-viberails scans your existing JavaScript/TypeScript project, detects the conventions you're already following, and enforces them automatically — on every commit and every AI edit. Rules are derived from your actual codebase, not a template.
+viberails scans your existing JavaScript/TypeScript project, detects the conventions you're already following, and enforces them — with immediate file-level feedback during AI edits and full policy enforcement at commit and PR time. Rules are derived from your actual codebase, not a template.
 
 ## Why
 
-AI coding tools are fast but inconsistent. They'll use camelCase in one file and kebab-case in another, create 500-line files, and ignore your project's import boundaries. viberails catches this automatically by learning your conventions and enforcing them where it matters: in pre-commit hooks and as real-time feedback to AI agents.
+AI coding tools are fast but inconsistent. They'll use camelCase in one file and kebab-case in another, create 500-line files, and ignore your project's import boundaries. viberails catches this by learning your conventions and enforcing them where it matters: file-level checks surface naming and size issues immediately during AI edits, while commit hooks and CI enforce the full policy including missing tests and coverage.
 
 ## Quick Start
 
@@ -106,7 +106,7 @@ Detects your hook manager (Lefthook, Husky, or bare git) and adds `viberails che
 
 ### Claude Code hook
 
-Adds a PostToolUse hook to `.claude/settings.json` that runs `viberails check` after every file edit, giving Claude real-time feedback on convention violations.
+Adds a PostToolUse hook to `.claude/settings.json` that runs fast file-scoped checks after every edit, surfacing naming and file-size issues immediately. Repository-level checks like missing tests and coverage are enforced at commit and PR time via staged checks and CI.
 
 ### GitHub Actions
 
