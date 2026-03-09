@@ -16,6 +16,7 @@ npx viberails
 ```
 
 The interactive wizard scans your project, shows what it found with confidence levels, and lets you customize rules before generating config. It also sets up pre-commit hooks and Claude Code integration.
+If a config already exists, re-running `viberails` lets you edit it, replace it with a fresh scan, or cancel. `viberails config` remains available as a shortcut for direct rule editing.
 
 ## What It Does
 
@@ -45,12 +46,12 @@ The generated `context.md` is designed to be referenced from your `CLAUDE.md`, `
 
 ### `npx viberails` / `viberails init`
 
-Scans your project and generates config, context, and hooks.
+Scans your project and walks you through setup. If a config already exists, the same command lets you edit the current setup or replace it with a fresh scan.
 
 | Flag | Effect |
 |------|--------|
 | `--yes` / `-y` | Non-interactive. Uses defaults, keeps high-confidence conventions, and auto-sets up integrations. |
-| `--force` / `-f` | Re-initialize from scratch, replacing existing config. Use `viberails config` to edit rules without starting over. |
+| `--force` / `-f` | Re-initialize from scratch, replacing existing config without the edit/replace chooser. |
 
 ### `viberails check`
 
@@ -78,7 +79,7 @@ Auto-fixes naming violations and generates missing test stubs.
 
 ### `viberails config`
 
-Interactively edit existing config rules without re-initializing. Opens the same rule menu used during `init` with your current values pre-filled.
+Interactively edit existing config rules without re-initializing. Opens the same rule menu used during `init` with your current values pre-filled. Most users can simply re-run `viberails`; this command is the direct shortcut.
 
 | Flag | Effect |
 |------|--------|

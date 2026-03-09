@@ -62,36 +62,52 @@ import Terminal from './terminal.astro';
       </div>
       <div class="mt-2 text-text-muted">Scanning project...</div>
 
-      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Detected: <span class="text-text-dim/60 normal-case tracking-normal">(example output)</span></div>
-      <div class="ml-2">
-        <span class="text-green">&#10003;</span>
-        <span class="text-text-primary"> Next.js 15</span>
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">
+        Ready to initialize:
+        <span class="text-text-dim/60 normal-case tracking-normal">(example output)</span>
       </div>
-      <div class="ml-2">
-        <span class="text-green">&#10003;</span>
-        <span class="text-text-primary"> TypeScript 5</span>
+      <div class="ml-2 text-text-primary">
+        <span class="text-accent">monorepo</span>
+        <span class="text-text-dim"> · </span>
+        <span>10 packages</span>
+        <span class="text-text-dim"> · </span>
+        <span>TypeScript 5</span>
       </div>
-      <div class="ml-2">
+      <div class="ml-2 text-text-muted">pnpm · ESLint 9 · Prettier 3 · Jest 29</div>
+
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Rules to apply:</div>
+      <div class="ml-2 text-text-muted">
         <span class="text-green">&#10003;</span>
-        <span class="text-text-primary"> Tailwind CSS 4</span>
+        <span> Max file size: </span>
+        <span class="text-text-primary">300 lines</span>
       </div>
-      <div class="ml-2">
+      <div class="ml-2 text-text-muted">
         <span class="text-green">&#10003;</span>
-        <span class="text-text-primary"> vitest 4</span>
+        <span> File naming: </span>
+        <span class="text-text-primary">kebab-case</span>
+      </div>
+      <div class="ml-2 text-text-muted">
+        <span class="text-green">&#10003;</span>
+        <span> Missing tests: </span>
+        <span class="text-text-primary">enforced (*.test.ts)</span>
+      </div>
+      <div class="ml-2 text-text-muted">
+        <span class="text-green">&#10003;</span>
+        <span> Coverage: </span>
+        <span class="text-text-primary">80% default (9/10 packages)</span>
       </div>
 
-      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Rules:</div>
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Also available:</div>
       <div class="ml-2 text-text-muted">
-        <span class="text-text-dim">&bull;</span> Max file size: <span class="text-text-primary">300 lines</span>
+        <span class="text-accent">~</span>
+        <span> Infer boundaries from current imports</span>
       </div>
       <div class="ml-2 text-text-muted">
-        <span class="text-text-dim">&bull;</span> Test coverage: <span class="text-text-primary">80%</span>
-      </div>
-      <div class="ml-2 text-text-muted">
-        <span class="text-text-dim">&bull;</span> File naming: <span class="text-text-primary">kebab-case</span>
+        <span class="text-accent">~</span>
+        <span> Optional integrations for hooks, Claude, and CI</span>
       </div>
 
-      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Created:</div>
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Ready to write:</div>
       <div class="ml-2">
         <span class="text-green">&#10003;</span>
         <span class="text-accent"> viberails.config.json</span>
