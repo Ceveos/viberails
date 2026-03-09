@@ -2,67 +2,56 @@
 const features = [
   {
     label: '01',
-    title: 'Scan',
+    title: 'Reads the room before it sets rules',
     description:
-      'Detects your framework, tooling, structure, and naming conventions. A confidence model scores each detection — high means 90%+ consistency across your files.',
+      'Framework, tooling, structure, naming, tests. It pulls defaults from the codebase you already trust instead of inventing a policy on top of it.',
   },
   {
     label: '02',
-    title: 'Enforce',
+    title: 'Catches drift where drift starts',
     description:
-      'File size limits, naming rules, test coverage thresholds, and import boundary violations. Runs as a pre-commit hook, Claude Code hook, or in CI.',
+      'PostToolUse hooks catch drift during AI edits. Pre-commit hooks and CI enforce the rest.',
   },
   {
     label: '03',
-    title: 'Fix',
+    title: 'Handles monorepos like a first-class case',
     description:
-      'Auto-renames files to match conventions and generates test stubs. AST-aware import rewriting via ts-morph keeps everything connected.',
+      'Workspace packages get scanned independently. Boundaries can be inferred from current imports, not guessed from ideology.',
   },
   {
     label: '04',
-    title: 'Integrate',
+    title: 'Turns setup into team infrastructure',
     description:
-      'Set up pre-commit hooks, Claude Code PostToolUse hooks, and a GitHub Actions workflow during init. Blocks PRs on violations.',
+      'The same init flow can wire hooks, AI context, and PR checks so the rules live in the repo, not in one person\'s memory.',
   },
 ];
 ---
 
-<section class="mx-auto max-w-5xl px-6 py-16">
-  <!-- Section label -->
-  <div class="flex items-center gap-3 mb-12">
+<section class="mx-auto max-w-6xl px-6 pt-10 pb-16">
+  <div class="flex items-center gap-3 mb-10">
     <div class="h-px flex-1 bg-blueprint-line"></div>
-    <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">what it does</h2>
+    <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">how it works</h2>
     <div class="h-px flex-1 bg-blueprint-line"></div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/40">
+  <div class="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border/60 bg-border/40 md:grid-cols-2 shadow-xl shadow-black/20">
     {
       features.map((feature) => (
-        <div class="bg-blueprint-bg p-5 md:p-7 relative group">
-          {/* Top-left label marker */}
-          <div class="flex items-center gap-2 mb-4">
-            <span class="text-xs text-accent/40 tracking-widest">{feature.label}</span>
-            <div class="h-px flex-1 bg-blueprint-line/60"></div>
+        <div class="glass-panel p-6 md:p-7">
+          <div class="flex items-center gap-3">
+            <span class="text-xs tracking-[0.25em] text-accent/50 font-bold">{feature.label}</span>
+            <div class="h-px flex-1 bg-blueprint-line/70"></div>
           </div>
 
-          <h3 class="font-bold text-accent text-sm mb-3 tracking-wide">{feature.title}</h3>
-          <p class="text-text-muted text-xs leading-[1.7]">{feature.description}</p>
-
-          {/* Corner accent on hover */}
-          <div class="absolute top-0 left-0 w-3 h-3 border-t border-l border-accent/0 group-hover:border-accent/30 transition-colors" />
-          <div class="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-accent/0 group-hover:border-accent/30 transition-colors" />
+          <h3 class="mt-4 text-[15px] font-bold tracking-tight text-text-primary md:text-lg">{feature.title}</h3>
+          <p class="mt-3 text-sm leading-7 text-text-muted">{feature.description}</p>
         </div>
       ))
     }
   </div>
 
-  <!-- Monorepo callout -->
-  <div class="mt-8 flex items-start gap-3 px-5 py-4 border border-dashed border-blueprint-line rounded">
-    <span class="text-accent/50 text-xs mt-0.5">+</span>
-    <p class="text-text-muted text-xs leading-relaxed">
-      <span class="text-text-primary">Monorepo support.</span>
-      Detects pnpm/npm/yarn workspaces, scans each package independently, infers import
-      boundaries between packages, and applies per-package rule overrides.
-    </p>
+  <div class="mt-6 rounded border border-dashed border-blueprint-line bg-terminal-bg/40 px-5 py-4 text-sm leading-7 text-text-muted">
+    <span class="text-text-primary">Monorepo-native.</span> Detects workspaces, scans packages independently,
+    infers import boundaries, and supports per-package config.
   </div>
 </section>

@@ -1,35 +1,66 @@
 ---
 import Terminal from './terminal.astro';
+
+const commands = [
+  { manager: 'npm', cmd: 'npx viberails' },
+  { manager: 'pnpm', cmd: 'pnpm dlx viberails' },
+];
 ---
 
-<section id="install" class="mx-auto max-w-5xl px-6 py-16">
-  <!-- Section label -->
+<section id="install" class="mx-auto max-w-6xl px-6 py-16">
   <div class="flex items-center gap-3 mb-12">
     <div class="h-px flex-1 bg-blueprint-line"></div>
     <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">get started</h2>
     <div class="h-px flex-1 bg-blueprint-line"></div>
   </div>
 
-  <div class="max-w-lg mx-auto space-y-3">
-    <Terminal title="npm">
-      <div>
-        <span class="text-text-dim">$</span>
-        <span class="text-text-primary"> npx viberails</span>
-      </div>
-    </Terminal>
+  <div class="mx-auto max-w-2xl">
+    <div class="grid gap-3">
+      {
+        commands.map((item) => (
+          <div class="group relative rounded-md border border-border/80 overflow-hidden shadow-lg shadow-black/20">
+            <div class="flex items-center gap-1.5 px-3 md:px-4 py-2 bg-terminal-header border-b border-border/60">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/70"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-[#febc2e]/70"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-[#28c840]/70"></span>
+              <span class="ml-2 text-xs text-text-dim">{item.manager}</span>
+            </div>
+            <div class="flex items-center justify-between bg-terminal-bg px-3 md:px-5 py-3 md:py-4">
+              <code class="text-xs md:text-[13px] leading-[1.8]">
+                <span class="text-text-dim">$ </span>
+                <span class="text-text-primary">{item.cmd}</span>
+              </code>
+              <button
+                class="copy-btn ml-4 rounded border border-border/60 bg-terminal-header px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-text-dim transition-colors hover:border-border-accent hover:text-text-primary"
+                data-cmd={item.cmd}
+                aria-label={`Copy ${item.cmd}`}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        ))
+      }
+    </div>
 
-    <Terminal title="pnpm">
-      <div>
-        <span class="text-text-dim">$</span>
-        <span class="text-text-primary"> pnpm dlx viberails</span>
-      </div>
-    </Terminal>
+    <p class="mt-6 text-sm leading-7 text-text-muted">
+      The wizard scans your project, shows what it found, and writes config.
+      After that, use <code class="text-text-primary">check</code> to validate,
+      <code class="text-text-primary">sync</code> to refresh, and
+      <code class="text-text-primary">fix</code> to auto-correct.
+    </p>
   </div>
-
-  <p class="text-center text-text-dim text-xs mt-8 leading-relaxed max-w-sm mx-auto">
-    No global install. One command to scan, configure, and optionally set up hooks.
-    Re-run the same command later to review or replace an existing setup.
-    Then use <span class="text-text-muted">check</span>, <span class="text-text-muted">sync</span>,
-    and <span class="text-text-muted">fix</span> as you work.
-  </p>
 </section>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const cmd = btn.getAttribute('data-cmd');
+      if (!cmd) return;
+      await navigator.clipboard.writeText(cmd);
+      const original = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    });
+  });
+</script>

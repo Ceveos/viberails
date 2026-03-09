@@ -2,12 +2,31 @@
 ---
 
 <nav class="sticky top-0 z-50 border-b border-border/60 backdrop-blur-xl bg-blueprint-bg/70">
-  <div class="mx-auto max-w-5xl flex items-center justify-between px-6 py-3.5">
+  <div class="mx-auto max-w-6xl flex items-center justify-between px-6 py-3.5">
     <a href="/" class="flex items-center gap-2.5 group">
       <span class="text-accent text-xs tracking-wider opacity-40 group-hover:opacity-70 transition-opacity">$</span>
       <span class="font-bold text-sm text-text-primary tracking-tight">viberails</span>
     </a>
-    <div class="flex items-center gap-4">
+    <div class="hidden md:flex items-center gap-5">
+      <a href="#install" class="text-text-dim hover:text-text-primary text-xs uppercase tracking-[0.18em] transition-colors">
+        Install
+      </a>
+      <a href="https://www.npmjs.com/package/viberails"
+        class="text-text-dim hover:text-text-primary text-xs uppercase tracking-[0.18em] transition-colors"
+        target="_blank"
+        rel="noopener noreferrer">
+        npm
+      </a>
+      <a
+        href="https://github.com/Ceveos/viberails"
+        class="inline-flex items-center rounded border border-border px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-text-dim transition-colors hover:border-border-accent hover:text-text-primary"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        GitHub
+      </a>
+    </div>
+    <div class="flex items-center gap-4 md:hidden">
       <a
         href="https://www.npmjs.com/package/viberails"
         class="text-text-dim hover:text-text-muted text-xs transition-colors"

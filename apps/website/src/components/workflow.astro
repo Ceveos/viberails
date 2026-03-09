@@ -1,67 +1,84 @@
 ---
 import Terminal from './terminal.astro';
 
+const lifecycle = [
+  {
+    stage: 'During AI edits',
+    description: 'PostToolUse hooks validate files as AI tools edit them. Instant feedback, no context switch.',
+  },
+  {
+    stage: 'On commit',
+    description: 'Repository-level checks hit before the branch leaves your machine.',
+  },
+  {
+    stage: 'In pull requests',
+    description: 'Same rules run in CI with --enforce to block PRs with violations.',
+  },
+];
+
 const commands = [
   {
-    cmd: 'viberails check',
-    flag: '--staged',
-    description: 'Validate files against your rules. Runs in pre-commit hooks and CI.',
+    cmd: 'viberails check --staged',
+    description: 'The everyday safety net.',
   },
   {
     cmd: 'viberails sync',
-    flag: '',
-    description: 'Re-scan and update config + context files. Preserves your manual edits.',
+    description: 'Refresh the scan without trashing edits.',
   },
   {
-    cmd: 'viberails fix',
-    flag: '--dry-run',
-    description: 'Auto-rename files and generate test stubs. Preview changes first.',
+    cmd: 'viberails fix --dry-run',
+    description: 'Preview cleanup before touching files.',
   },
   {
-    cmd: 'viberails boundaries',
-    flag: '--infer',
-    description: 'Analyze imports and infer package boundary rules for monorepos.',
+    cmd: 'viberails boundaries --infer',
+    description: 'Rebuild monorepo boundaries from reality.',
   },
 ];
 ---
 
-<section class="mx-auto max-w-5xl px-6 py-16">
-  <!-- Section label -->
-  <div class="flex items-center gap-3 mb-12">
-    <div class="h-px flex-1 bg-blueprint-line"></div>
-    <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">ongoing workflow</h2>
-    <div class="h-px flex-1 bg-blueprint-line"></div>
-  </div>
+<section class="border-y border-border/30 bg-terminal-bg/30">
+  <div class="mx-auto max-w-6xl px-6 py-16">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="h-px flex-1 bg-blueprint-line"></div>
+      <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">where it shows up</h2>
+      <div class="h-px flex-1 bg-blueprint-line"></div>
+    </div>
 
-  <!-- Check demo -->
-  <div class="max-w-2xl mx-auto mb-10">
-    <Terminal title="pre-commit hook">
-      <div>
-        <span class="text-text-dim">$</span>
-        <span class="text-text-primary"> viberails check --staged</span>
+    <div class="grid gap-8 lg:grid-cols-[1fr_1fr]">
+      <div class="space-y-4">
+        {
+          lifecycle.map((item, index) => (
+            <div class={`rounded border border-border/80 bg-blueprint-bg/60 p-5 reveal reveal-delay-${Math.min(index + 1, 5)}`}>
+              <div class="text-[10px] uppercase tracking-[0.24em] text-accent/60">{item.stage}</div>
+              <p class="mt-3 text-sm leading-7 text-text-muted">{item.description}</p>
+            </div>
+          ))
+        }
       </div>
-      <div class="mt-2 text-text-muted">  Checking files... done</div>
-      <div class="text-text-muted">  Checking missing tests... done</div>
-      <div class="text-text-muted">  Boundary check: 127 files in 234ms</div>
-      <div class="mt-2">
-        <span class="text-green">&#10003;</span>
-        <span class="text-text-primary"> 127 files checked &mdash; no violations</span>
-      </div>
-    </Terminal>
-  </div>
 
-  <!-- Command grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
-    {
-      commands.map((item) => (
-        <div class="px-4 py-3 border border-border/60 rounded bg-terminal-bg/30">
-          <div class="text-xs mb-1.5">
-            <span class="text-accent">{item.cmd}</span>
-            {item.flag && <span class="text-text-dim"> {item.flag}</span>}
+      <div class="space-y-5">
+        <Terminal title="pre-commit / ci">
+          <div>
+            <span class="text-text-dim">$</span>
+            <span class="text-text-primary"> viberails check --staged</span>
           </div>
-          <p class="text-xs text-text-dim leading-relaxed">{item.description}</p>
+          <div class="mt-2 text-text-muted">Checking file rules... done</div>
+          <div class="text-text-muted">Checking missing tests... done</div>
+          <div class="text-text-muted">Checking boundaries... done</div>
+          <div class="mt-3 text-green">✓ 127 files checked · no violations</div>
+        </Terminal>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          {
+            commands.map((command) => (
+              <div class="rounded border border-border/70 bg-blueprint-bg/60 px-4 py-4">
+                <div class="text-xs text-accent">{command.cmd}</div>
+                <p class="mt-2 text-xs leading-6 text-text-muted">{command.description}</p>
+              </div>
+            ))
+          }
         </div>
-      ))
-    }
+      </div>
+    </div>
   </div>
 </section>

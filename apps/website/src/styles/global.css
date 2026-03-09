@@ -12,7 +12,7 @@
   --color-terminal-bg: #0b0f18;
   --color-terminal-header: #0e1220;
   --color-text-primary: #dce4ee;
-  --color-text-muted: #7a8a9e;
+  --color-text-muted: #8e9db2;
   --color-text-dim: #5a6a7e;
   --color-border: #151d2e;
   --color-border-accent: rgba(0, 212, 255, 0.18);
@@ -64,6 +64,40 @@
   margin-left: 2px;
 }
 
+.glass-panel {
+  background:
+    linear-gradient(180deg, rgba(11, 15, 24, 0.88), rgba(8, 11, 18, 0.96));
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.ui-card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.ui-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 212, 255, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.ui-pill {
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.ui-pill:hover {
+  border-color: rgba(0, 212, 255, 0.26);
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--color-text-primary);
+}
+
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .reveal {
@@ -73,6 +107,10 @@
   }
   .cursor::after {
     animation: none;
+  }
+  .ui-card,
+  .ui-pill {
+    transition: none;
   }
 }
 
