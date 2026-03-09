@@ -1,0 +1,68 @@
+---
+import Terminal from './terminal.astro';
+
+const commands = [
+  {
+    cmd: 'viberails check',
+    flag: '--staged',
+    description: 'Validate files against your rules. Runs in pre-commit hooks and CI.',
+  },
+  {
+    cmd: 'viberails sync',
+    flag: '',
+    description: 'Re-scan and update config + context files. Preserves your manual edits.',
+  },
+  {
+    cmd: 'viberails fix',
+    flag: '--dry-run',
+    description: 'Auto-rename files and generate test stubs. Preview changes first.',
+  },
+  {
+    cmd: 'viberails boundaries',
+    flag: '--infer',
+    description: 'Analyze imports and infer package boundary rules for monorepos.',
+  },
+];
+---
+
+<section class="mx-auto max-w-5xl px-6 py-16">
+  <!-- Section label -->
+  <div class="flex items-center gap-3 mb-12">
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+    <span class="text-xs text-text-dim tracking-[0.2em] uppercase">ongoing workflow</span>
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+  </div>
+
+  <!-- Check demo -->
+  <div class="max-w-2xl mx-auto mb-10">
+    <Terminal title="pre-commit hook">
+      <div>
+        <span class="text-text-dim">$</span>
+        <span class="text-text-primary"> viberails check --staged</span>
+      </div>
+      <div class="mt-2 text-text-muted">  Checking files... done</div>
+      <div class="text-text-muted">  Checking missing tests... done</div>
+      <div class="text-text-muted">  Running test coverage... done</div>
+      <div class="text-text-muted">  Boundary check: 127 files in 234ms</div>
+      <div class="mt-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-primary"> 127 files checked &mdash; no violations</span>
+      </div>
+    </Terminal>
+  </div>
+
+  <!-- Command grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+    {
+      commands.map((item) => (
+        <div class="px-4 py-3 border border-border/60 rounded bg-terminal-bg/30">
+          <div class="text-xs mb-1.5">
+            <span class="text-accent">{item.cmd}</span>
+            {item.flag && <span class="text-text-dim"> {item.flag}</span>}
+          </div>
+          <p class="text-xs text-text-dim leading-relaxed">{item.description}</p>
+        </div>
+      ))
+    }
+  </div>
+</section>

@@ -2,85 +2,131 @@
 import Terminal from './terminal.astro';
 ---
 
-<section class="mx-auto max-w-5xl px-6 pt-24 pb-20">
+<section class="mx-auto max-w-5xl px-6 pt-20 pb-16">
   <!-- Blueprint annotation frame -->
-  <div class="relative mb-12">
-    <!-- Corner markers -->
-    <div class="absolute -top-3 -left-3 w-6 h-6 border-t-2 border-l-2 border-blueprint-line"></div>
-    <div class="absolute -top-3 -right-3 w-6 h-6 border-t-2 border-r-2 border-blueprint-line"></div>
-    <div class="absolute -bottom-3 -left-3 w-6 h-6 border-b-2 border-l-2 border-blueprint-line"></div>
-    <div class="absolute -bottom-3 -right-3 w-6 h-6 border-b-2 border-r-2 border-blueprint-line"></div>
+  <div class="relative mb-14 reveal">
+    <!-- Corner registration marks (hidden on mobile to prevent overflow) -->
+    <div class="hidden md:block">
+      <div class="absolute -top-4 -left-4 w-8 h-8">
+        <div class="absolute top-0 left-0 w-full h-px bg-blueprint-line-strong"></div>
+        <div class="absolute top-0 left-0 h-full w-px bg-blueprint-line-strong"></div>
+      </div>
+      <div class="absolute -top-4 -right-4 w-8 h-8">
+        <div class="absolute top-0 right-0 w-full h-px bg-blueprint-line-strong"></div>
+        <div class="absolute top-0 right-0 h-full w-px bg-blueprint-line-strong"></div>
+      </div>
+      <div class="absolute -bottom-4 -left-4 w-8 h-8">
+        <div class="absolute bottom-0 left-0 w-full h-px bg-blueprint-line-strong"></div>
+        <div class="absolute bottom-0 left-0 h-full w-px bg-blueprint-line-strong"></div>
+      </div>
+      <div class="absolute -bottom-4 -right-4 w-8 h-8">
+        <div class="absolute bottom-0 right-0 w-full h-px bg-blueprint-line-strong"></div>
+        <div class="absolute bottom-0 right-0 h-full w-px bg-blueprint-line-strong"></div>
+      </div>
 
-    <div class="py-8 px-4 text-center">
-      <h1 class="font-mono font-bold text-4xl md:text-5xl lg:text-6xl tracking-tight mb-6">
-        <span class="text-accent">Guardrails</span> for<br />vibe coding.
+      <!-- Dimension annotation on top -->
+      <div class="absolute -top-4 left-12 right-12 flex items-center">
+        <div class="h-px flex-1 bg-blueprint-line"></div>
+        <span class="px-3 text-[10px] text-text-dim tracking-[0.2em] uppercase">open source</span>
+        <div class="h-px flex-1 bg-blueprint-line"></div>
+      </div>
+    </div>
+
+    <div class="py-8 md:py-12 px-2 md:px-4 text-center">
+      <p class="text-xs text-accent/60 tracking-[0.3em] uppercase mb-6 reveal reveal-delay-1">open source cli tool</p>
+      <h1 class="font-bold text-3xl md:text-5xl lg:text-[3.5rem] tracking-tight mb-7 leading-[1.1] reveal reveal-delay-2">
+        <span class="text-accent">Guardrails</span>
+        <span class="text-text-primary"> for</span><br />
+        <span class="text-text-primary">vibe coding.</span>
       </h1>
-      <p class="text-text-muted text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-        Scan your codebase, generate AI context, and enforce architectural
-        conventions. No config to write — it learns from your code.
+      <p class="text-text-muted text-sm md:text-[15px] max-w-lg mx-auto leading-relaxed reveal reveal-delay-3">
+        Scan your codebase, generate AI context, and enforce coding
+        conventions. Zero config to start &mdash; it learns from your code.
       </p>
     </div>
   </div>
 
-  <!-- Dimension line annotation -->
-  <div class="flex items-center gap-3 mb-6">
+  <!-- Divider with label -->
+  <div class="flex items-center gap-3 mb-6 reveal reveal-delay-3">
     <div class="h-px flex-1 bg-blueprint-line"></div>
-    <span class="text-xs font-mono text-text-muted tracking-widest uppercase">demo</span>
+    <span class="text-xs text-text-dim tracking-[0.2em] uppercase">init &middot; scan &middot; enforce</span>
     <div class="h-px flex-1 bg-blueprint-line"></div>
   </div>
 
-  <!-- Terminal demo -->
-  <div class="max-w-2xl mx-auto">
-    <Terminal title="~/project">
+  <!-- Terminal demo with REAL CLI output -->
+  <div class="max-w-2xl mx-auto reveal reveal-delay-4">
+    <Terminal title="~/my-project">
       <div>
-        <span class="text-text-muted">$</span>
+        <span class="text-text-dim">$</span>
         <span class="text-text-primary"> npx viberails</span>
       </div>
-      <div class="mt-3 text-text-muted">Scanning project...</div>
-      <div class="mt-1">
-        <span class="text-accent">Detected:</span>
-        <span class="text-text-primary"> Next.js 15, TypeScript, Tailwind, Vitest</span>
+      <div class="mt-2 text-text-muted">Scanning project...</div>
+
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Detected:</div>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-primary"> Next.js 15</span>
       </div>
-      <div class="mt-3">
-        <span class="text-green-400">✓</span>
-        <span class="text-text-primary"> kebab-case</span>
-        <span class="text-text-muted"> (94% consistency)</span>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-primary"> TypeScript 5</span>
       </div>
-      <div>
-        <span class="text-green-400">✓</span>
-        <span class="text-text-primary"> max 300 lines</span>
-        <span class="text-text-muted"> (default)</span>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-primary"> Tailwind CSS 4</span>
       </div>
-      <div>
-        <span class="text-green-400">✓</span>
-        <span class="text-text-primary"> test coverage 80%</span>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-primary"> vitest 4</span>
       </div>
-      <div class="mt-3">
-        <span class="text-text-muted">Generated</span>
+
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Rules:</div>
+      <div class="ml-2 text-text-muted">
+        <span class="text-text-dim">&bull;</span> Max file size: <span class="text-text-primary">300 lines</span>
+      </div>
+      <div class="ml-2 text-text-muted">
+        <span class="text-text-dim">&bull;</span> Test coverage: <span class="text-text-primary">80%</span>
+      </div>
+      <div class="ml-2 text-text-muted">
+        <span class="text-text-dim">&bull;</span> File naming: <span class="text-text-primary">kebab-case</span>
+      </div>
+
+      <div class="mt-3 text-text-dim text-xs tracking-wider uppercase">Created:</div>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
         <span class="text-accent"> viberails.config.json</span>
       </div>
-      <div>
-        <span class="text-text-muted">Generated</span>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
         <span class="text-accent"> .viberails/context.md</span>
+      </div>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-muted"> .github/workflows/viberails.yml</span>
+      </div>
+      <div class="ml-2">
+        <span class="text-green">&#10003;</span>
+        <span class="text-text-muted"> .claude/settings.json</span>
+        <span class="text-text-dim"> &mdash; added hook</span>
       </div>
     </Terminal>
   </div>
 
   <!-- CTA buttons -->
-  <div class="flex items-center justify-center gap-4 mt-10">
+  <div class="flex items-center justify-center gap-3 mt-10 reveal reveal-delay-5">
     <a
       href="#install"
-      class="px-6 py-2.5 bg-accent/10 border border-accent/30 text-accent font-mono text-sm rounded hover:bg-accent/20 transition-colors"
+      class="px-5 py-2 bg-accent/8 border border-accent/25 text-accent text-xs rounded hover:bg-accent/15 hover:border-accent/40 transition-all"
     >
       Get Started
     </a>
     <a
       href="https://github.com/Ceveos/viberails"
-      class="px-6 py-2.5 border border-border text-text-muted font-mono text-sm rounded hover:text-text-primary hover:border-text-muted transition-colors"
+      class="px-5 py-2 border border-border text-text-dim text-xs rounded hover:text-text-muted hover:border-border-accent transition-all"
       target="_blank"
       rel="noopener noreferrer"
     >
-      View on GitHub
+      View Source
     </a>
   </div>
 </section>
