@@ -102,7 +102,7 @@ done
 # Commit version bump and tag
 if [[ -z "$DRY_RUN" ]]; then
   echo "==> Committing version bump..."
-  git add -A
+  git add packages/*/package.json apps/*/package.json package.json
   git commit -m "chore: release v$NEW_VERSION"
   git tag "v$NEW_VERSION"
   echo "==> Tagged v$NEW_VERSION (run 'git push && git push --tags' to push)"
