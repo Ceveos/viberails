@@ -313,16 +313,20 @@ describe('setupGithubAction', () => {
     expect(target).toBeUndefined();
   });
 
-  it('adds lint step when linter option is set', () => {
+  it('adds lint step scoped to changed files', () => {
     setupGithubAction(tmpDir, 'pnpm', { linter: 'eslint' });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
-    expect(content).toContain('eslint .');
+    expect(content).toContain('git diff --name-only');
+    expect(content).toContain('xargs pnpm exec eslint');
+    expect(content).not.toContain('eslint .');
   });
 
-  it('adds biome lint step', () => {
+  it('adds biome lint step scoped to changed files', () => {
     setupGithubAction(tmpDir, 'pnpm', { linter: 'biome' });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
-    expect(content).toContain('biome check .');
+    expect(content).toContain('git diff --name-only');
+    expect(content).toContain('xargs pnpm exec biome check');
+    expect(content).not.toContain('biome check .');
   });
 
   it('adds tsc --noEmit typecheck when root tsconfig.json exists', () => {
@@ -367,10 +371,10 @@ describe('setupGithubAction', () => {
     setupGithubAction(tmpDir, 'pnpm', { linter: 'eslint', typecheck: true });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('tsc --noEmit');
-    expect(content).toContain('eslint .');
+    expect(content).toContain('xargs pnpm exec eslint');
     // Both should come before viberails check
     const tscIdx = content.indexOf('tsc --noEmit');
-    const eslintIdx = content.indexOf('eslint .');
+    const eslintIdx = content.indexOf('eslint');
     const checkIdx = content.indexOf('viberails check');
     expect(tscIdx).toBeLessThan(checkIdx);
     expect(eslintIdx).toBeLessThan(checkIdx);

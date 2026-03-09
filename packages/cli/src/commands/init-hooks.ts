@@ -244,8 +244,15 @@ export function setupGithubAction(
     }
   }
   if (options?.linter) {
-    const lintCmd = options.linter === 'biome' ? 'biome check .' : 'eslint .';
-    lines.push(`      - run: ${runPrefix} ${lintCmd}`);
+    const lintCmd = options.linter === 'biome' ? 'biome check' : 'eslint';
+    lines.push(
+      `      - name: Lint changed files`,
+      `        run: |`,
+      `          FILES=$(git diff --name-only --diff-filter=ACMR origin/\${{ github.event.pull_request.base.ref }}...HEAD -- '*.js' '*.ts' '*.jsx' '*.tsx')`,
+      `          if [ -n "$FILES" ]; then`,
+      `            echo "$FILES" | xargs ${runPrefix} ${lintCmd}`,
+      `          fi`,
+    );
   }
 
   lines.push(
