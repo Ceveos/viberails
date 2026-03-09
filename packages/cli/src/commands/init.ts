@@ -257,17 +257,12 @@ async function initInteractive(
   }
 
   const ws = clack.spinner();
-  ws.start('Writing configuration and setting up integrations...');
+  ws.start('Writing configuration...');
 
   const compacted = compactConfig(config);
   fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
   writeGeneratedFiles(projectRoot, config, scanResult);
   updateGitignore(projectRoot);
-
-  setupSelectedIntegrations(projectRoot, integrations, {
-    linter: rootPkgStack?.linter?.split('@')[0],
-    packageManager: rootPkgStack?.packageManager?.split('@')[0],
-  });
 
   ws.stop('Configuration written');
 
@@ -275,6 +270,11 @@ async function initInteractive(
   clack.log.step(`${ok} ${path.basename(configPath)}`);
   clack.log.step(`${ok} .viberails/context.md`);
   clack.log.step(`${ok} .viberails/scan-result.json`);
+
+  setupSelectedIntegrations(projectRoot, integrations, {
+    linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager: rootPkgStack?.packageManager?.split('@')[0],
+  });
 
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +
