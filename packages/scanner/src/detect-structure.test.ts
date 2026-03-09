@@ -14,9 +14,9 @@ describe('detectStructure', () => {
     expect(result.srcDir).toBe('src');
   });
 
-  it('returns undefined srcDir for flat project structure', async () => {
+  it('returns "." srcDir for flat project structure', async () => {
     const result = await detectStructure(join(fixturesDir, 'flat-structure'));
-    expect(result.srcDir).toBeUndefined();
+    expect(result.srcDir).toBe('.');
   });
 
   it('classifies src/components as components role', async () => {
@@ -84,7 +84,7 @@ describe('detectStructure', () => {
   it('handles empty project gracefully', async () => {
     const result = await detectStructure(join(fixturesDir, 'empty'));
     expect(result.directories).toEqual([]);
-    expect(result.srcDir).toBeUndefined();
+    expect(result.srcDir).toBe('.');
     expect(result.testPattern).toBeUndefined();
   });
 

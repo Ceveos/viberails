@@ -8,7 +8,7 @@ function createNextjs15ScanResult(): ScanResult {
     root: '/home/user/projects/my-app',
     stack: {
       framework: { name: 'nextjs', version: '15' },
-      language: { name: 'typescript' },
+      language: { name: 'typescript', version: '5' },
       styling: { name: 'tailwindcss', version: '4' },
       packageManager: { name: 'pnpm' },
       linter: { name: 'eslint', version: '9' },
@@ -47,7 +47,7 @@ function createNextjs15ScanResult(): ScanResult {
         relativePath: '',
         stack: {
           framework: { name: 'nextjs', version: '15' },
-          language: { name: 'typescript' },
+          language: { name: 'typescript', version: '5' },
           styling: { name: 'tailwindcss', version: '4' },
           packageManager: { name: 'pnpm' },
           linter: { name: 'eslint', version: '9' },
@@ -104,7 +104,7 @@ describe('generateConfig', () => {
     expect(pkg.name).toBe('my-app');
     expect(pkg.path).toBe('.');
     expect(pkg.stack?.framework).toBe('nextjs@15');
-    expect(pkg.stack?.language).toBe('typescript');
+    expect(pkg.stack?.language).toBe('typescript@5');
     expect(pkg.stack?.styling).toBe('tailwindcss@4');
     expect(pkg.stack?.packageManager).toBe('pnpm');
     expect(pkg.stack?.linter).toBe('eslint@9');
@@ -222,7 +222,7 @@ describe('generateConfig', () => {
     expect(pkg.stack?.backend).toBeUndefined();
     expect(pkg.stack?.linter).toBeUndefined();
     expect(pkg.stack?.testRunner).toBeUndefined();
-    expect(pkg.stack?.language).toBe('typescript');
+    expect(pkg.stack?.language).toBe('typescript@5');
     expect(pkg.stack?.packageManager).toBe('pnpm');
   });
 
@@ -441,7 +441,7 @@ describe('per-package configs in monorepo', () => {
           fileNaming: { value: 'kebab-case', confidence: 'high', sampleSize: 30, consistency: 95 },
         }),
         stack: {
-          language: { name: 'typescript' },
+          language: { name: 'typescript', version: '5' },
           packageManager: { name: 'pnpm' },
           framework: { name: 'nextjs', version: '15' },
           styling: { name: 'nativewind', version: '4' },

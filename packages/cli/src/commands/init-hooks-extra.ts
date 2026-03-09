@@ -9,6 +9,7 @@ import {
   setupGithubAction,
   setupPreCommitHook,
 } from './init-hooks.js';
+import { resolveTypecheckCommand } from './resolve-typecheck.js';
 
 /**
  * Add a named pre-commit command to the detected hook manager.
@@ -65,11 +66,19 @@ export function addPreCommitStep(
   return undefined;
 }
 
-/** Set up a tsc --noEmit pre-commit step. */
-export function setupTypecheckHook(projectRoot: string): string | undefined {
-  const target = addPreCommitStep(projectRoot, 'typecheck', 'npx tsc --noEmit', 'tsc');
+/** Set up a typecheck pre-commit step. Skips if no safe command can be inferred. */
+export function setupTypecheckHook(
+  projectRoot: string,
+  packageManager?: string,
+): string | undefined {
+  const resolved = resolveTypecheckCommand(projectRoot, packageManager);
+  if (!resolved.command) {
+    console.log(`  ${chalk.yellow('!')} Skipped typecheck hook: ${resolved.reason}`);
+    return undefined;
+  }
+  const target = addPreCommitStep(projectRoot, 'typecheck', resolved.command, 'typecheck');
   if (target) {
-    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (tsc --noEmit)`);
+    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (${resolved.label})`);
   }
   return target;
 }
@@ -97,7 +106,7 @@ export function setupSelectedIntegrations(
     created.push(t ? `${t} — added viberails pre-commit` : 'pre-commit hook skipped');
   }
   if (integrations.typecheckHook) {
-    const t = setupTypecheckHook(projectRoot);
+    const t = setupTypecheckHook(projectRoot, opts.packageManager);
     if (t) created.push(`${t} — added typecheck`);
   }
   if (integrations.lintHook && opts.linter) {

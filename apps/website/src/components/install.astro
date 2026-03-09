@@ -1,0 +1,34 @@
+---
+import Terminal from './terminal.astro';
+---
+
+<section id="install" class="mx-auto max-w-5xl px-6 py-16">
+  <!-- Section label -->
+  <div class="flex items-center gap-3 mb-12">
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+    <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">get started</h2>
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+  </div>
+
+  <div class="max-w-lg mx-auto space-y-3">
+    <Terminal title="npm">
+      <div>
+        <span class="text-text-dim">$</span>
+        <span class="text-text-primary"> npx viberails</span>
+      </div>
+    </Terminal>
+
+    <Terminal title="pnpm">
+      <div>
+        <span class="text-text-dim">$</span>
+        <span class="text-text-primary"> pnpm dlx viberails</span>
+      </div>
+    </Terminal>
+  </div>
+
+  <p class="text-center text-text-dim text-xs mt-8 leading-relaxed max-w-sm mx-auto">
+    No global install. One command to scan, configure, and optionally set up hooks.
+    Then use <span class="text-text-muted">check</span>, <span class="text-text-muted">sync</span>,
+    and <span class="text-text-muted">fix</span> as you work.
+  </p>
+</section>

@@ -88,12 +88,45 @@ describe('setupTypecheckHook', () => {
     vi.restoreAllMocks();
   });
 
-  it('adds tsc --noEmit to pre-commit', () => {
+  it('adds tsc --noEmit when root tsconfig.json exists', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), '{}');
     const target = setupTypecheckHook(tmpDir);
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
     expect(content).toContain('npx tsc --noEmit');
+  });
+
+  it('adds turbo typecheck when turbo.json defines typecheck task', () => {
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, typecheck: {} } }),
+    );
+    const target = setupTypecheckHook(tmpDir);
+    expect(target).toBe('.git/hooks/pre-commit');
+    const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
+    expect(content).toContain('npx turbo typecheck');
+  });
+
+  it('uses package.json typecheck script with specified package manager', () => {
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(
+      path.join(tmpDir, 'package.json'),
+      JSON.stringify({ scripts: { typecheck: 'tsc -b --noEmit' } }),
+    );
+    const target = setupTypecheckHook(tmpDir, 'pnpm');
+    expect(target).toBe('.git/hooks/pre-commit');
+    const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
+    expect(content).toContain('pnpm run typecheck');
+  });
+
+  it('skips and warns when no safe command can be inferred', () => {
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    const target = setupTypecheckHook(tmpDir);
+    expect(target).toBeUndefined();
+    // Should not have created the hook file
+    expect(fs.existsSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'))).toBe(false);
   });
 });
 

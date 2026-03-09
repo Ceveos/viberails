@@ -8,7 +8,7 @@ import { resolveConfigForFile } from './check-config.js';
 import { checkNaming, getAllSourceFiles } from './check-files.js';
 import { checkMissingTests } from './check-tests.js';
 import { checkGitDirty, getConventionValue, printPlan } from './fix-helpers.js';
-import { updateImportsAfterRenames } from './fix-imports.js';
+import { scanForAliasImports, updateImportsAfterRenames } from './fix-imports.js';
 import {
   computeRename,
   deduplicateRenames,
@@ -94,14 +94,67 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
     }
   }
 
+  // Pre-scan for aliased imports that would break after renaming
+  const aliasImports = await scanForAliasImports(dedupedRenames, projectRoot);
+
+  // Determine which renames are blocked by alias imports
+  const blockedOldBareNames = new Set<string>();
+  for (const alias of aliasImports) {
+    const lastSegment = alias.specifier.split('/').pop() ?? '';
+    const bare = lastSegment.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+    blockedOldBareNames.add(bare);
+  }
+
+  const safeRenames = dedupedRenames.filter((r) => {
+    const oldFilename = path.basename(r.oldPath);
+    const bare = oldFilename.slice(0, oldFilename.indexOf('.'));
+    return !blockedOldBareNames.has(bare);
+  });
+  const skippedRenames = dedupedRenames.filter((r) => {
+    const oldFilename = path.basename(r.oldPath);
+    const bare = oldFilename.slice(0, oldFilename.indexOf('.'));
+    return blockedOldBareNames.has(bare);
+  });
+
   // Nothing to fix
-  if (dedupedRenames.length === 0 && testStubs.length === 0) {
+  if (safeRenames.length === 0 && testStubs.length === 0 && skippedRenames.length === 0) {
     console.log(`${chalk.green('✓')} No fixable violations found.`);
     return 0;
   }
 
   // Display plan
-  printPlan(dedupedRenames, testStubs);
+  printPlan(safeRenames, testStubs);
+
+  // Show alias import warnings before confirmation
+  if (skippedRenames.length > 0) {
+    console.log('');
+    console.log(
+      chalk.yellow(
+        `Skipping ${skippedRenames.length} rename${skippedRenames.length > 1 ? 's' : ''} — aliased imports would break:`,
+      ),
+    );
+    for (const r of skippedRenames.slice(0, 5)) {
+      console.log(chalk.dim(`  ${r.oldPath} → ${r.newPath}`));
+    }
+    if (skippedRenames.length > 5) {
+      console.log(chalk.dim(`  ... and ${skippedRenames.length - 5} more`));
+    }
+    console.log('');
+    console.log(chalk.yellow('Affected aliased imports:'));
+    for (const alias of aliasImports.slice(0, 5)) {
+      const relFile = path.relative(projectRoot, alias.file);
+      console.log(chalk.dim(`  ${relFile}:${alias.line} — ${alias.specifier}`));
+    }
+    if (aliasImports.length > 5) {
+      console.log(chalk.dim(`  ... and ${aliasImports.length - 5} more`));
+    }
+    console.log(chalk.dim('  Update these imports to relative paths first, then re-run fix.'));
+  }
+
+  if (safeRenames.length === 0 && testStubs.length === 0) {
+    console.log(`\n${chalk.yellow('!')} No safe fixes to apply. Resolve aliased imports first.`);
+    return 0;
+  }
 
   if (options.dryRun) {
     console.log(chalk.dim('\nDry run — no changes applied.'));
@@ -117,9 +170,9 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
     }
   }
 
-  // Apply: 1. Renames
+  // Apply: 1. Renames (only safe ones — no alias import breakage)
   let renameCount = 0;
-  for (const rename of dedupedRenames) {
+  for (const rename of safeRenames) {
     if (executeRename(rename)) {
       renameCount++;
     }
@@ -128,8 +181,8 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
   // Apply: 2. Import updates
   let importUpdateCount = 0;
   if (renameCount > 0) {
-    const appliedRenames = dedupedRenames.filter((r) => fs.existsSync(r.newAbsPath));
-    const updates = await updateImportsAfterRenames(appliedRenames, projectRoot);
+    const appliedRenames = safeRenames.filter((r) => fs.existsSync(r.newAbsPath));
+    const { updates } = await updateImportsAfterRenames(appliedRenames, projectRoot);
     importUpdateCount = updates.length;
   }
 

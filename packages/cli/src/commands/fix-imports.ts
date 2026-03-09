@@ -8,6 +8,12 @@ export interface ImportUpdateRecord {
   line: number;
 }
 
+export interface SkippedAliasRecord {
+  file: string;
+  specifier: string;
+  line: number;
+}
+
 /**
  * Strip known JS/TS extensions from a file path for specifier comparison.
  * E.g. "/foo/bar.ts" → "/foo/bar", "/foo/bar.js" → "/foo/bar"
@@ -33,18 +39,94 @@ function computeNewSpecifier(oldSpecifier: string, newBare: string): string {
 }
 
 /**
+ * Lightweight pre-rename scan: detect aliased imports that reference files about to be renamed.
+ * Uses regex-based scanning (no ts-morph) so it can run before any renames are applied.
+ *
+ * @param renames - Planned renames (not yet applied)
+ * @param projectRoot - Absolute path to project root
+ * @returns Alias import references that would break after renaming
+ */
+export async function scanForAliasImports(
+  renames: RenameRecord[],
+  projectRoot: string,
+): Promise<SkippedAliasRecord[]> {
+  if (renames.length === 0) return [];
+
+  const { readFile, readdir } = await import('node:fs/promises');
+
+  const oldBareNames = new Set<string>();
+  for (const r of renames) {
+    const oldFilename = path.basename(r.oldPath);
+    oldBareNames.add(oldFilename.slice(0, oldFilename.indexOf('.')));
+  }
+
+  const importPattern =
+    /(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const skipDirs = new Set([
+    'node_modules',
+    'dist',
+    'build',
+    '.next',
+    '.expo',
+    '.turbo',
+    'coverage',
+  ]);
+  const sourceExts = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+  const allEntries = await readdir(projectRoot, { recursive: true, withFileTypes: true });
+  const files = allEntries
+    .filter((e) => {
+      if (!e.isFile()) return false;
+      const ext = path.extname(e.name);
+      if (!sourceExts.has(ext)) return false;
+      const rel = path.join(e.parentPath, e.name);
+      const segments = path.relative(projectRoot, rel).split(path.sep);
+      return !segments.some((s) => skipDirs.has(s));
+    })
+    .map((e) => path.join(e.parentPath, e.name));
+
+  const aliases: SkippedAliasRecord[] = [];
+  for (const file of files) {
+    let content: string;
+    try {
+      content = await readFile(file, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      importPattern.lastIndex = 0;
+      for (let match = importPattern.exec(line); match !== null; match = importPattern.exec(line)) {
+        const specifier = match[1] ?? match[2];
+        if (!specifier || specifier.startsWith('.')) continue;
+        if (!specifier.includes('/')) continue;
+
+        const lastSegment = specifier.split('/').pop() ?? '';
+        const bare = lastSegment.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+        if (oldBareNames.has(bare)) {
+          aliases.push({ file, specifier, line: i + 1 });
+        }
+      }
+    }
+  }
+
+  return aliases;
+}
+
+/**
  * Update import specifiers in all source files after renames.
  * Uses ts-morph for AST-accurate rewriting.
  *
  * @param renames - The renames that were applied
  * @param projectRoot - Absolute path to project root
- * @returns Records of all import updates made
+ * @returns Records of all import updates made, plus any skipped alias imports
  */
 export async function updateImportsAfterRenames(
   renames: RenameRecord[],
   projectRoot: string,
-): Promise<ImportUpdateRecord[]> {
-  if (renames.length === 0) return [];
+): Promise<{ updates: ImportUpdateRecord[]; skippedAliases: SkippedAliasRecord[] }> {
+  if (renames.length === 0) return { updates: [], skippedAliases: [] };
 
   // Lazy import ts-morph to avoid startup cost
   const { Project, SyntaxKind } = await import('ts-morph');
@@ -67,20 +149,52 @@ export async function updateImportsAfterRenames(
   project.addSourceFilesAtPaths(path.join(projectRoot, '**/*.{ts,tsx,js,jsx,mjs,cjs}'));
 
   const updates: ImportUpdateRecord[] = [];
+  const skippedAliases: SkippedAliasRecord[] = [];
   const extensions = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js'];
+
+  // Build a set of old bare filenames (without extension) for alias detection
+  const oldBareNames = new Set<string>();
+  for (const r of renames) {
+    const oldFilename = path.basename(r.oldPath);
+    oldBareNames.add(oldFilename.slice(0, oldFilename.indexOf('.')));
+  }
 
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath();
-    // Skip node_modules and dist (check path segments to avoid false matches)
+    // Skip generated/dependency directories (check path segments to avoid false matches)
     const segments = filePath.split(path.sep);
-    if (segments.includes('node_modules') || segments.includes('dist')) continue;
+    const skipDirs = new Set([
+      'node_modules',
+      'dist',
+      'build',
+      '.next',
+      '.expo',
+      '.svelte-kit',
+      '.turbo',
+      'coverage',
+    ]);
+    if (segments.some((s) => skipDirs.has(s))) continue;
 
     const fileDir = path.dirname(filePath);
 
     // Process static imports
     for (const decl of sourceFile.getImportDeclarations()) {
       const specifier = decl.getModuleSpecifierValue();
-      if (!specifier.startsWith('.')) continue;
+      if (!specifier.startsWith('.')) {
+        // Check if this non-relative import might reference a renamed file (e.g. @/MyUtil)
+        if (specifier.includes('/')) {
+          const lastSegment = specifier.split('/').pop() ?? '';
+          const bare = lastSegment.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+          if (oldBareNames.has(bare)) {
+            skippedAliases.push({
+              file: filePath,
+              specifier,
+              line: decl.getStartLineNumber(),
+            });
+          }
+        }
+        continue;
+      }
 
       const match = resolveToRenamedFile(specifier, fileDir, renameMap, extensions);
       if (!match) continue;
@@ -146,7 +260,7 @@ export async function updateImportsAfterRenames(
     await project.save();
   }
 
-  return updates;
+  return { updates, skippedAliases };
 }
 
 /**

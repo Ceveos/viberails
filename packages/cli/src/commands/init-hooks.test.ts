@@ -80,8 +80,10 @@ describe('setupPreCommitHook', () => {
     setupPreCommitHook(tmpDir); // second call should not duplicate
 
     const content = fs.readFileSync(path.join(hooksDir, 'pre-commit'), 'utf-8');
-    const matches = content.match(/viberails/g);
-    expect(matches).toHaveLength(2); // "# viberails check" and "npx viberails check --staged"
+    // The command string contains "viberails" multiple times; verify idempotency
+    // by checking the comment marker appears exactly once
+    const commentMatches = content.match(/# viberails check/g);
+    expect(commentMatches).toHaveLength(1);
   });
 
   it('detects Lefthook and writes to lefthook.yml', () => {
@@ -167,8 +169,10 @@ describe('setupPreCommitHook', () => {
     setupPreCommitHook(tmpDir); // second call should not duplicate
 
     const content = fs.readFileSync(path.join(huskyDir, 'pre-commit'), 'utf-8');
-    const matches = content.match(/viberails/g);
-    expect(matches).toHaveLength(1);
+    // The command string contains "viberails" multiple times; verify idempotency
+    // by checking the hook command appears only once
+    const cmdMatches = content.match(/npx viberails check --staged/g);
+    expect(cmdMatches).toHaveLength(1);
   });
 
   it('returns undefined when no hook manager or git directory exists', () => {
@@ -281,7 +285,7 @@ describe('setupGithubAction', () => {
     expect(target).toBe('.github/workflows/viberails.yml');
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('pnpm install --frozen-lockfile');
-    expect(content).toContain('pnpm exec viberails check --enforce --diff-base');
+    expect(content).toContain('npx viberails check --enforce --diff-base');
     expect(content).toContain('pnpm/action-setup@v4');
     expect(content).toContain('fetch-depth: 0');
   });
@@ -298,7 +302,7 @@ describe('setupGithubAction', () => {
     setupGithubAction(tmpDir, 'yarn');
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('yarn install --frozen-lockfile');
-    expect(content).toContain('yarn exec viberails check --enforce --diff-base');
+    expect(content).toContain('npx viberails check --enforce --diff-base');
   });
 
   it('skips if workflow already contains viberails', () => {
@@ -321,13 +325,45 @@ describe('setupGithubAction', () => {
     expect(content).toContain('biome check .');
   });
 
-  it('adds typecheck step when typecheck option is set', () => {
+  it('adds tsc --noEmit typecheck when root tsconfig.json exists', () => {
+    fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), '{}');
     setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('tsc --noEmit');
+    expect(content).not.toContain('turbo typecheck');
+  });
+
+  it('adds turbo typecheck when turbo.json defines typecheck task', () => {
+    fs.writeFileSync(path.join(tmpDir, 'turbo.json'), JSON.stringify({ tasks: { typecheck: {} } }));
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('turbo typecheck');
+    expect(content).not.toContain('tsc --noEmit');
+  });
+
+  it('skips typecheck step when no safe command can be inferred', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, test: {} } }),
+    );
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).not.toContain('tsc --noEmit');
+    expect(content).not.toContain('turbo typecheck');
+  });
+
+  it('uses package.json typecheck script in CI', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'package.json'),
+      JSON.stringify({ scripts: { typecheck: 'tsc -b --noEmit' } }),
+    );
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('pnpm run typecheck');
   });
 
   it('adds both lint and typecheck steps', () => {
+    fs.writeFileSync(path.join(tmpDir, 'tsconfig.json'), '{}');
     setupGithubAction(tmpDir, 'pnpm', { linter: 'eslint', typecheck: true });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('tsc --noEmit');

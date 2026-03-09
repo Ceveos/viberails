@@ -1,0 +1,68 @@
+---
+const features = [
+  {
+    label: '01',
+    title: 'Scan',
+    description:
+      'Detects your framework, tooling, structure, and naming conventions. A confidence model scores each detection — high means 90%+ consistency across your files.',
+  },
+  {
+    label: '02',
+    title: 'Enforce',
+    description:
+      'File size limits, naming rules, test coverage thresholds, and import boundary violations. Runs as a pre-commit hook, Claude Code hook, or in CI.',
+  },
+  {
+    label: '03',
+    title: 'Fix',
+    description:
+      'Auto-renames files to match conventions and generates test stubs. AST-aware import rewriting via ts-morph keeps everything connected.',
+  },
+  {
+    label: '04',
+    title: 'Integrate',
+    description:
+      'Set up pre-commit hooks, Claude Code PostToolUse hooks, and a GitHub Actions workflow during init. Blocks PRs on violations.',
+  },
+];
+---
+
+<section class="mx-auto max-w-5xl px-6 py-16">
+  <!-- Section label -->
+  <div class="flex items-center gap-3 mb-12">
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+    <h2 class="text-xs text-text-dim tracking-[0.2em] uppercase font-normal">what it does</h2>
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-border/40">
+    {
+      features.map((feature) => (
+        <div class="bg-blueprint-bg p-5 md:p-7 relative group">
+          {/* Top-left label marker */}
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-xs text-accent/40 tracking-widest">{feature.label}</span>
+            <div class="h-px flex-1 bg-blueprint-line/60"></div>
+          </div>
+
+          <h3 class="font-bold text-accent text-sm mb-3 tracking-wide">{feature.title}</h3>
+          <p class="text-text-muted text-xs leading-[1.7]">{feature.description}</p>
+
+          {/* Corner accent on hover */}
+          <div class="absolute top-0 left-0 w-3 h-3 border-t border-l border-accent/0 group-hover:border-accent/30 transition-colors" />
+          <div class="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-accent/0 group-hover:border-accent/30 transition-colors" />
+        </div>
+      ))
+    }
+  </div>
+
+  <!-- Monorepo callout -->
+  <div class="mt-8 flex items-start gap-3 px-5 py-4 border border-dashed border-blueprint-line rounded">
+    <span class="text-accent/50 text-xs mt-0.5">+</span>
+    <p class="text-text-muted text-xs leading-relaxed">
+      <span class="text-text-primary">Monorepo support.</span>
+      Detects pnpm/npm/yarn workspaces, scans each package independently, infers import
+      boundaries between packages, and applies per-package rule overrides.
+    </p>
+  </div>
+</section>

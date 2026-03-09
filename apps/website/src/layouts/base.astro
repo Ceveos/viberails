@@ -1,0 +1,54 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Guardrails for vibe coding. Scan your codebase, generate AI context, and enforce coding conventions.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://viberails.sh" />
+    <meta property="og:image" content="https://viberails.sh/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://viberails.sh/og.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/jetbrains-mono-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jetbrains-mono-bold.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+  </head>
+  <body class="bg-blueprint-bg text-text-primary font-mono min-h-screen antialiased relative">
+    <!-- Blueprint grid background -->
+    <div
+      class="fixed inset-0 pointer-events-none"
+      style="background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 79px, var(--color-blueprint-grid) 79px, var(--color-blueprint-grid) 80px),
+        repeating-linear-gradient(90deg, transparent, transparent 79px, var(--color-blueprint-grid) 79px, var(--color-blueprint-grid) 80px);"
+    />
+    <!-- Subtle radial glow behind hero area -->
+    <div
+      class="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] pointer-events-none"
+      style="background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.03) 0%, transparent 70%);"
+    />
+    <div class="relative">
+      <slot />
+    </div>
+  </body>
+</html>
+
+<style>
+  @import '../styles/global.css';
+</style>

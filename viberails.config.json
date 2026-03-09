@@ -113,10 +113,26 @@
         "testCoverage": 0,
         "enforceMissingTests": false
       }
+    },
+    {
+      "name": "@viberails/website",
+      "path": "apps/website",
+      "stack": {
+        "framework": "astro@5",
+        "styling": "tailwindcss@4"
+      },
+      "structure": {
+        "pages": "src/pages",
+        "components": "src/components"
+      },
+      "rules": {
+        "enforceMissingTests": false,
+        "testCoverage": 0
+      }
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-08T21:22:44.381Z",
+    "lastSync": "2026-03-09T04:17:26.193Z",
     "packages": {
       "packages/cli": {
         "conventions": {

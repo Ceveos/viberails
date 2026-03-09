@@ -84,6 +84,7 @@ function runCoverageCommand(pkgRoot: string, command: string): { ok: boolean; de
     shell: true,
     encoding: 'utf-8',
     stdio: 'pipe',
+    timeout: 300_000,
   });
   if (result.status === 0) return { ok: true };
   const stderr = result.stderr?.trim() ?? '';

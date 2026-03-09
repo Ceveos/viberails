@@ -76,16 +76,6 @@ for pkg in "${PACKAGES[@]}"; do
   "
 done
 
-# Update the VERSION constant in CLI source
-CLI_INDEX="packages/cli/src/index.ts"
-if grep -q "export const VERSION" "$CLI_INDEX"; then
-  if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s/export const VERSION = '.*'/export const VERSION = '$NEW_VERSION'/" "$CLI_INDEX"
-  else
-    sed -i "s/export const VERSION = '.*'/export const VERSION = '$NEW_VERSION'/" "$CLI_INDEX"
-  fi
-fi
-
 # Ensure npm authentication (required for @viberails scoped packages)
 echo "==> Checking npm authentication..."
 if ! npm whoami &>/dev/null; then
@@ -112,14 +102,16 @@ done
 # Commit version bump and tag
 if [[ -z "$DRY_RUN" ]]; then
   echo "==> Committing version bump..."
-  git add -A
+  git add packages/*/package.json apps/*/package.json package.json
   git commit -m "chore: release v$NEW_VERSION"
   git tag "v$NEW_VERSION"
   echo "==> Tagged v$NEW_VERSION (run 'git push && git push --tags' to push)"
 else
   echo "==> Dry run complete. Would have published v$NEW_VERSION"
-  # Revert version changes
-  git checkout -- .
+  # Revert version changes — only the files we bumped
+  for pkg in "${PACKAGES[@]}"; do
+    git checkout -- "$pkg/package.json"
+  done
 fi
 
 echo "==> Done."

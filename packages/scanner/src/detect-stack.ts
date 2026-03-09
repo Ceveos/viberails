@@ -129,7 +129,8 @@ function detectFirst(
 }
 
 /**
- * Detects the package manager by checking for lock files.
+ * Detects the package manager by checking for lock files and the
+ * `packageManager` field in package.json.
  *
  * @param projectPath - Directory to check for lock files.
  * @returns The detected package manager (defaults to npm if none found).
@@ -140,6 +141,16 @@ export async function detectPackageManager(projectPath: string): Promise<StackIt
       return { name: entry.name };
     }
   }
+
+  // Check package.json packageManager field (e.g. "pnpm@10.6.4")
+  const pkg = await readPackageJson(projectPath);
+  if (pkg?.packageManager && typeof pkg.packageManager === 'string') {
+    const match = pkg.packageManager.match(/^(npm|pnpm|yarn|bun)(@|$)/);
+    if (match) {
+      return { name: match[1] };
+    }
+  }
+
   return { name: 'npm' };
 }
 

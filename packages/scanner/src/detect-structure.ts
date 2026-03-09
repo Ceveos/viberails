@@ -22,9 +22,9 @@ export async function detectStructure(
     dirs = await walkDirectory(projectPath, 4);
   }
 
-  // Detect srcDir
+  // Detect srcDir — default to '.' for flat layouts so missing-test enforcement works
   const hasSrcDir = dirs.some((d) => d.relativePath === 'src' || d.relativePath.startsWith('src/'));
-  const srcDir = hasSrcDir ? 'src' : undefined;
+  const srcDir = hasSrcDir ? 'src' : '.';
 
   // Classify directories
   const directories = dirs.map((d) => classifyDirectory(d)).filter((d) => d !== null);
@@ -33,7 +33,7 @@ export async function detectStructure(
   const testPattern = detectTestPattern(dirs);
 
   return {
-    ...(srcDir !== undefined && { srcDir }),
+    srcDir,
     directories,
     ...(testPattern !== undefined && { testPattern }),
   };

@@ -198,7 +198,9 @@ async function detectImportAlias(projectPath: string): Promise<DetectedConventio
   for (const configFile of ['tsconfig.json', 'jsconfig.json']) {
     try {
       const raw = await readFile(join(projectPath, configFile), 'utf-8');
-      const config = JSON.parse(raw) as TsConfigSubset;
+      // Strip JSONC comments (// and /* */) since tsconfig commonly contains them
+      const stripped = raw.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const config = JSON.parse(stripped) as TsConfigSubset;
       const paths = config.compilerOptions?.paths;
       if (!paths) continue;
 
