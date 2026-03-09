@@ -143,19 +143,45 @@ describe('setupLintHook', () => {
     vi.restoreAllMocks();
   });
 
-  it('adds biome check for biome linter', () => {
+  it('adds biome check scoped to staged files for bare git hooks', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'));
     const target = setupLintHook(tmpDir, 'biome');
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
-    expect(content).toContain('npx biome check .');
+    expect(content).toContain('git diff --cached');
+    expect(content).toContain('xargs npx biome check');
   });
 
-  it('adds eslint for eslint linter', () => {
+  it('adds eslint scoped to staged files for bare git hooks', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'));
     const target = setupLintHook(tmpDir, 'eslint');
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
-    expect(content).toContain('npx eslint .');
+    expect(content).toContain('git diff --cached');
+    expect(content).toContain('xargs npx eslint');
+  });
+
+  it('uses lefthook staged_files and glob when lefthook.yml exists', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'lefthook.yml'),
+      'pre-commit:\n  commands:\n    format:\n      run: echo format\n',
+    );
+    const target = setupLintHook(tmpDir, 'eslint');
+    expect(target).toBe('lefthook.yml');
+    const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
+    expect(content).toContain('{staged_files}');
+    expect(content).toContain('glob');
+    expect(content).toContain('*.{js,ts,jsx,tsx}');
+  });
+
+  it('uses broader glob for biome in lefthook', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'lefthook.yml'),
+      'pre-commit:\n  commands:\n    format:\n      run: echo format\n',
+    );
+    setupLintHook(tmpDir, 'biome');
+    const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
+    expect(content).toContain('npx biome check {staged_files}');
+    expect(content).toContain('*.{js,ts,jsx,tsx,json,css}');
   });
 });

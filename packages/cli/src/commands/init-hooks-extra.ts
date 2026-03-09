@@ -20,6 +20,7 @@ export function addPreCommitStep(
   name: string,
   command: string,
   marker: string,
+  lefthookExtra?: Record<string, string>,
 ): string | undefined {
   const lefthookPath = path.join(projectRoot, 'lefthook.yml');
   if (fs.existsSync(lefthookPath)) {
@@ -28,7 +29,7 @@ export function addPreCommitStep(
     const doc = parseYaml(content) ?? {};
     if (!doc['pre-commit']) doc['pre-commit'] = { commands: {} };
     if (!doc['pre-commit'].commands) doc['pre-commit'].commands = {};
-    doc['pre-commit'].commands[name] = { run: command };
+    doc['pre-commit'].commands[name] = { run: command, ...lefthookExtra };
     fs.writeFileSync(lefthookPath, stringifyYaml(doc));
     return 'lefthook.yml';
   }
@@ -83,11 +84,29 @@ export function setupTypecheckHook(
   return target;
 }
 
-/** Set up a linter pre-commit step. */
+/** Set up a linter pre-commit step scoped to staged files. */
 export function setupLintHook(projectRoot: string, linter: string): string | undefined {
-  const command = linter === 'biome' ? 'npx biome check .' : 'npx eslint .';
+  const isLefthook = fs.existsSync(path.join(projectRoot, 'lefthook.yml'));
   const linterName = linter === 'biome' ? 'Biome' : 'ESLint';
-  const target = addPreCommitStep(projectRoot, 'lint', command, linter);
+
+  let command: string;
+  let lefthookExtra: Record<string, string> | undefined;
+
+  if (isLefthook) {
+    command = linter === 'biome' ? 'npx biome check {staged_files}' : 'npx eslint {staged_files}';
+    lefthookExtra = {
+      glob: linter === 'biome' ? '*.{js,ts,jsx,tsx,json,css}' : '*.{js,ts,jsx,tsx}',
+    };
+  } else {
+    const exts =
+      linter === 'biome'
+        ? "'*.js' '*.ts' '*.jsx' '*.tsx' '*.json' '*.css'"
+        : "'*.js' '*.ts' '*.jsx' '*.tsx'";
+    const lintCmd = linter === 'biome' ? 'biome check' : 'eslint';
+    command = `git diff --cached --name-only --diff-filter=ACMR -- ${exts} | xargs npx ${lintCmd}`;
+  }
+
+  const target = addPreCommitStep(projectRoot, 'lint', command, linter, lefthookExtra);
   if (target) {
     console.log(`  ${chalk.green('✓')} ${target} — added ${linterName} lint check`);
   }
