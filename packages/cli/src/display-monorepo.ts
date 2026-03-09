@@ -21,7 +21,8 @@ export function formatPackageSummary(pkg: PackageScanResult): string {
   if (pkg.stack.styling) {
     parts.push(formatItem(pkg.stack.styling, STYLING_NAMES));
   }
-  const files = `${pkg.statistics.totalFiles} files`;
+  const n = pkg.statistics.totalFiles;
+  const files = `${n} ${n === 1 ? 'file' : 'files'}`;
   const detail = parts.length > 0 ? `${parts.join(', ')} (${files})` : `(${files})`;
   return `  ${pkg.relativePath} — ${detail}`;
 }
@@ -91,7 +92,8 @@ function formatPackageSummaryPlain(pkg: PackageScanResult): string {
   if (pkg.stack.styling) {
     parts.push(formatItem(pkg.stack.styling, STYLING_NAMES));
   }
-  const files = `${pkg.statistics.totalFiles} files`;
+  const n = pkg.statistics.totalFiles;
+  const files = `${n} ${n === 1 ? 'file' : 'files'}`;
   const detail = parts.length > 0 ? `${parts.join(', ')} (${files})` : `(${files})`;
   return `  ${pkg.relativePath} — ${detail}`;
 }

@@ -126,7 +126,7 @@ export async function promptIntegrations(
     options.push({
       value: 'typecheck',
       label: 'Typecheck (tsc --noEmit)',
-      hint: 'catches type errors before commit',
+      hint: 'pre-commit hook + CI check',
     });
   }
 
@@ -135,7 +135,7 @@ export async function promptIntegrations(
     options.push({
       value: 'lint',
       label: `Lint check (${linterName})`,
-      hint: 'runs linter on staged files before commit',
+      hint: 'pre-commit hook + CI check',
     });
   }
 

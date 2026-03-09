@@ -167,14 +167,6 @@ async function initInteractive(
   const config = generateConfig(scanResult);
   s.stop('Scan complete');
 
-  const prereqResult = await promptMissingPrereqs(
-    projectRoot,
-    checkCoveragePrereqs(projectRoot, scanResult),
-  );
-  if (prereqResult.disableCoverage) {
-    config.rules.testCoverage = 0;
-  }
-
   if (scanResult.statistics.totalFiles === 0) {
     clack.log.warn(
       'No source files detected. Try running from the project root,\n' +
@@ -225,18 +217,26 @@ async function initInteractive(
       if (denyCount > 0) {
         config.boundaries = inferred;
         config.rules.enforceBoundaries = true;
-        bs.stop(`Inferred ${denyCount} boundary rules`);
-        const boundaryLines = Object.entries(inferred.deny)
-          .map(([pkg, denied]) => `${pkg} must NOT import from: ${denied.join(', ')}`)
-          .join('\n');
-        clack.note(boundaryLines, 'Boundary rules');
+        const pkgCount = Object.keys(inferred.deny).length;
+        bs.stop(`Inferred ${denyCount} boundary rules across ${pkgCount} packages`);
       } else {
         bs.stop('No boundary rules inferred');
       }
     }
   }
 
+  // Prerequisites: coverage provider + hook manager (consolidated before integrations)
   const hookManager = detectHookManager(projectRoot);
+  const coveragePrereqs = checkCoveragePrereqs(projectRoot, scanResult);
+  const hasMissingPrereqs = coveragePrereqs.some((p) => !p.installed) || !hookManager;
+  if (hasMissingPrereqs) {
+    clack.log.info('Some dependencies are needed for full functionality.');
+  }
+  const prereqResult = await promptMissingPrereqs(projectRoot, coveragePrereqs);
+  if (prereqResult.disableCoverage) {
+    config.rules.testCoverage = 0;
+  }
+
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
   const integrations = await promptIntegrations(projectRoot, hookManager, {
     isTypeScript: rootPkgStack?.language === 'typescript',
@@ -256,17 +256,16 @@ async function initInteractive(
   writeGeneratedFiles(projectRoot, config, scanResult);
   updateGitignore(projectRoot);
 
-  const createdFiles: string[] = [
-    path.basename(configPath),
-    '.viberails/context.md',
-    '.viberails/scan-result.json',
-    ...setupSelectedIntegrations(projectRoot, integrations, {
-      linter: rootPkgStack?.linter?.split('@')[0],
-      packageManager: rootPkgStack?.packageManager,
-    }),
-  ];
+  const ok = chalk.green('\u2713');
+  clack.log.step(`${ok} ${path.basename(configPath)}`);
+  clack.log.step(`${ok} .viberails/context.md`);
+  clack.log.step(`${ok} .viberails/scan-result.json`);
 
-  clack.log.success(`Created:\n${createdFiles.map((f) => `  ${f}`).join('\n')}`);
+  setupSelectedIntegrations(projectRoot, integrations, {
+    linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager: rootPkgStack?.packageManager,
+  });
+
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +
       `  ${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,
