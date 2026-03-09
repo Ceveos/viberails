@@ -75,6 +75,10 @@ export function mapStructure(scanResult: ScanResult): ConfigStructure {
 
   if (structure.testPattern) {
     config.testPattern = structure.testPattern.value;
+  } else {
+    // Default test pattern when no test files detected yet, based on project language
+    const isTypeScript = scanResult.stack.language.name === 'typescript';
+    config.testPattern = isTypeScript ? '*.test.ts' : '*.test.js';
   }
 
   return config;

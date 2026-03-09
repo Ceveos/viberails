@@ -78,6 +78,10 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
     filesToCheck = getStagedFiles(projectRoot).filter((f) => SOURCE_EXTS.has(path.extname(f)));
   } else if (options.diffBase) {
     const diff = getDiffFiles(projectRoot, options.diffBase);
+    if (diff.error && options.enforce) {
+      console.error(`${chalk.red('Error:')} ${diff.error}`);
+      return 1;
+    }
     filesToCheck = diff.all.filter((f) => SOURCE_EXTS.has(path.extname(f)));
     diffAddedFiles = new Set(diff.added);
   } else if (options.files && options.files.length > 0) {

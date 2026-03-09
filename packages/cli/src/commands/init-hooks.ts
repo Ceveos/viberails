@@ -232,7 +232,9 @@ export function setupGithubAction(
   );
 
   if (options?.typecheck) {
-    lines.push(`      - run: ${runPrefix} tsc --noEmit`);
+    const isMonorepo = fs.existsSync(path.join(projectRoot, 'turbo.json'));
+    const tsCmd = isMonorepo ? `${runPrefix} turbo typecheck` : `${runPrefix} tsc --noEmit`;
+    lines.push(`      - run: ${tsCmd}`);
   }
   if (options?.linter) {
     const lintCmd = options.linter === 'biome' ? 'biome check .' : 'eslint .';

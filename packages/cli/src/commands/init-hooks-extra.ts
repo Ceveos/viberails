@@ -65,11 +65,14 @@ export function addPreCommitStep(
   return undefined;
 }
 
-/** Set up a tsc --noEmit pre-commit step. */
+/** Set up a tsc --noEmit pre-commit step. Uses turbo in monorepos. */
 export function setupTypecheckHook(projectRoot: string): string | undefined {
-  const target = addPreCommitStep(projectRoot, 'typecheck', 'npx tsc --noEmit', 'tsc');
+  const isMonorepo = fs.existsSync(path.join(projectRoot, 'turbo.json'));
+  const command = isMonorepo ? 'npx turbo typecheck' : 'npx tsc --noEmit';
+  const label = isMonorepo ? 'turbo typecheck' : 'tsc --noEmit';
+  const target = addPreCommitStep(projectRoot, 'typecheck', command, 'typecheck');
   if (target) {
-    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (tsc --noEmit)`);
+    console.log(`  ${chalk.green('✓')} ${target} — added typecheck (${label})`);
   }
   return target;
 }
