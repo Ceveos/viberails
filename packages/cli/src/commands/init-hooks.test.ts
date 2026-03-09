@@ -80,8 +80,10 @@ describe('setupPreCommitHook', () => {
     setupPreCommitHook(tmpDir); // second call should not duplicate
 
     const content = fs.readFileSync(path.join(hooksDir, 'pre-commit'), 'utf-8');
-    const matches = content.match(/viberails/g);
-    expect(matches).toHaveLength(2); // "# viberails check" and "npx viberails check --staged"
+    // The command string contains "viberails" multiple times; verify idempotency
+    // by checking the comment marker appears exactly once
+    const commentMatches = content.match(/# viberails check/g);
+    expect(commentMatches).toHaveLength(1);
   });
 
   it('detects Lefthook and writes to lefthook.yml', () => {
@@ -167,8 +169,10 @@ describe('setupPreCommitHook', () => {
     setupPreCommitHook(tmpDir); // second call should not duplicate
 
     const content = fs.readFileSync(path.join(huskyDir, 'pre-commit'), 'utf-8');
-    const matches = content.match(/viberails/g);
-    expect(matches).toHaveLength(1);
+    // The command string contains "viberails" multiple times; verify idempotency
+    // by checking the hook command appears only once
+    const cmdMatches = content.match(/npx viberails check --staged/g);
+    expect(cmdMatches).toHaveLength(1);
   });
 
   it('returns undefined when no hook manager or git directory exists', () => {

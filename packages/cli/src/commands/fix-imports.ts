@@ -71,9 +71,19 @@ export async function updateImportsAfterRenames(
 
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath();
-    // Skip node_modules and dist (check path segments to avoid false matches)
+    // Skip generated/dependency directories (check path segments to avoid false matches)
     const segments = filePath.split(path.sep);
-    if (segments.includes('node_modules') || segments.includes('dist')) continue;
+    const skipDirs = new Set([
+      'node_modules',
+      'dist',
+      'build',
+      '.next',
+      '.expo',
+      '.svelte-kit',
+      '.turbo',
+      'coverage',
+    ]);
+    if (segments.some((s) => skipDirs.has(s))) continue;
 
     const fileDir = path.dirname(filePath);
 

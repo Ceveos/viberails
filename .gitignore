@@ -1,13 +1,9 @@
 node_modules
 dist
-.viberails
 coverage
 *.tsbuildinfo
 .turbo
-
-# viberails
-.viberails/
 .cursorrules
 
-# viberails
+# viberails — track context.md, ignore scan-result.json
 .viberails/scan-result.json

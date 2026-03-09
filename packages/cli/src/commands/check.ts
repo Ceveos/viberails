@@ -75,7 +75,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   let filesToCheck: string[];
   let diffAddedFiles: Set<string> | null = null;
   if (options.staged) {
-    filesToCheck = getStagedFiles(projectRoot);
+    filesToCheck = getStagedFiles(projectRoot).filter((f) => SOURCE_EXTS.has(path.extname(f)));
   } else if (options.diffBase) {
     const diff = getDiffFiles(projectRoot, options.diffBase);
     filesToCheck = diff.all.filter((f) => SOURCE_EXTS.has(path.extname(f)));
@@ -144,15 +144,18 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
 
   log(' done\n');
 
-  // Check 3: Missing tests (full check or diff-base with added files only)
-  if (!options.staged && !options.files) {
+  // Check 3: Missing tests (scoped to staged/diff files when applicable)
+  if (!options.files) {
     log('  Checking missing tests...');
     const testViolations = checkMissingTests(projectRoot, config, severity);
-    violations.push(
-      ...(diffAddedFiles
-        ? testViolations.filter((v) => diffAddedFiles.has(v.file))
-        : testViolations),
-    );
+    if (options.staged) {
+      const stagedSet = new Set(filesToCheck);
+      violations.push(...testViolations.filter((v) => stagedSet.has(v.file)));
+    } else if (diffAddedFiles) {
+      violations.push(...testViolations.filter((v) => diffAddedFiles.has(v.file)));
+    } else {
+      violations.push(...testViolations);
+    }
     log(' done\n');
   }
 

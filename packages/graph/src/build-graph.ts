@@ -53,9 +53,7 @@ export async function buildImportGraph(
 
   // Add source files from project root and workspace packages
   const sourceGlobs = buildSourceGlobs(projectRoot, packages, ignorePatterns);
-  for (const glob of sourceGlobs) {
-    project.addSourceFilesAtPaths(glob);
-  }
+  project.addSourceFilesAtPaths(sourceGlobs);
 
   // Build nodes and edges
   const nodes: ImportGraphNode[] = [];
@@ -114,15 +112,24 @@ function buildSourceGlobs(
   const globs: string[] = [];
 
   if (packages.length > 0) {
-    // Add source files from each workspace package
+    // Add source files from each workspace package (src/ and other dirs like app/, pages/)
     for (const pkg of packages) {
-      globs.push(`${pkg.path}/src/**/*.{ts,tsx,js,jsx}`);
+      globs.push(`${pkg.path}/**/*.{ts,tsx,js,jsx}`);
     }
   } else {
     // Single-package project
     globs.push(`${projectRoot}/src/**/*.{ts,tsx,js,jsx}`);
     globs.push(`${projectRoot}/**/*.{ts,tsx,js,jsx}`);
   }
+
+  // Exclude build outputs and dependencies
+  globs.push(
+    '!**/node_modules/**',
+    '!**/dist/**',
+    '!**/build/**',
+    '!**/.next/**',
+    '!**/coverage/**',
+  );
 
   // Add negation patterns for ignored paths
   for (const pattern of ignore) {

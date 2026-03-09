@@ -61,7 +61,12 @@ export function checkMissingTests(
       const dir = path.dirname(path.join(projectRoot, relFile));
       const colocatedTest = path.join(dir, expectedTestFile);
       const testsDir = pkg.structure?.tests;
-      const dedicatedTest = testsDir ? path.join(packageRoot, testsDir, expectedTestFile) : null;
+      // Preserve relative directory structure for dedicated test dirs:
+      // src/foo/util.ts → tests/foo/util.test.ts
+      const relToSrc = path.relative(srcPath, path.join(projectRoot, path.dirname(relFile)));
+      const dedicatedTest = testsDir
+        ? path.join(packageRoot, testsDir, relToSrc, expectedTestFile)
+        : null;
 
       const hasTest =
         fs.existsSync(colocatedTest) || (dedicatedTest !== null && fs.existsSync(dedicatedTest));

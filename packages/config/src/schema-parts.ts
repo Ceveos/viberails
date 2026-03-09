@@ -104,6 +104,7 @@ export const packageItemSchema = {
         testCoverage: { type: 'number' },
         enforceNaming: { type: 'boolean' },
         enforceBoundaries: { type: 'boolean' },
+        enforceMissingTests: { type: 'boolean' },
       },
       additionalProperties: false,
     },

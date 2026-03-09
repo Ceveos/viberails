@@ -235,7 +235,7 @@ Config is generated from ScanResult with smart defaults:
 - enforcement: "warn" (always starts in warn-only)
 - maxFileLines: 300
 - maxTestFileLines: 0 (disabled by default)
-- testCoverage: 80 (used as a missing-test enforcement toggle)
+- testCoverage: 80 (line coverage percentage threshold)
 - enforceNaming: true
 - enforceBoundaries: false (enabled when inferred/configured)
 - In `--yes` mode, only high-confidence conventions are retained

@@ -76,16 +76,6 @@ for pkg in "${PACKAGES[@]}"; do
   "
 done
 
-# Update the VERSION constant in CLI source
-CLI_INDEX="packages/cli/src/index.ts"
-if grep -q "export const VERSION" "$CLI_INDEX"; then
-  if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s/export const VERSION = '.*'/export const VERSION = '$NEW_VERSION'/" "$CLI_INDEX"
-  else
-    sed -i "s/export const VERSION = '.*'/export const VERSION = '$NEW_VERSION'/" "$CLI_INDEX"
-  fi
-fi
-
 # Ensure npm authentication (required for @viberails scoped packages)
 echo "==> Checking npm authentication..."
 if ! npm whoami &>/dev/null; then

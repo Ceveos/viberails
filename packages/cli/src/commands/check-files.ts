@@ -115,7 +115,7 @@ export function getStagedFiles(projectRoot: string): string[] {
 export function getDiffFiles(
   projectRoot: string,
   base: string,
-): { all: string[]; added: string[] } {
+): { all: string[]; added: string[]; error?: string } {
   try {
     const allOutput = execSync(`git diff --name-only --diff-filter=ACMR ${base}...HEAD`, {
       cwd: projectRoot,
@@ -132,7 +132,9 @@ export function getDiffFiles(
       added: addedOutput.trim().split('\n').filter(Boolean),
     };
   } catch {
-    return { all: [], added: [] };
+    const msg = `git diff failed for base '${base}' — no files will be checked`;
+    process.stderr.write(`Warning: ${msg}\n`);
+    return { all: [], added: [], error: msg };
   }
 }
 
@@ -179,7 +181,7 @@ export function collectSourceFiles(dir: string, projectRoot: string): string[] {
     }
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules') continue;
+        if (ALWAYS_SKIP_DIRS.has(entry.name)) continue;
         walk(path.join(d, entry.name));
       } else if (entry.isFile()) {
         files.push(path.relative(projectRoot, path.join(d, entry.name)));
