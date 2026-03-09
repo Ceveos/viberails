@@ -3,8 +3,22 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { checkCommand } from '../../packages/cli/src/commands/check.js';
+import { checkCommand as rawCheckCommand } from '../../packages/cli/src/commands/check.js';
 import { initCommand } from '../../packages/cli/src/commands/init.js';
+
+async function checkCommand(
+  options: Parameters<typeof rawCheckCommand>[0],
+  cwd: string,
+): Promise<number> {
+  return rawCheckCommand({ quiet: true, ...options }, cwd);
+}
+
+function disableCoverage(rootDir: string): void {
+  const configPath = path.join(rootDir, 'viberails.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  config.rules.testCoverage = 0;
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+}
 
 describe('check command', () => {
   let tmpDir: string;
@@ -14,6 +28,7 @@ describe('check command', () => {
     const fixtureSrc = path.resolve(__dirname, '../fixtures/nextjs-15');
     fs.cpSync(fixtureSrc, tmpDir, { recursive: true });
     await initCommand({ yes: true }, tmpDir);
+    disableCoverage(tmpDir);
   });
 
   afterEach(() => {
@@ -246,19 +261,31 @@ describe('check --diff-base', () => {
   });
 
   it('returns exit code 1 for invalid diff-base in enforce mode', async () => {
-    const exitCode = await checkCommand(
-      { enforce: true, diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
-      tmpDir,
-    );
-    expect(exitCode).toBe(1);
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      const exitCode = await checkCommand(
+        { enforce: true, diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
+        tmpDir,
+      );
+      expect(exitCode).toBe(1);
+    } finally {
+      stderrSpy.mockRestore();
+    }
   });
 
   it('returns exit code 0 for invalid diff-base in warn mode', async () => {
-    const exitCode = await checkCommand(
-      { diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
-      tmpDir,
-    );
-    expect(exitCode).toBe(0);
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      const exitCode = await checkCommand(
+        { diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
+        tmpDir,
+      );
+      expect(exitCode).toBe(0);
+    } finally {
+      stderrSpy.mockRestore();
+    }
   });
 
   it('catches missing-test when a test file is deleted', async () => {

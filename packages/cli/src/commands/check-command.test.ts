@@ -37,10 +37,12 @@ describe('check command', () => {
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-check-'));
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
   });
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   it('returns 0 when no violations found', async () => {
@@ -215,6 +217,31 @@ describe('check command', () => {
     try {
       const exitCode = await checkCommand({ staged: true }, tmpDir);
       expect(exitCode).toBe(0);
+    } finally {
+      logSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('suppresses progress output in quiet mode', async () => {
+    writeConfig(tmpDir, {
+      rules: {
+        maxFileLines: 999,
+        testCoverage: 0,
+        enforceNaming: false,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+    });
+    fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'src', 'hello.ts'), 'export const hello = 1;\n');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const exitCode = await checkCommand({ quiet: true }, tmpDir);
+      expect(exitCode).toBe(0);
+      expect(process.stderr.write as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
     } finally {
       logSpy.mockRestore();
       errorSpy.mockRestore();

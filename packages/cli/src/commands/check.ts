@@ -107,7 +107,7 @@ export async function checkCommand(options: CheckOptions, cwd?: string): Promise
   const violations: CheckViolation[] = [];
   const severity = options.enforce ? 'error' : 'warn';
   const log =
-    options.format !== 'json' && !options.hook
+    options.format !== 'json' && !options.hook && !options.quiet
       ? (msg: string) => process.stderr.write(chalk.dim(msg))
       : () => {};
 

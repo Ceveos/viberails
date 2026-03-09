@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   checkNaming,
   deletedTestFileToSourceFile,
@@ -187,9 +187,15 @@ describe('getDiffFiles', () => {
   });
 
   it('returns empty arrays for invalid base ref', () => {
-    const result = getDiffFiles(tmpDir, 'nonexistent-branch');
-    expect(result.all).toEqual([]);
-    expect(result.added).toEqual([]);
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    try {
+      const result = getDiffFiles(tmpDir, 'nonexistent-branch');
+      expect(result.all).toEqual([]);
+      expect(result.added).toEqual([]);
+    } finally {
+      stderrSpy.mockRestore();
+    }
   });
 });
 

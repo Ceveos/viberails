@@ -2,7 +2,14 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { checkCommand } from '../../packages/cli/src/commands/check.js';
+import { checkCommand as rawCheckCommand } from '../../packages/cli/src/commands/check.js';
+
+async function checkCommand(
+  options: Parameters<typeof rawCheckCommand>[0],
+  cwd: string,
+): Promise<number> {
+  return rawCheckCommand({ quiet: true, ...options }, cwd);
+}
 
 describe('check command with boundary enforcement', () => {
   let tmpDir: string;

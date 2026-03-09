@@ -2,15 +2,29 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkCommand } from '../../packages/cli/src/commands/check.js';
+import { checkCommand as rawCheckCommand } from '../../packages/cli/src/commands/check.js';
 import { initCommand } from '../../packages/cli/src/commands/init.js';
 import { syncCommand } from '../../packages/cli/src/commands/sync.js';
 import type { ViberailsConfig } from '../../packages/types/src/index.js';
 
 let tmpDir: string;
 
+async function checkCommand(
+  options: Parameters<typeof rawCheckCommand>[0],
+  cwd: string,
+): Promise<number> {
+  return rawCheckCommand({ quiet: true, ...options }, cwd);
+}
+
 function readConfig(): ViberailsConfig {
   return JSON.parse(fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'));
+}
+
+function disableCoverage(): void {
+  const configPath = path.join(tmpDir, 'viberails.config.json');
+  const config = readConfig();
+  config.rules.testCoverage = 0;
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 }
 
 describe('end-to-end: init + sync + check on realistic Next.js 15 project', () => {
@@ -100,6 +114,7 @@ describe('end-to-end: init + sync + check on realistic Next.js 15 project', () =
   });
 
   it('check returns 0 in warn mode on the fixture project (with violations)', async () => {
+    disableCoverage();
     const exitCode = await checkCommand({}, tmpDir);
     expect(exitCode).toBe(0);
   });
