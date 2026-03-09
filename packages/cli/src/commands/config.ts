@@ -20,7 +20,10 @@ const CONFIG_FILE = 'viberails.config.json';
  * @param options - Command options
  * @param cwd - Working directory override (for testing)
  */
-export async function configCommand(options: { rescan?: boolean }, cwd?: string): Promise<void> {
+export async function configCommand(
+  options: { rescan?: boolean; suppressIntro?: boolean },
+  cwd?: string,
+): Promise<void> {
   const projectRoot = findProjectRoot(cwd ?? process.cwd());
   if (!projectRoot) {
     throw new Error('No package.json found. Make sure you are inside a JS/TS project.');
@@ -28,11 +31,13 @@ export async function configCommand(options: { rescan?: boolean }, cwd?: string)
 
   const configPath = path.join(projectRoot, CONFIG_FILE);
   if (!fs.existsSync(configPath)) {
-    console.log(`${chalk.yellow('!')} No config found. Run ${chalk.cyan('viberails init')} first.`);
+    console.log(`${chalk.yellow('!')} No config found. Run ${chalk.cyan('viberails')} first.`);
     return;
   }
 
-  clack.intro('viberails config');
+  if (!options.suppressIntro) {
+    clack.intro('viberails config');
+  }
 
   const config = await loadConfig(configPath);
   let scanResult = options.rescan ? await rescanAndMerge(projectRoot, config) : undefined;

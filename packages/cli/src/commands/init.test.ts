@@ -33,7 +33,7 @@ describe('init command', () => {
     }
   });
 
-  it('aborts if config already exists and suggests config command', async () => {
+  it('aborts in --yes mode if config already exists and points back to viberails', async () => {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), '{}');
 
@@ -43,7 +43,7 @@ describe('init command', () => {
       await initCommand({ yes: true }, tmpDir);
       const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
       expect(output).toContain('already initialized');
-      expect(output).toContain('viberails config');
+      expect(output).toContain('Run viberails');
       expect(output).toContain('viberails sync');
       expect(output).toContain('viberails init --force');
     } finally {

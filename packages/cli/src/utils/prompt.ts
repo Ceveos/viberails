@@ -37,20 +37,62 @@ export async function confirmDangerous(message: string): Promise<boolean> {
 }
 
 /**
- * Prompt the user to choose between accepting defaults or customizing rules.
+ * Prompt the user for how to handle an existing config file.
  *
- * @returns 'accept' or 'customize'
+ * @param configFile - The config filename
+ * @returns 'edit', 'replace', or 'cancel'
  */
-export async function promptInitDecision(): Promise<'accept' | 'customize'> {
+export async function promptExistingConfigAction(
+  configFile: string,
+): Promise<'edit' | 'replace' | 'cancel'> {
   const result = await clack.select({
-    message: 'Accept these rules?',
+    message: `${configFile} already exists. What do you want to do?`,
+    options: [
+      {
+        value: 'edit' as const,
+        label: 'Edit existing config',
+        hint: 'open the current rules and save updates in place',
+      },
+      {
+        value: 'replace' as const,
+        label: 'Replace with a fresh scan',
+        hint: 're-scan the project and overwrite the current config',
+      },
+      {
+        value: 'cancel' as const,
+        label: 'Cancel',
+        hint: 'leave the current setup unchanged',
+      },
+    ],
+  });
+  assertNotCancelled(result);
+  return result;
+}
+
+/**
+ * Prompt the user to choose how to proceed after the initial scan.
+ *
+ * @returns 'accept', 'customize', or 'review'
+ */
+export async function promptInitDecision(): Promise<'accept' | 'customize' | 'review'> {
+  const result = await clack.select({
+    message: 'How do you want to proceed?',
     options: [
       {
         value: 'accept' as const,
-        label: 'Yes, looks good',
-        hint: 'warns on violation; use --enforce in CI to block',
+        label: 'Accept defaults',
+        hint: 'writes the config with these defaults; use --enforce in CI to block',
       },
-      { value: 'customize' as const, label: 'Let me customize rules' },
+      {
+        value: 'customize' as const,
+        label: 'Customize rules',
+        hint: 'edit limits, naming, test coverage, and package overrides',
+      },
+      {
+        value: 'review' as const,
+        label: 'Review detected details',
+        hint: 'show the full scan report with package and structure details',
+      },
     ],
   });
   assertNotCancelled(result);

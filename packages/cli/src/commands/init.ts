@@ -4,7 +4,7 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayInitSummary, displayRulesPreview, displayScanResults } from '../display.js';
+import { displayInitOverview, displayRulesPreview, displayScanResults } from '../display.js';
 import { formatScanResultsText } from '../display-text.js';
 import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import {
@@ -17,6 +17,7 @@ import { findProjectRoot } from '../utils/find-project-root.js';
 import {
   confirm,
   confirmDangerous,
+  promptExistingConfigAction,
   promptInitDecision,
   promptIntegrations,
   promptRuleMenu,
@@ -24,6 +25,7 @@ import {
 import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
 import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
+import { configCommand } from './config.js';
 import {
   detectHookManager,
   setupClaudeCodeHook,
@@ -59,9 +61,12 @@ export async function initCommand(
 
   const configPath = path.join(projectRoot, CONFIG_FILE);
   if (fs.existsSync(configPath) && !options.force) {
+    if (!options.yes) {
+      return initInteractive(projectRoot, configPath, options);
+    }
     console.log(
       `${chalk.yellow('!')} viberails is already initialized.\n` +
-        `  Run ${chalk.cyan('viberails config')} to edit rules, ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
+        `  Run ${chalk.cyan('viberails')} to review or edit the existing setup, ${chalk.cyan('viberails sync')} to update generated files, or ${chalk.cyan('viberails init --force')} to replace it.`,
     );
     return;
   }
@@ -156,6 +161,19 @@ async function initInteractive(
 ): Promise<void> {
   clack.intro('viberails');
 
+  if (fs.existsSync(configPath) && !options.force) {
+    const action = await promptExistingConfigAction(path.basename(configPath));
+    if (action === 'cancel') {
+      clack.outro('Aborted. No files were written.');
+      return;
+    }
+    if (action === 'edit') {
+      await configCommand({ suppressIntro: true }, projectRoot);
+      return;
+    }
+    options.force = true;
+  }
+
   if (fs.existsSync(configPath) && options.force) {
     const replace = await confirmDangerous(
       `${path.basename(configPath)} already exists and will be replaced. Continue?`,
@@ -179,12 +197,18 @@ async function initInteractive(
     );
   }
 
-  clack.note(formatScanResultsText(scanResult), 'Scan results');
-
   const exemptedPkgs = getExemptedPackages(config);
-  displayInitSummary(config, exemptedPkgs);
-
-  const decision = await promptInitDecision();
+  let decision: 'accept' | 'customize';
+  while (true) {
+    displayInitOverview(scanResult, config, exemptedPkgs);
+    const nextDecision = await promptInitDecision();
+    if (nextDecision === 'review') {
+      clack.note(formatScanResultsText(scanResult), 'Detected details');
+      continue;
+    }
+    decision = nextDecision;
+    break;
+  }
 
   if (decision === 'customize') {
     const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];

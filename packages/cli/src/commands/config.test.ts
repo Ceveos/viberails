@@ -30,7 +30,7 @@ describe('config command', () => {
       await configCommand({}, noConfigDir);
       const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
       expect(output).toContain('No config found');
-      expect(output).toContain('viberails init');
+      expect(output).toContain('viberails');
     } finally {
       logSpy.mockRestore();
       fs.rmSync(noConfigDir, { recursive: true, force: true });

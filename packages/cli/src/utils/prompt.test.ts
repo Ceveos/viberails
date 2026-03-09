@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   confirm,
   confirmDangerous,
+  promptExistingConfigAction,
   promptInitDecision,
   promptIntegrations,
   promptRuleMenu,
@@ -46,11 +47,12 @@ describe('prompt utils', () => {
     await expect(promptInitDecision()).resolves.toBe('customize');
   });
 
-  it('promptInitDecision shows "Let me customize rules" label', async () => {
+  it('promptInitDecision shows review and customize options', async () => {
     selectMock.mockResolvedValueOnce('accept');
     await promptInitDecision();
     const options = selectMock.mock.calls[0][0].options;
-    expect(options[1].label).toBe('Let me customize rules');
+    expect(options[1].label).toBe('Customize rules');
+    expect(options[2].label).toBe('Review detected details');
   });
 
   it('confirm and confirmDangerous use different default values', async () => {
@@ -61,6 +63,15 @@ describe('prompt utils', () => {
     confirmMock.mockResolvedValueOnce(false);
     await confirmDangerous('Apply?');
     expect(confirmMock).toHaveBeenCalledWith({ message: 'Apply?', initialValue: false });
+  });
+
+  it('promptExistingConfigAction offers edit, replace, and cancel', async () => {
+    selectMock.mockResolvedValueOnce('edit');
+    await expect(promptExistingConfigAction('viberails.config.json')).resolves.toBe('edit');
+    const options = selectMock.mock.calls[0][0].options;
+    expect(options[0].label).toBe('Edit existing config');
+    expect(options[1].label).toBe('Replace with a fresh scan');
+    expect(options[2].label).toBe('Cancel');
   });
 
   it('promptIntegrations maps selected values to booleans', async () => {

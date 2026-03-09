@@ -15,6 +15,16 @@ import {
 } from './display-helpers.js';
 import { displayMonorepoResults } from './display-monorepo.js';
 
+const INIT_OVERVIEW_NAMES: Record<string, string> = {
+  typescript: 'TypeScript',
+  javascript: 'JavaScript',
+  eslint: 'ESLint',
+  prettier: 'Prettier',
+  jest: 'Jest',
+  vitest: 'Vitest',
+  biome: 'Biome',
+};
+
 /**
  * Format a StackItem for display: "DisplayName Version".
  */
@@ -184,18 +194,60 @@ export function displayRulesPreview(config: ViberailsConfig): void {
   console.log('');
 }
 
+function formatDetectedOverview(scanResult: ScanResult): string {
+  const { stack } = scanResult;
+  const primaryParts: string[] = [];
+  const secondaryParts: string[] = [];
+  const formatOverviewItem = (item: StackItem, nameMap?: Record<string, string>): string =>
+    formatItem(item, { ...INIT_OVERVIEW_NAMES, ...nameMap });
+
+  if (scanResult.packages.length > 1) {
+    primaryParts.push('monorepo');
+    primaryParts.push(`${scanResult.packages.length} packages`);
+  } else if (stack.framework) {
+    primaryParts.push(formatItem(stack.framework, FRAMEWORK_NAMES));
+  } else {
+    primaryParts.push('single package');
+  }
+
+  primaryParts.push(formatOverviewItem(stack.language));
+
+  if (stack.styling) {
+    primaryParts.push(formatOverviewItem(stack.styling, STYLING_NAMES));
+  }
+
+  if (stack.packageManager) secondaryParts.push(formatOverviewItem(stack.packageManager));
+  if (stack.linter) secondaryParts.push(formatOverviewItem(stack.linter));
+  if (stack.formatter) secondaryParts.push(formatOverviewItem(stack.formatter));
+  if (stack.testRunner) secondaryParts.push(formatOverviewItem(stack.testRunner));
+
+  const primary = primaryParts.map((part) => chalk.cyan(part)).join(chalk.dim(' · '));
+  const secondary = secondaryParts.join(chalk.dim(' · '));
+
+  return secondary ? `${primary}\n  ${chalk.dim(secondary)}` : primary;
+}
+
 /**
- * Display a colorful summary of rules right before the accept/customize prompt.
- * Designed to always be visible even when scan details have scrolled off.
+ * Display a compact init overview right before the decision prompt.
+ * Designed to keep the first decision screen short and easy to scan.
  *
+ * @param scanResult - The detected project scan result
  * @param config - The generated config
  * @param exemptedPackages - Package paths exempted from coverage
  */
-export function displayInitSummary(config: ViberailsConfig, exemptedPackages: string[]): void {
+export function displayInitOverview(
+  scanResult: ScanResult,
+  config: ViberailsConfig,
+  exemptedPackages: string[],
+): void {
   const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   const isMonorepo = config.packages.length > 1;
   const ok = chalk.green('✓');
-  const off = chalk.dim('○');
+  const info = chalk.yellow('~');
+
+  console.log('');
+  console.log(`  ${chalk.bold('Ready to initialize:')}`);
+  console.log(`  ${formatDetectedOverview(scanResult)}`);
 
   console.log('');
   console.log(`  ${chalk.bold('Rules to apply:')}`);
@@ -210,7 +262,7 @@ export function displayInitSummary(config: ViberailsConfig, exemptedPackages: st
   if (config.rules.enforceNaming && fileNaming) {
     console.log(`  ${ok} File naming: ${chalk.cyan(fileNaming)}`);
   } else {
-    console.log(`  ${off} File naming: ${chalk.dim('not enforced')}`);
+    console.log(`  ${info} File naming: ${chalk.dim('not enforced')}`);
   }
 
   // Missing tests — check root first, then any package
@@ -222,7 +274,7 @@ export function displayInitSummary(config: ViberailsConfig, exemptedPackages: st
   } else if (config.rules.enforceMissingTests) {
     console.log(`  ${ok} Missing tests: ${chalk.cyan('enforced')}`);
   } else {
-    console.log(`  ${off} Missing tests: ${chalk.dim('not enforced')}`);
+    console.log(`  ${info} Missing tests: ${chalk.dim('not enforced')}`);
   }
 
   // Coverage
@@ -238,7 +290,7 @@ export function displayInitSummary(config: ViberailsConfig, exemptedPackages: st
       console.log(`  ${ok} Coverage: ${chalk.cyan(`${config.rules.testCoverage}%`)}`);
     }
   } else {
-    console.log(`  ${off} Coverage: ${chalk.dim('disabled')}`);
+    console.log(`  ${info} Coverage: ${chalk.dim('disabled')}`);
   }
 
   // Exempted packages
@@ -248,14 +300,16 @@ export function displayInitSummary(config: ViberailsConfig, exemptedPackages: st
     );
   }
 
-  // Stats line
+  console.log('');
+  console.log(`  ${chalk.bold('Also available:')}`);
   if (isMonorepo) {
-    console.log(
-      `\n  ${chalk.dim(`${config.packages.length} packages scanned · warns on violation · use --enforce in CI`)}`,
-    );
-  } else {
-    console.log(`\n  ${chalk.dim('warns on violation · use --enforce in CI to block')}`);
+    console.log(`  ${info} Infer boundaries from current imports`);
   }
-
+  console.log(`  ${info} Set up hooks, Claude integration, and CI checks`);
+  console.log(
+    `\n  ${chalk.dim('Defaults warn locally. Use --enforce in CI when you want failures to block.')}`,
+  );
   console.log('');
 }
+
+export { displayInitOverview as displayInitSummary };

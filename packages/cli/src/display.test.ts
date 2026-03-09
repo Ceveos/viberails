@@ -1,6 +1,6 @@
 import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it, vi } from 'vitest';
-import { displayInitSummary, displayRulesPreview, displayScanResults } from './display.js';
+import { displayInitOverview, displayRulesPreview, displayScanResults } from './display.js';
 
 function makeDefaultStats() {
   return {
@@ -422,7 +422,7 @@ describe('displayRulesPreview', () => {
   });
 });
 
-describe('displayInitSummary', () => {
+describe('displayInitOverview', () => {
   function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
     return {
       version: 1,
@@ -448,18 +448,50 @@ describe('displayInitSummary', () => {
     };
   }
 
+  function makeOverviewScanResult(overrides: Partial<ScanResult> = {}): ScanResult {
+    return makeScanResult({
+      stack: {
+        framework: { name: 'nextjs', version: '16' },
+        language: { name: 'typescript', version: '5' },
+        packageManager: { name: 'pnpm' },
+        linter: { name: 'eslint', version: '9' },
+        formatter: { name: 'prettier', version: '3' },
+        testRunner: { name: 'jest', version: '29' },
+        libraries: [],
+        ...overrides.stack,
+      },
+      ...overrides,
+    });
+  }
+
   it('shows max file size', () => {
-    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
     expect(output).toContain('300 lines');
   });
 
+  it('shows a compact detected project summary', () => {
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
+    expect(output).toContain('Ready to initialize:');
+    expect(output).toContain('Next.js 16');
+    expect(output).toContain('TypeScript 5');
+    expect(output).toContain('pnpm');
+  });
+
   it('shows file naming convention', () => {
-    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
     expect(output).toContain('kebab-case');
   });
 
   it('shows coverage target', () => {
-    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
     expect(output).toContain('80%');
   });
 
@@ -467,17 +499,20 @@ describe('displayInitSummary', () => {
     const config = makeConfig({
       rules: { ...makeConfig().rules, testCoverage: 0 },
     });
-    const output = captureOutput(() => displayInitSummary(config, []));
+    const output = captureOutput(() => displayInitOverview(makeOverviewScanResult(), config, []));
     expect(output).toContain('disabled');
   });
 
   it('shows missing tests enforced with pattern', () => {
-    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
     expect(output).toContain('enforced');
     expect(output).toContain('*.test.ts');
   });
 
   it('shows per-package coverage info for monorepos', () => {
+    const scanResult = makeMonorepoScanResult();
     const config = makeConfig({
       packages: [
         {
@@ -492,9 +527,11 @@ describe('displayInitSummary', () => {
         },
       ],
     });
-    const output = captureOutput(() => displayInitSummary(config, []));
+    const output = captureOutput(() => displayInitOverview(scanResult, config, []));
+    expect(output).toContain('monorepo');
+    expect(output).toContain('3 packages');
     expect(output).toContain('2/2 packages');
-    expect(output).toContain('2 packages scanned');
+    expect(output).toContain('Infer boundaries from current imports');
   });
 
   it('finds file naming from child package when root has none', () => {
@@ -514,15 +551,25 @@ describe('displayInitSummary', () => {
         },
       ],
     });
-    const output = captureOutput(() => displayInitSummary(config, []));
+    const output = captureOutput(() => displayInitOverview(makeMonorepoScanResult(), config, []));
     expect(output).toContain('kebab-case');
     expect(output).not.toContain('not enforced');
   });
 
   it('shows exempted packages', () => {
-    const output = captureOutput(() => displayInitSummary(makeConfig(), ['packages/types']));
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), ['packages/types']),
+    );
     expect(output).toContain('packages/types');
     expect(output).toContain('types-only');
+  });
+
+  it('shows integrations as optional next steps', () => {
+    const output = captureOutput(() =>
+      displayInitOverview(makeOverviewScanResult(), makeConfig(), []),
+    );
+    expect(output).toContain('Also available:');
+    expect(output).toContain('Set up hooks, Claude integration, and CI checks');
   });
 });
 
