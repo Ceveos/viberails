@@ -59,6 +59,46 @@ describe('check command', () => {
   });
 });
 
+describe('check on zero-test repo', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-notest-'));
+    const fixtureSrc = path.resolve(__dirname, '../fixtures/flat-structure');
+    fs.cpSync(fixtureSrc, tmpDir, { recursive: true });
+    await initCommand({ yes: true }, tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it('generates config with default testPattern for zero-test repo', () => {
+    const configPath = path.join(tmpDir, 'viberails.config.json');
+    expect(fs.existsSync(configPath)).toBe(true);
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const pkg = config.packages[0];
+    expect(pkg.structure.testPattern).toBeDefined();
+    expect(pkg.structure.srcDir).toBe('.');
+  });
+
+  it('reports missing-test violations for source files without tests', async () => {
+    const exitCode = await checkCommand({ format: 'json' }, tmpDir);
+    const output = (console.log as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .find((s) => typeof s === 'string' && s.startsWith('{'));
+    expect(output).toBeDefined();
+    const parsed = JSON.parse(output);
+    const missingTests = parsed.violations.filter(
+      (v: { rule: string }) => v.rule === 'missing-test',
+    );
+    expect(missingTests.length).toBeGreaterThan(0);
+    expect(exitCode).toBe(0); // warn mode
+  });
+});
+
 describe('check --diff-base', () => {
   let tmpDir: string;
   let baseRef: string;
@@ -202,6 +242,22 @@ describe('check --diff-base', () => {
 
   it('returns empty when diff has no changes', async () => {
     const exitCode = await checkCommand({ diffBase: baseRef, noBoundaries: true }, tmpDir);
+    expect(exitCode).toBe(0);
+  });
+
+  it('returns exit code 1 for invalid diff-base in enforce mode', async () => {
+    const exitCode = await checkCommand(
+      { enforce: true, diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
+      tmpDir,
+    );
+    expect(exitCode).toBe(1);
+  });
+
+  it('returns exit code 0 for invalid diff-base in warn mode', async () => {
+    const exitCode = await checkCommand(
+      { diffBase: 'nonexistent-branch-xyz', noBoundaries: true },
+      tmpDir,
+    );
     expect(exitCode).toBe(0);
   });
 });
