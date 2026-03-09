@@ -1,6 +1,6 @@
 {
   "name": "@viberails/scanner",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Project scanning for viberails",
   "type": "module",
   "main": "./dist/index.cjs",
