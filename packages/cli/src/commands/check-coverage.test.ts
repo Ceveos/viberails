@@ -1,9 +1,15 @@
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ViberailsConfig } from '@viberails/types';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { checkCoverage } from './check-coverage.js';
+
+vi.mock('node:child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:child_process')>();
+  return { ...actual, spawnSync: vi.fn(actual.spawnSync) };
+});
 
 let tmpDir: string;
 
@@ -161,9 +167,22 @@ describe('checkCoverage', () => {
       ],
     });
 
-    // Will attempt to run the inferred vitest command (which fails in test env)
+    // Mock spawnSync to avoid actually running npx vitest (slow/flaky in CI)
+    (spawnSync as Mock).mockReturnValueOnce({
+      status: 1,
+      stderr: 'vitest not found',
+      stdout: '',
+      pid: 0,
+      output: [],
+      signal: null,
+    });
+
     const violations = checkCoverage(tmpDir, config, [], {});
     expect(violations).toHaveLength(1);
     expect(violations[0].message).toContain('Failed to run coverage command');
+    expect(spawnSync).toHaveBeenCalledWith(
+      expect.stringContaining('vitest'),
+      expect.objectContaining({ shell: true }),
+    );
   });
 });

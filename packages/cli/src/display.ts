@@ -151,6 +151,7 @@ export function displayScanResults(scanResult: ScanResult): void {
 
 /**
  * Display a preview of the rules that will be enforced.
+ * Used in the non-interactive (--yes) path.
  */
 export function displayRulesPreview(config: ViberailsConfig): void {
   const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
@@ -179,6 +180,82 @@ export function displayRulesPreview(config: ViberailsConfig): void {
   console.log(
     `  ${chalk.dim('\u2022')} Enforce boundaries: ${config.rules.enforceBoundaries ? 'yes' : 'no'}`,
   );
+
+  console.log('');
+}
+
+/**
+ * Display a colorful summary of rules right before the accept/customize prompt.
+ * Designed to always be visible even when scan details have scrolled off.
+ *
+ * @param config - The generated config
+ * @param exemptedPackages - Package paths exempted from coverage
+ */
+export function displayInitSummary(config: ViberailsConfig, exemptedPackages: string[]): void {
+  const root = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const isMonorepo = config.packages.length > 1;
+  const ok = chalk.green('✓');
+  const off = chalk.dim('○');
+
+  console.log('');
+  console.log(`  ${chalk.bold('Rules to apply:')}`);
+
+  // Max file size
+  console.log(`  ${ok} Max file size: ${chalk.cyan(`${config.rules.maxFileLines} lines`)}`);
+
+  // File naming — check root first, then any package
+  const fileNaming =
+    root?.conventions?.fileNaming ??
+    config.packages.find((p) => p.conventions?.fileNaming)?.conventions?.fileNaming;
+  if (config.rules.enforceNaming && fileNaming) {
+    console.log(`  ${ok} File naming: ${chalk.cyan(fileNaming)}`);
+  } else {
+    console.log(`  ${off} File naming: ${chalk.dim('not enforced')}`);
+  }
+
+  // Missing tests — check root first, then any package
+  const testPattern =
+    root?.structure?.testPattern ??
+    config.packages.find((p) => p.structure?.testPattern)?.structure?.testPattern;
+  if (config.rules.enforceMissingTests && testPattern) {
+    console.log(`  ${ok} Missing tests: ${chalk.cyan(`enforced (${testPattern})`)}`);
+  } else if (config.rules.enforceMissingTests) {
+    console.log(`  ${ok} Missing tests: ${chalk.cyan('enforced')}`);
+  } else {
+    console.log(`  ${off} Missing tests: ${chalk.dim('not enforced')}`);
+  }
+
+  // Coverage
+  if (config.rules.testCoverage > 0) {
+    if (isMonorepo) {
+      const withCoverage = config.packages.filter(
+        (p) => (p.rules?.testCoverage ?? config.rules.testCoverage) > 0,
+      );
+      console.log(
+        `  ${ok} Coverage: ${chalk.cyan(`${config.rules.testCoverage}%`)} default ${chalk.dim(`(${withCoverage.length}/${config.packages.length} packages)`)}`,
+      );
+    } else {
+      console.log(`  ${ok} Coverage: ${chalk.cyan(`${config.rules.testCoverage}%`)}`);
+    }
+  } else {
+    console.log(`  ${off} Coverage: ${chalk.dim('disabled')}`);
+  }
+
+  // Exempted packages
+  if (exemptedPackages.length > 0) {
+    console.log(
+      `  ${chalk.dim('  exempted:')} ${chalk.dim(exemptedPackages.join(', '))} ${chalk.dim('(types-only)')}`,
+    );
+  }
+
+  // Stats line
+  if (isMonorepo) {
+    console.log(
+      `\n  ${chalk.dim(`${config.packages.length} packages scanned · warns on violation · use --enforce in CI`)}`,
+    );
+  } else {
+    console.log(`\n  ${chalk.dim('warns on violation · use --enforce in CI to block')}`);
+  }
 
   console.log('');
 }

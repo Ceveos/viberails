@@ -1,11 +1,15 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as clack from '@clack/prompts';
 import { compactConfig, loadConfig, mergeConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import type { CodebaseStatistics } from '@viberails/types';
 import chalk from 'chalk';
+import { formatRulesText } from '../display-text.js';
+import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import { diffConfigs, formatStatsDelta } from '../utils/diff-configs.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
+import { assertNotCancelled, promptRuleMenu } from '../utils/prompt.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 
 const CONFIG_FILE = 'viberails.config.json';
@@ -31,9 +35,13 @@ function loadPreviousStats(projectRoot: string): CodebaseStatistics | undefined 
 /**
  * Run the viberails sync flow: re-scan, merge config, regenerate context.
  *
+ * @param options - Command options (interactive mode)
  * @param cwd - Working directory override (for testing)
  */
-export async function syncCommand(cwd?: string): Promise<void> {
+export async function syncCommand(
+  options?: { interactive?: boolean },
+  cwd?: string,
+): Promise<void> {
   const startDir = cwd ?? process.cwd();
 
   // 1. Find project root
@@ -80,6 +88,51 @@ export async function syncCommand(cwd?: string): Promise<void> {
     }
     if (statsDelta) {
       console.log(`  ${chalk.dim(statsDelta)}`);
+    }
+  }
+
+  // 5b. Interactive review (if --interactive)
+  if (options?.interactive) {
+    clack.intro('viberails sync (interactive)');
+    clack.note(formatRulesText(merged).join('\n'), 'Rules after sync');
+
+    const decision = await clack.select({
+      message: 'How would you like to proceed?',
+      options: [
+        { value: 'accept' as const, label: 'Accept changes' },
+        { value: 'customize' as const, label: 'Customize rules' },
+        { value: 'cancel' as const, label: 'Cancel (no changes written)' },
+      ],
+    });
+    assertNotCancelled(decision);
+
+    if (decision === 'cancel') {
+      clack.outro('Sync cancelled. No files were written.');
+      return;
+    }
+
+    if (decision === 'customize') {
+      const rootPkg = merged.packages.find((p) => p.path === '.') ?? merged.packages[0];
+      const overrides = await promptRuleMenu({
+        maxFileLines: merged.rules.maxFileLines,
+        testCoverage: merged.rules.testCoverage,
+        enforceMissingTests: merged.rules.enforceMissingTests,
+        enforceNaming: merged.rules.enforceNaming,
+        fileNamingValue: rootPkg.conventions?.fileNaming,
+        coverageSummaryPath: rootPkg.coverage?.summaryPath ?? 'coverage/coverage-summary.json',
+        coverageCommand: merged.defaults?.coverage?.command,
+        packageOverrides: merged.packages,
+      });
+      applyRuleOverrides(merged, overrides);
+
+      // Recompact after overrides
+      const recompacted = compactConfig(merged);
+      fs.writeFileSync(configPath, `${JSON.stringify(recompacted, null, 2)}\n`);
+      writeGeneratedFiles(projectRoot, merged, scanResult);
+
+      clack.log.success('Updated config with your customizations.');
+      clack.outro('Done! Run viberails check to verify.');
+      return;
     }
   }
 

@@ -82,12 +82,12 @@ function addLefthookPreCommit(lefthookPath: string): void {
 
 /**
  * Detect which pre-commit hook manager is present.
- * Returns a label like "Lefthook", "Husky", "git hook", or undefined if no .git.
+ * Returns "Lefthook" or "Husky" when a managed hook system is found.
+ * Returns undefined otherwise — bare .git/hooks is not a hook manager.
  */
 export function detectHookManager(projectRoot: string): string | undefined {
   if (fs.existsSync(path.join(projectRoot, 'lefthook.yml'))) return 'Lefthook';
   if (fs.existsSync(path.join(projectRoot, '.husky'))) return 'Husky';
-  if (fs.existsSync(path.join(projectRoot, '.git'))) return 'git hook';
   return undefined;
 }
 
@@ -166,11 +166,22 @@ export function setupClaudeMdReference(projectRoot: string): void {
   console.log(`  ${chalk.green('✓')} CLAUDE.md — added @.viberails/context.md reference`);
 }
 
+export interface GithubActionOptions {
+  /** Linter name (e.g. "biome", "eslint") — adds a lint step if set. */
+  linter?: string;
+  /** Whether to add a typecheck step (tsc --noEmit). */
+  typecheck?: boolean;
+}
+
 /**
  * Generate a GitHub Actions workflow that runs viberails check --enforce on PRs.
- * Detects the project's package manager for correct install/run commands.
+ * Optionally adds lint and typecheck steps based on selected integrations.
  */
-export function setupGithubAction(projectRoot: string, packageManager: string): string | undefined {
+export function setupGithubAction(
+  projectRoot: string,
+  packageManager: string,
+  options?: GithubActionOptions,
+): string | undefined {
   const workflowDir = path.join(projectRoot, '.github', 'workflows');
   const workflowPath = path.join(workflowDir, 'viberails.yml');
 
@@ -218,6 +229,17 @@ export function setupGithubAction(projectRoot: string, packageManager: string): 
     pm !== 'npm' ? `          cache: ${pm}` : '',
     '',
     `      - run: ${installCmd}`,
+  );
+
+  if (options?.typecheck) {
+    lines.push(`      - run: ${runPrefix} tsc --noEmit`);
+  }
+  if (options?.linter) {
+    const lintCmd = options.linter === 'biome' ? 'biome check .' : 'eslint .';
+    lines.push(`      - run: ${runPrefix} ${lintCmd}`);
+  }
+
+  lines.push(
     `      - run: ${runPrefix} viberails check --enforce --diff-base origin/\${{ github.event.pull_request.base.ref }}`,
     '',
   );

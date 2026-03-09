@@ -1,6 +1,6 @@
 import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it, vi } from 'vitest';
-import { displayRulesPreview, displayScanResults } from './display.js';
+import { displayInitSummary, displayRulesPreview, displayScanResults } from './display.js';
 
 function makeDefaultStats() {
   return {
@@ -419,6 +419,110 @@ describe('displayRulesPreview', () => {
     );
     expect(output).toContain('Enforce file naming: no');
     expect(output).toContain('Test coverage target: 80%');
+  });
+});
+
+describe('displayInitSummary', () => {
+  function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
+    return {
+      version: 1,
+      name: 'test',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: true,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      packages: [
+        {
+          name: 'test',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          structure: { testPattern: '*.test.ts' },
+          conventions: { fileNaming: 'kebab-case' },
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it('shows max file size', () => {
+    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    expect(output).toContain('300 lines');
+  });
+
+  it('shows file naming convention', () => {
+    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    expect(output).toContain('kebab-case');
+  });
+
+  it('shows coverage target', () => {
+    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    expect(output).toContain('80%');
+  });
+
+  it('shows disabled coverage', () => {
+    const config = makeConfig({
+      rules: { ...makeConfig().rules, testCoverage: 0 },
+    });
+    const output = captureOutput(() => displayInitSummary(config, []));
+    expect(output).toContain('disabled');
+  });
+
+  it('shows missing tests enforced with pattern', () => {
+    const output = captureOutput(() => displayInitSummary(makeConfig(), []));
+    expect(output).toContain('enforced');
+    expect(output).toContain('*.test.ts');
+  });
+
+  it('shows per-package coverage info for monorepos', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'web',
+          path: 'apps/web',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+        },
+        {
+          name: 'api',
+          path: 'apps/api',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+        },
+      ],
+    });
+    const output = captureOutput(() => displayInitSummary(config, []));
+    expect(output).toContain('2/2 packages');
+    expect(output).toContain('2 packages scanned');
+  });
+
+  it('finds file naming from child package when root has none', () => {
+    const config = makeConfig({
+      rules: { ...makeConfig().rules, enforceNaming: true },
+      packages: [
+        {
+          name: 'root',
+          path: '.',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+        },
+        {
+          name: 'web',
+          path: 'apps/web',
+          stack: { language: 'typescript', packageManager: 'pnpm' },
+          conventions: { fileNaming: 'kebab-case' },
+        },
+      ],
+    });
+    const output = captureOutput(() => displayInitSummary(config, []));
+    expect(output).toContain('kebab-case');
+    expect(output).not.toContain('not enforced');
+  });
+
+  it('shows exempted packages', () => {
+    const output = captureOutput(() => displayInitSummary(makeConfig(), ['packages/types']));
+    expect(output).toContain('packages/types');
+    expect(output).toContain('types-only');
   });
 });
 

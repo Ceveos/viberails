@@ -75,11 +75,15 @@ export function buildMenuOptions(
       hint: state.fileNamingValue,
     });
   }
-  options.push({
-    value: 'testCoverage',
-    label: 'Test coverage target',
-    hint: state.testCoverage === 0 ? '0 (disabled)' : `${state.testCoverage}%`,
-  });
+  const isMonorepo = packageCount > 0;
+  const coverageLabel = isMonorepo ? 'Default coverage target' : 'Test coverage target';
+  const coverageHint =
+    state.testCoverage === 0
+      ? '0 (disabled)'
+      : isMonorepo
+        ? `${state.testCoverage}% (per-package default)`
+        : `${state.testCoverage}%`;
+  options.push({ value: 'testCoverage', label: coverageLabel, hint: coverageHint });
   options.push({
     value: 'enforceMissingTests',
     label: 'Enforce missing tests',
@@ -90,17 +94,17 @@ export function buildMenuOptions(
     options.push(
       {
         value: 'coverageSummaryPath',
-        label: 'Coverage summary path',
+        label: isMonorepo ? 'Default coverage summary path' : 'Coverage summary path',
         hint: state.coverageSummaryPath,
       },
       {
         value: 'coverageCommand',
-        label: 'Coverage command',
+        label: isMonorepo ? 'Default coverage command' : 'Coverage command',
         hint: state.coverageCommand ?? 'auto-detect from package.json test runner',
       },
     );
 
-    if (packageCount > 0) {
+    if (isMonorepo) {
       options.push({
         value: 'packageOverrides',
         label: 'Per-package coverage overrides',

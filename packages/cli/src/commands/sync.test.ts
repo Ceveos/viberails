@@ -50,7 +50,7 @@ describe('sync command', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await syncCommand(tmpDir);
+      await syncCommand({}, tmpDir);
 
       const configContent = JSON.parse(
         fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'),
@@ -77,7 +77,7 @@ describe('sync command', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await syncCommand(tmpDir);
+      await syncCommand({}, tmpDir);
 
       const configContent = JSON.parse(
         fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'),
@@ -98,7 +98,7 @@ describe('sync command', () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     try {
-      await expect(syncCommand(noConfigDir)).rejects.toThrow();
+      await expect(syncCommand({}, noConfigDir)).rejects.toThrow();
     } finally {
       logSpy.mockRestore();
       fs.rmSync(noConfigDir, { recursive: true, force: true });

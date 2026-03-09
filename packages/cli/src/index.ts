@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { boundariesCommand } from './commands/boundaries.js';
 import { checkCommand } from './commands/check.js';
 import { hookCheckCommand } from './commands/check-hook.js';
+import { configCommand } from './commands/config.js';
 import { fixCommand } from './commands/fix.js';
 import { initCommand } from './commands/init.js';
 import { syncCommand } from './commands/sync.js';
@@ -32,9 +33,24 @@ program
 program
   .command('sync')
   .description('Re-scan and update generated files')
-  .action(async () => {
+  .option('-i, --interactive', 'Review changes before writing')
+  .action(async (options: { interactive?: boolean }) => {
     try {
-      await syncCommand();
+      await syncCommand(options);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`${chalk.red('Error:')} ${message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('config')
+  .description('Interactively edit existing config rules')
+  .option('--rescan', 'Re-scan project first (picks up new packages, stack changes)')
+  .action(async (options: { rescan?: boolean }) => {
+    try {
+      await configCommand(options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`${chalk.red('Error:')} ${message}`);

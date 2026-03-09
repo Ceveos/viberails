@@ -33,7 +33,7 @@ describe('init command', () => {
     }
   });
 
-  it('aborts if config already exists', async () => {
+  it('aborts if config already exists and suggests config command', async () => {
     fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
     fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), '{}');
 
@@ -43,6 +43,30 @@ describe('init command', () => {
       await initCommand({ yes: true }, tmpDir);
       const output = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
       expect(output).toContain('already initialized');
+      expect(output).toContain('viberails config');
+      expect(output).toContain('viberails sync');
+      expect(output).toContain('viberails init --force');
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
+
+  it('overwrites existing config with --force --yes', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'test-project' }));
+    fs.writeFileSync(path.join(tmpDir, 'pnpm-lock.yaml'), '');
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(path.join(tmpDir, 'viberails.config.json'), '{}');
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      await initCommand({ yes: true, force: true }, tmpDir);
+
+      const config = JSON.parse(
+        fs.readFileSync(path.join(tmpDir, 'viberails.config.json'), 'utf-8'),
+      );
+      expect(config.version).toBe(1);
+      expect(config.rules).toBeDefined();
     } finally {
       logSpy.mockRestore();
     }

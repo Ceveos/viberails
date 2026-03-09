@@ -30,7 +30,7 @@ describe('sync command', () => {
     fs.writeFileSync(newFilePath, 'export function newHelper() { return 42; }\n');
 
     // Run sync
-    await syncCommand(tmpDir);
+    await syncCommand({}, tmpDir);
 
     // Config should still be valid JSON with expected structure
     const updatedConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -53,7 +53,7 @@ describe('sync command', () => {
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
 
     // Run sync
-    await syncCommand(tmpDir);
+    await syncCommand({}, tmpDir);
 
     // User values should be preserved
     const updated = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -65,7 +65,7 @@ describe('sync command', () => {
     const fixtureSrc = path.resolve(__dirname, '../fixtures/nextjs-15');
     fs.cpSync(fixtureSrc, noConfigDir, { recursive: true });
 
-    await expect(syncCommand(noConfigDir)).rejects.toThrow();
+    await expect(syncCommand({}, noConfigDir)).rejects.toThrow();
 
     fs.rmSync(noConfigDir, { recursive: true, force: true });
   });

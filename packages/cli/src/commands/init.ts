@@ -4,8 +4,9 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayRulesPreview, displayScanResults } from '../display.js';
-import { formatRulesText, formatScanResultsText } from '../display-text.js';
+import { displayInitSummary, displayRulesPreview, displayScanResults } from '../display.js';
+import { formatScanResultsText } from '../display-text.js';
+import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import {
   checkCoveragePrereqs,
   displayMissingPrereqs,
@@ -60,7 +61,7 @@ export async function initCommand(
   if (fs.existsSync(configPath) && !options.force) {
     console.log(
       `${chalk.yellow('!')} viberails is already initialized.\n` +
-        `  Run ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
+        `  Run ${chalk.cyan('viberails config')} to edit rules, ${chalk.cyan('viberails sync')} to update, or ${chalk.cyan('viberails init --force')} to start fresh.`,
     );
     return;
   }
@@ -113,13 +114,17 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   setupClaudeMdReference(projectRoot);
   const rootPkg = config.packages[0];
   const rootPkgPm = rootPkg?.stack?.packageManager ?? 'npm';
-  const actionTarget = setupGithubAction(projectRoot, rootPkgPm);
+  const linter = rootPkg?.stack?.linter?.split('@')[0];
+  const isTypeScript = rootPkg?.stack?.language === 'typescript';
+  const actionTarget = setupGithubAction(projectRoot, rootPkgPm, {
+    linter,
+    typecheck: isTypeScript,
+  });
 
   // Skip bare .git/hooks in --yes mode — they're local-only and won't be shared.
   const hookManager = detectHookManager(projectRoot);
   const hasHookManager = hookManager === 'Lefthook' || hookManager === 'Husky';
   const preCommitTarget = hasHookManager ? setupPreCommitHook(projectRoot) : undefined;
-  const linter = rootPkg?.stack?.linter?.split('@')[0];
 
   const ok = chalk.green('\u2713');
   const created = [
@@ -162,14 +167,6 @@ async function initInteractive(
   const config = generateConfig(scanResult);
   s.stop('Scan complete');
 
-  const prereqResult = await promptMissingPrereqs(
-    projectRoot,
-    checkCoveragePrereqs(projectRoot, scanResult),
-  );
-  if (prereqResult.disableCoverage) {
-    config.rules.testCoverage = 0;
-  }
-
   if (scanResult.statistics.totalFiles === 0) {
     clack.log.warn(
       'No source files detected. Try running from the project root,\n' +
@@ -179,11 +176,8 @@ async function initInteractive(
 
   clack.note(formatScanResultsText(scanResult), 'Scan results');
 
-  const rulesLines = formatRulesText(config);
   const exemptedPkgs = getExemptedPackages(config);
-  if (exemptedPkgs.length > 0)
-    rulesLines.push(`Auto-exempted from coverage: ${exemptedPkgs.join(', ')} (types-only)`);
-  clack.note(rulesLines.join('\n'), 'Rules');
+  displayInitSummary(config, exemptedPkgs);
 
   const decision = await promptInitDecision();
 
@@ -200,34 +194,7 @@ async function initInteractive(
       packageOverrides: config.packages,
     });
 
-    if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
-    config.rules.maxFileLines = overrides.maxFileLines;
-    config.rules.testCoverage = overrides.testCoverage;
-    config.rules.enforceMissingTests = overrides.enforceMissingTests;
-    config.rules.enforceNaming = overrides.enforceNaming;
-
-    for (const pkg of config.packages) {
-      pkg.coverage = pkg.coverage ?? {};
-      if (pkg.coverage.summaryPath === undefined) {
-        pkg.coverage.summaryPath = overrides.coverageSummaryPath;
-      }
-      if (pkg.coverage.command === undefined && overrides.coverageCommand) {
-        pkg.coverage.command = overrides.coverageCommand;
-      }
-    }
-
-    if (overrides.fileNamingValue) {
-      const oldNaming = rootPkg.conventions?.fileNaming;
-      rootPkg.conventions = rootPkg.conventions ?? {};
-      rootPkg.conventions.fileNaming = overrides.fileNamingValue;
-      if (oldNaming && oldNaming !== overrides.fileNamingValue) {
-        for (const pkg of config.packages) {
-          if (pkg.conventions?.fileNaming === oldNaming) {
-            pkg.conventions.fileNaming = overrides.fileNamingValue;
-          }
-        }
-      }
-    }
+    applyRuleOverrides(config, overrides);
   }
 
   if (config.packages.length > 1) {
@@ -250,23 +217,32 @@ async function initInteractive(
       if (denyCount > 0) {
         config.boundaries = inferred;
         config.rules.enforceBoundaries = true;
-        bs.stop(`Inferred ${denyCount} boundary rules`);
-        const boundaryLines = Object.entries(inferred.deny)
-          .map(([pkg, denied]) => `${pkg} must NOT import from: ${denied.join(', ')}`)
-          .join('\n');
-        clack.note(boundaryLines, 'Boundary rules');
+        const pkgCount = Object.keys(inferred.deny).length;
+        bs.stop(`Inferred ${denyCount} boundary rules across ${pkgCount} packages`);
       } else {
         bs.stop('No boundary rules inferred');
       }
     }
   }
 
+  // Prerequisites: coverage provider + hook manager (consolidated before integrations)
   const hookManager = detectHookManager(projectRoot);
+  const coveragePrereqs = checkCoveragePrereqs(projectRoot, scanResult);
+  const hasMissingPrereqs = coveragePrereqs.some((p) => !p.installed) || !hookManager;
+  if (hasMissingPrereqs) {
+    clack.log.info('Some dependencies are needed for full functionality.');
+  }
+  const prereqResult = await promptMissingPrereqs(projectRoot, coveragePrereqs);
+  if (prereqResult.disableCoverage) {
+    config.rules.testCoverage = 0;
+  }
+
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
   const integrations = await promptIntegrations(projectRoot, hookManager, {
     isTypeScript: rootPkgStack?.language === 'typescript',
     linter: rootPkgStack?.linter?.split('@')[0],
     packageManager: rootPkgStack?.packageManager,
+    isWorkspace: config.packages.length > 1,
   });
 
   const shouldWrite = await confirm('Write configuration and set up selected integrations?');
@@ -280,17 +256,16 @@ async function initInteractive(
   writeGeneratedFiles(projectRoot, config, scanResult);
   updateGitignore(projectRoot);
 
-  const createdFiles: string[] = [
-    path.basename(configPath),
-    '.viberails/context.md',
-    '.viberails/scan-result.json',
-    ...setupSelectedIntegrations(projectRoot, integrations, {
-      linter: rootPkgStack?.linter?.split('@')[0],
-      packageManager: rootPkgStack?.packageManager,
-    }),
-  ];
+  const ok = chalk.green('\u2713');
+  clack.log.step(`${ok} ${path.basename(configPath)}`);
+  clack.log.step(`${ok} .viberails/context.md`);
+  clack.log.step(`${ok} .viberails/scan-result.json`);
 
-  clack.log.success(`Created:\n${createdFiles.map((f) => `  ${f}`).join('\n')}`);
+  setupSelectedIntegrations(projectRoot, integrations, {
+    linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager: rootPkgStack?.packageManager,
+  });
+
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +
       `  ${chalk.dim('Tip: use')} ${chalk.cyan('viberails check --enforce')} ${chalk.dim('in CI to block PRs on violations.')}`,

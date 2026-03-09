@@ -11,36 +11,67 @@ export interface PrereqResult {
   installed: boolean;
   installCommand?: string;
   reason: string;
+  /** Package paths that use the runner requiring this dependency (monorepo). */
+  affectedPackages?: string[];
 }
 
 /**
  * Detect coverage prerequisites based on the scan result.
  * Checks whether the required coverage provider package is installed.
+ * In monorepos, scans all packages for their test runners.
  */
 export function checkCoveragePrereqs(projectRoot: string, scanResult: ScanResult): PrereqResult[] {
-  const testRunner = scanResult.stack.testRunner;
-  if (!testRunner) return [];
-
-  const runner = testRunner.name;
   const pm = scanResult.stack.packageManager.name;
 
-  if (runner === 'vitest') {
-    const hasV8 = hasDependency(projectRoot, '@vitest/coverage-v8');
-    const hasIstanbul = hasDependency(projectRoot, '@vitest/coverage-istanbul');
-    const installed = hasV8 || hasIstanbul;
-    const addCmd = pm === 'yarn' ? 'yarn add -D' : pm === 'npm' ? 'npm install -D' : `${pm} add -D`;
-    return [
-      {
-        label: '@vitest/coverage-v8',
-        installed,
-        installCommand: installed ? undefined : `${addCmd} @vitest/coverage-v8`,
-        reason: 'Required for coverage percentage checks with vitest',
-      },
-    ];
+  // Collect vitest-using packages from per-package scan results
+  const vitestPackages = scanResult.packages
+    .filter((pkg) => pkg.stack.testRunner?.name === 'vitest')
+    .map((pkg) => pkg.relativePath);
+
+  // Fall back to global runner for single-package projects or empty packages array
+  const hasVitest = vitestPackages.length > 0 || scanResult.stack.testRunner?.name === 'vitest';
+
+  if (!hasVitest) return [];
+
+  // Check root package.json first (workspace hoisting makes this available everywhere)
+  let installed =
+    hasDependency(projectRoot, '@vitest/coverage-v8') ||
+    hasDependency(projectRoot, '@vitest/coverage-istanbul');
+
+  // If not at root, check whether every vitest-using package has it locally
+  if (!installed && vitestPackages.length > 0) {
+    installed = vitestPackages.every((rel) => {
+      const pkgDir = path.join(projectRoot, rel);
+      return (
+        hasDependency(pkgDir, '@vitest/coverage-v8') ||
+        hasDependency(pkgDir, '@vitest/coverage-istanbul')
+      );
+    });
   }
 
-  // Jest has built-in coverage support — no extra dependency needed
-  return [];
+  const isWorkspace = scanResult.packages.length > 1;
+  const addCmd =
+    pm === 'yarn'
+      ? 'yarn add -D'
+      : pm === 'pnpm' && isWorkspace
+        ? 'pnpm add -D -w'
+        : pm === 'npm'
+          ? 'npm install -D'
+          : `${pm} add -D`;
+  const affectedPackages = vitestPackages.length > 1 ? vitestPackages : undefined;
+  const reason = affectedPackages
+    ? `Required for coverage in: ${affectedPackages.join(', ')}`
+    : 'Required for coverage percentage checks with vitest';
+
+  return [
+    {
+      label: '@vitest/coverage-v8',
+      installed,
+      installCommand: installed ? undefined : `${addCmd} @vitest/coverage-v8`,
+      reason,
+      affectedPackages,
+    },
+  ];
 }
 
 /**
@@ -49,7 +80,10 @@ export function checkCoveragePrereqs(projectRoot: string, scanResult: ScanResult
 export function displayMissingPrereqs(prereqs: PrereqResult[]): void {
   const missing = prereqs.filter((p) => !p.installed);
   for (const m of missing) {
-    console.log(`  ${chalk.yellow('!')} ${m.label} not installed \u2014 ${m.reason}`);
+    const suffix = m.affectedPackages
+      ? ` \u2014 needed for coverage in: ${m.affectedPackages.join(', ')}`
+      : ` \u2014 ${m.reason}`;
+    console.log(`  ${chalk.yellow('!')} ${m.label} not installed${suffix}`);
     if (m.installCommand) {
       console.log(`    Install: ${chalk.cyan(m.installCommand)}`);
     }
@@ -73,10 +107,11 @@ export async function promptMissingPrereqs(
   if (missing.length === 0) return { disableCoverage: false };
 
   const prereqLines = prereqs
-    .map(
-      (p) =>
-        `${p.installed ? '\u2713' : '\u2717'} ${p.label}${p.installed ? '' : ` \u2014 ${p.reason}`}`,
-    )
+    .map((p) => {
+      if (p.installed) return `\u2713 ${p.label}`;
+      const detail = p.affectedPackages ? `needed by: ${p.affectedPackages.join(', ')}` : p.reason;
+      return `\u2717 ${p.label} \u2014 ${detail}`;
+    })
     .join('\n');
   clack.note(prereqLines, 'Coverage prerequisites');
 
@@ -85,8 +120,12 @@ export async function promptMissingPrereqs(
   for (const m of missing) {
     if (!m.installCommand) continue;
 
+    const pkgCount = m.affectedPackages?.length;
+    const message = pkgCount
+      ? `${m.label} is not installed. Required for coverage in ${pkgCount} packages using vitest.`
+      : `${m.label} is not installed. It is required for coverage percentage checks.`;
     const choice = await clack.select({
-      message: `${m.label} is not installed. It is required for coverage percentage checks.`,
+      message,
       options: [
         {
           value: 'install' as const,

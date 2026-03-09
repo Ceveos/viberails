@@ -189,6 +189,21 @@ export function generateConfig(scanResult: ScanResult): ViberailsConfig {
     const packages = generatePackages(scanResult);
     if (packages) {
       config.packages = packages;
+
+      // If packages have different test runners, set per-package coverage
+      // commands instead of a global default (which would be wrong for some).
+      const runners = new Set(
+        packages.map((p) => p.stack?.testRunner?.split('@')[0]).filter(Boolean),
+      );
+      if (runners.size > 1) {
+        delete config.defaults?.coverage?.command;
+        for (const pkg of packages) {
+          const pkgCommand = inferCoverageCommand(pkg.stack?.testRunner);
+          if (pkgCommand) {
+            pkg.coverage = { ...pkg.coverage, command: pkgCommand };
+          }
+        }
+      }
       // Rebuild _meta for all packages
       const pkgMeta: Record<string, { conventions?: Record<string, ConventionMeta> }> = {};
       for (const pkg of scanResult.packages) {

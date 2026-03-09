@@ -113,7 +113,10 @@ export function setupSelectedIntegrations(
     created.push('CLAUDE.md — added @.viberails/context.md reference');
   }
   if (integrations.githubAction) {
-    const t = setupGithubAction(projectRoot, opts.packageManager ?? 'npm');
+    const t = setupGithubAction(projectRoot, opts.packageManager ?? 'npm', {
+      linter: integrations.lintHook ? opts.linter : undefined,
+      typecheck: integrations.typecheckHook,
+    });
     if (t) created.push(`${t} — blocks PRs on violations`);
   }
   return created;
