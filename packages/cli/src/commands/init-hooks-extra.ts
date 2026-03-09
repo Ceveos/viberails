@@ -106,7 +106,7 @@ export function setupSelectedIntegrations(
     created.push(t ? `${t} — added viberails pre-commit` : 'pre-commit hook skipped');
   }
   if (integrations.typecheckHook) {
-    const t = setupTypecheckHook(projectRoot);
+    const t = setupTypecheckHook(projectRoot, opts.packageManager);
     if (t) created.push(`${t} — added typecheck`);
   }
   if (integrations.lintHook && opts.linter) {

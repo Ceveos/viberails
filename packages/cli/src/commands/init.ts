@@ -263,7 +263,7 @@ async function initInteractive(
 
   setupSelectedIntegrations(projectRoot, integrations, {
     linter: rootPkgStack?.linter?.split('@')[0],
-    packageManager: rootPkgStack?.packageManager,
+    packageManager: rootPkgStack?.packageManager?.split('@')[0],
   });
 
   clack.outro(

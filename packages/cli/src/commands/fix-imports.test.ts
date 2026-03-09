@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { updateImportsAfterRenames } from './fix-imports.js';
+import { scanForAliasImports, updateImportsAfterRenames } from './fix-imports.js';
 import type { RenameRecord } from './fix-naming.js';
 
 let tmpDir: string;
@@ -148,5 +148,28 @@ describe('updateImportsAfterRenames', () => {
     expect(updates).toHaveLength(0);
     expect(skippedAliases).toHaveLength(1);
     expect(skippedAliases[0].specifier).toBe('@/UserProfile');
+  });
+});
+
+describe('scanForAliasImports', () => {
+  it('detects aliased imports before renames are applied', async () => {
+    writeFile('src/UserProfile.ts', 'export const x = 1;');
+    writeFile('src/app.ts', "import { x } from '@/UserProfile';\nimport { y } from '@/other';\n");
+
+    const renames = [makeRename('src/UserProfile.ts', 'src/user-profile.ts')];
+    const aliases = await scanForAliasImports(renames, tmpDir);
+
+    expect(aliases).toHaveLength(1);
+    expect(aliases[0].specifier).toBe('@/UserProfile');
+  });
+
+  it('returns empty array when no aliases reference renamed files', async () => {
+    writeFile('src/UserProfile.ts', 'export const x = 1;');
+    writeFile('src/app.ts', "import { x } from './UserProfile';\n");
+
+    const renames = [makeRename('src/UserProfile.ts', 'src/user-profile.ts')];
+    const aliases = await scanForAliasImports(renames, tmpDir);
+
+    expect(aliases).toHaveLength(0);
   });
 });

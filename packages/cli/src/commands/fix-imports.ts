@@ -39,6 +39,82 @@ function computeNewSpecifier(oldSpecifier: string, newBare: string): string {
 }
 
 /**
+ * Lightweight pre-rename scan: detect aliased imports that reference files about to be renamed.
+ * Uses regex-based scanning (no ts-morph) so it can run before any renames are applied.
+ *
+ * @param renames - Planned renames (not yet applied)
+ * @param projectRoot - Absolute path to project root
+ * @returns Alias import references that would break after renaming
+ */
+export async function scanForAliasImports(
+  renames: RenameRecord[],
+  projectRoot: string,
+): Promise<SkippedAliasRecord[]> {
+  if (renames.length === 0) return [];
+
+  const { readFile, readdir } = await import('node:fs/promises');
+
+  const oldBareNames = new Set<string>();
+  for (const r of renames) {
+    const oldFilename = path.basename(r.oldPath);
+    oldBareNames.add(oldFilename.slice(0, oldFilename.indexOf('.')));
+  }
+
+  const importPattern =
+    /(?:import|export)\s+.*?from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const skipDirs = new Set([
+    'node_modules',
+    'dist',
+    'build',
+    '.next',
+    '.expo',
+    '.turbo',
+    'coverage',
+  ]);
+  const sourceExts = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+  const allEntries = await readdir(projectRoot, { recursive: true, withFileTypes: true });
+  const files = allEntries
+    .filter((e) => {
+      if (!e.isFile()) return false;
+      const ext = path.extname(e.name);
+      if (!sourceExts.has(ext)) return false;
+      const rel = path.join(e.parentPath, e.name);
+      const segments = path.relative(projectRoot, rel).split(path.sep);
+      return !segments.some((s) => skipDirs.has(s));
+    })
+    .map((e) => path.join(e.parentPath, e.name));
+
+  const aliases: SkippedAliasRecord[] = [];
+  for (const file of files) {
+    let content: string;
+    try {
+      content = await readFile(file, 'utf-8');
+    } catch {
+      continue;
+    }
+
+    const lines = content.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      importPattern.lastIndex = 0;
+      for (let match = importPattern.exec(line); match !== null; match = importPattern.exec(line)) {
+        const specifier = match[1] ?? match[2];
+        if (!specifier || specifier.startsWith('.')) continue;
+        if (!specifier.includes('/')) continue;
+
+        const lastSegment = specifier.split('/').pop() ?? '';
+        const bare = lastSegment.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+        if (oldBareNames.has(bare)) {
+          aliases.push({ file, specifier, line: i + 1 });
+        }
+      }
+    }
+  }
+
+  return aliases;
+}
+
+/**
  * Update import specifiers in all source files after renames.
  * Uses ts-morph for AST-accurate rewriting.
  *
