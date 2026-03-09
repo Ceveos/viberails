@@ -223,4 +223,25 @@ describe('checkCoveragePrereqs — monorepo', () => {
     const result = checkCoveragePrereqs(tmpDir, scan);
     expect(result[0].affectedPackages).toBeUndefined();
   });
+
+  it('uses pnpm -w flag for workspace installs', () => {
+    writePkg(tmpDir);
+    writePkg(path.join(tmpDir, 'apps/web'));
+    writePkg(path.join(tmpDir, 'packages/db'));
+
+    const scan = baseScanResult({ testRunner: { name: 'vitest' } });
+    scan.packages = [makePackage('apps/web', 'vitest'), makePackage('packages/db', 'vitest')];
+
+    const result = checkCoveragePrereqs(tmpDir, scan);
+    expect(result[0].installCommand).toContain('pnpm add -D -w');
+  });
+
+  it('omits -w flag for single-package pnpm projects', () => {
+    writePkg(tmpDir, { vitest: '^3' });
+
+    const scan = baseScanResult({ testRunner: { name: 'vitest' } });
+
+    const result = checkCoveragePrereqs(tmpDir, scan);
+    expect(result[0].installCommand).toBe('pnpm add -D @vitest/coverage-v8');
+  });
 });

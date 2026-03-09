@@ -15,6 +15,7 @@ export interface DetectedTools {
   isTypeScript?: boolean;
   linter?: string;
   packageManager?: string;
+  isWorkspace?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export interface DetectedTools {
 async function promptHookManagerInstall(
   projectRoot: string,
   packageManager: string,
+  isWorkspace?: boolean,
 ): Promise<string | undefined> {
   const choice = await clack.select({
     message: 'No git hook manager detected. Install Lefthook for shareable pre-commit hooks?',
@@ -49,7 +51,7 @@ async function promptHookManagerInstall(
     pm === 'yarn'
       ? 'yarn add -D lefthook'
       : pm === 'pnpm'
-        ? 'pnpm add -D lefthook'
+        ? `pnpm add -D${isWorkspace ? ' -w' : ''} lefthook`
         : 'npm install -D lefthook';
 
   const s = clack.spinner();
@@ -98,6 +100,7 @@ export async function promptIntegrations(
     resolvedHookManager = await promptHookManagerInstall(
       projectRoot,
       tools?.packageManager ?? 'npm',
+      tools?.isWorkspace,
     );
   }
 

@@ -49,7 +49,15 @@ export function checkCoveragePrereqs(projectRoot: string, scanResult: ScanResult
     });
   }
 
-  const addCmd = pm === 'yarn' ? 'yarn add -D' : pm === 'npm' ? 'npm install -D' : `${pm} add -D`;
+  const isWorkspace = scanResult.packages.length > 1;
+  const addCmd =
+    pm === 'yarn'
+      ? 'yarn add -D'
+      : pm === 'pnpm' && isWorkspace
+        ? 'pnpm add -D -w'
+        : pm === 'npm'
+          ? 'npm install -D'
+          : `${pm} add -D`;
   const affectedPackages = vitestPackages.length > 1 ? vitestPackages : undefined;
   const reason = affectedPackages
     ? `Required for coverage in: ${affectedPackages.join(', ')}`

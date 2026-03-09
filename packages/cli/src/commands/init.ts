@@ -114,13 +114,17 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   setupClaudeMdReference(projectRoot);
   const rootPkg = config.packages[0];
   const rootPkgPm = rootPkg?.stack?.packageManager ?? 'npm';
-  const actionTarget = setupGithubAction(projectRoot, rootPkgPm);
+  const linter = rootPkg?.stack?.linter?.split('@')[0];
+  const isTypeScript = rootPkg?.stack?.language === 'typescript';
+  const actionTarget = setupGithubAction(projectRoot, rootPkgPm, {
+    linter,
+    typecheck: isTypeScript,
+  });
 
   // Skip bare .git/hooks in --yes mode — they're local-only and won't be shared.
   const hookManager = detectHookManager(projectRoot);
   const hasHookManager = hookManager === 'Lefthook' || hookManager === 'Husky';
   const preCommitTarget = hasHookManager ? setupPreCommitHook(projectRoot) : undefined;
-  const linter = rootPkg?.stack?.linter?.split('@')[0];
 
   const ok = chalk.green('\u2713');
   const created = [
@@ -238,6 +242,7 @@ async function initInteractive(
     isTypeScript: rootPkgStack?.language === 'typescript',
     linter: rootPkgStack?.linter?.split('@')[0],
     packageManager: rootPkgStack?.packageManager,
+    isWorkspace: config.packages.length > 1,
   });
 
   const shouldWrite = await confirm('Write configuration and set up selected integrations?');

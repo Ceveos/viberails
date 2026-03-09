@@ -30,12 +30,12 @@ describe('detectHookManager', () => {
     expect(detectHookManager(tmpDir)).toBe('Husky');
   });
 
-  it('returns git hook when .git directory exists', () => {
+  it('returns undefined when only .git exists (no hook manager)', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'));
-    expect(detectHookManager(tmpDir)).toBe('git hook');
+    expect(detectHookManager(tmpDir)).toBeUndefined();
   });
 
-  it('returns undefined when no hook manager or .git found', () => {
+  it('returns undefined when no hook manager found', () => {
     expect(detectHookManager(tmpDir)).toBeUndefined();
   });
 
@@ -307,5 +307,36 @@ describe('setupGithubAction', () => {
     fs.writeFileSync(path.join(workflowDir, 'viberails.yml'), 'name: viberails\n');
     const target = setupGithubAction(tmpDir, 'pnpm');
     expect(target).toBeUndefined();
+  });
+
+  it('adds lint step when linter option is set', () => {
+    setupGithubAction(tmpDir, 'pnpm', { linter: 'eslint' });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('eslint .');
+  });
+
+  it('adds biome lint step', () => {
+    setupGithubAction(tmpDir, 'pnpm', { linter: 'biome' });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('biome check .');
+  });
+
+  it('adds typecheck step when typecheck option is set', () => {
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('tsc --noEmit');
+  });
+
+  it('adds both lint and typecheck steps', () => {
+    setupGithubAction(tmpDir, 'pnpm', { linter: 'eslint', typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('tsc --noEmit');
+    expect(content).toContain('eslint .');
+    // Both should come before viberails check
+    const tscIdx = content.indexOf('tsc --noEmit');
+    const eslintIdx = content.indexOf('eslint .');
+    const checkIdx = content.indexOf('viberails check');
+    expect(tscIdx).toBeLessThan(checkIdx);
+    expect(eslintIdx).toBeLessThan(checkIdx);
   });
 });
