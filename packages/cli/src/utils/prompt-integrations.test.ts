@@ -52,7 +52,7 @@ describe('promptIntegrations', () => {
     multiselectMock.mockResolvedValueOnce([]);
     await promptIntegrations('/tmp/test', undefined);
     expect(selectMock).toHaveBeenCalledOnce();
-    expect(selectMock.mock.calls[0][0].message).toContain('No git hook manager');
+    expect(selectMock.mock.calls[0][0].message).toContain('No shared git hook manager');
   });
 
   it('defaults pre-commit to disabled when user skips lefthook install', async () => {
@@ -68,5 +68,11 @@ describe('promptIntegrations', () => {
     multiselectMock.mockResolvedValueOnce([]);
     await promptIntegrations('/tmp/test', 'Lefthook');
     expect(selectMock).not.toHaveBeenCalled();
+  });
+
+  it('uses optional integrations message', async () => {
+    multiselectMock.mockResolvedValueOnce([]);
+    await promptIntegrations('/tmp/test', 'Lefthook');
+    expect(multiselectMock.mock.calls[0][0].message).toBe('Optional integrations');
   });
 });

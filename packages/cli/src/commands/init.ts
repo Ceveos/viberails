@@ -4,7 +4,12 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayInitOverview, displayRulesPreview, displayScanResults } from '../display.js';
+import {
+  displayInitOverview,
+  displayRulesPreview,
+  displayScanResults,
+  displaySetupPlan,
+} from '../display.js';
 import { formatScanResultsText } from '../display-text.js';
 import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import {
@@ -160,6 +165,7 @@ async function initInteractive(
   options: { force?: boolean },
 ): Promise<void> {
   clack.intro('viberails');
+  const replacingExistingConfig = fs.existsSync(configPath);
 
   if (fs.existsSync(configPath) && !options.force) {
     const action = await promptExistingConfigAction(path.basename(configPath));
@@ -228,12 +234,12 @@ async function initInteractive(
 
   if (config.packages.length > 1) {
     clack.note(
-      'Boundary rules prevent packages from importing where they\n' +
-        "shouldn't. viberails scans your existing imports and creates\n" +
-        "rules based on what's already working.",
+      'Optional for monorepos. viberails can infer package boundaries\n' +
+        'from imports that already work today, so you start with rules\n' +
+        'that match the current codebase.',
       'Boundaries',
     );
-    const shouldInfer = await confirm('Infer boundary rules from import patterns?');
+    const shouldInfer = await confirm('Infer boundary rules from current import patterns?');
 
     if (shouldInfer) {
       const bs = clack.spinner();
@@ -274,7 +280,12 @@ async function initInteractive(
     isWorkspace: config.packages.length > 1,
   });
 
-  const shouldWrite = await confirm('Write configuration and set up selected integrations?');
+  displaySetupPlan(config, integrations, {
+    replacingExistingConfig,
+    configFile: path.basename(configPath),
+  });
+
+  const shouldWrite = await confirm('Apply this setup?');
   if (!shouldWrite) {
     clack.outro('Aborted. No files were written.');
     return;

@@ -1,6 +1,11 @@
 import type { PackageScanResult, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it, vi } from 'vitest';
-import { displayInitOverview, displayRulesPreview, displayScanResults } from './display.js';
+import {
+  displayInitOverview,
+  displayRulesPreview,
+  displayScanResults,
+  displaySetupPlan,
+} from './display.js';
 
 function makeDefaultStats() {
   return {
@@ -570,6 +575,73 @@ describe('displayInitOverview', () => {
     );
     expect(output).toContain('Also available:');
     expect(output).toContain('Set up hooks, Claude integration, and CI checks');
+  });
+});
+
+describe('displaySetupPlan', () => {
+  function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
+    return {
+      version: 1,
+      name: 'test',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: true,
+        enforceBoundaries: true,
+        enforceMissingTests: true,
+      },
+      packages: [{ name: 'test', path: '.' }],
+      ...overrides,
+    };
+  }
+
+  it('shows files and selected integrations before write', () => {
+    const output = captureOutput(() =>
+      displaySetupPlan(
+        makeConfig(),
+        {
+          preCommitHook: true,
+          claudeCodeHook: true,
+          claudeMdRef: true,
+          githubAction: true,
+          typecheckHook: true,
+          lintHook: true,
+        },
+        { configFile: 'viberails.config.json' },
+      ),
+    );
+
+    expect(output).toContain('Ready to write:');
+    expect(output).toContain('viberails.config.json');
+    expect(output).toContain('.viberails/context.md');
+    expect(output).toContain('Boundary rules: inferred from current imports');
+    expect(output).toContain('Integrations: pre-commit hook');
+    expect(output).toContain('GitHub Actions workflow');
+  });
+
+  it('shows replacement and disabled items clearly', () => {
+    const output = captureOutput(() =>
+      displaySetupPlan(
+        makeConfig({
+          rules: { ...makeConfig().rules, enforceBoundaries: false, testCoverage: 0 },
+        }),
+        {
+          preCommitHook: false,
+          claudeCodeHook: false,
+          claudeMdRef: false,
+          githubAction: false,
+          typecheckHook: false,
+          lintHook: false,
+        },
+        { replacingExistingConfig: true },
+      ),
+    );
+
+    expect(output).toContain('replacing existing config');
+    expect(output).toContain('Boundary rules: not enabled');
+    expect(output).toContain('Coverage checks: disabled');
+    expect(output).toContain('Integrations: none selected');
   });
 });
 

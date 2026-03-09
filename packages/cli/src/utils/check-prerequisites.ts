@@ -113,7 +113,7 @@ export async function promptMissingPrereqs(
       return `\u2717 ${p.label} \u2014 ${detail}`;
     })
     .join('\n');
-  clack.note(prereqLines, 'Coverage prerequisites');
+  clack.note(prereqLines, 'Coverage support');
 
   let disableCoverage = false;
 
@@ -129,13 +129,13 @@ export async function promptMissingPrereqs(
       options: [
         {
           value: 'install' as const,
-          label: `Yes, install now`,
+          label: 'Install now',
           hint: m.installCommand,
         },
         {
           value: 'disable' as const,
-          label: 'No, disable coverage percentage checks',
-          hint: 'missing-test checks still active',
+          label: 'Disable coverage checks',
+          hint: 'missing-test checks still stay active',
         },
         {
           value: 'skip' as const,

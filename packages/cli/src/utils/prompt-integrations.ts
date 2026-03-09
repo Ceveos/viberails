@@ -28,7 +28,7 @@ async function promptHookManagerInstall(
   isWorkspace?: boolean,
 ): Promise<string | undefined> {
   const choice = await clack.select({
-    message: 'No git hook manager detected. Install Lefthook for shareable pre-commit hooks?',
+    message: 'No shared git hook manager detected. Install Lefthook?',
     options: [
       {
         value: 'install' as const,
@@ -158,7 +158,7 @@ export async function promptIntegrations(
     : options.map((o) => o.value);
 
   const result = await clack.multiselect({
-    message: 'Set up integrations?',
+    message: 'Optional integrations',
     options,
     initialValues,
     required: false,

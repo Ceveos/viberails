@@ -14,6 +14,7 @@ import {
   groupByRole,
 } from './display-helpers.js';
 import { displayMonorepoResults } from './display-monorepo.js';
+import type { IntegrationChoice } from './utils/prompt-integrations.js';
 
 const INIT_OVERVIEW_NAMES: Record<string, string> = {
   typescript: 'TypeScript',
@@ -313,3 +314,70 @@ export function displayInitOverview(
 }
 
 export { displayInitOverview as displayInitSummary };
+
+function summarizeSelectedIntegrations(
+  integrations: IntegrationChoice,
+  opts: { hasBoundaries: boolean; hasCoverage: boolean },
+): string[] {
+  const lines: string[] = [];
+
+  if (opts.hasBoundaries) {
+    lines.push('✓ Boundary rules: inferred from current imports');
+  } else {
+    lines.push('~ Boundary rules: not enabled');
+  }
+
+  if (opts.hasCoverage) {
+    lines.push('✓ Coverage checks: enabled');
+  } else {
+    lines.push('~ Coverage checks: disabled');
+  }
+
+  const selectedIntegrations = [
+    integrations.preCommitHook ? 'pre-commit hook' : undefined,
+    integrations.typecheckHook ? 'typecheck' : undefined,
+    integrations.lintHook ? 'lint check' : undefined,
+    integrations.claudeCodeHook ? 'Claude Code hook' : undefined,
+    integrations.claudeMdRef ? 'CLAUDE.md reference' : undefined,
+    integrations.githubAction ? 'GitHub Actions workflow' : undefined,
+  ].filter(Boolean);
+
+  if (selectedIntegrations.length > 0) {
+    lines.push(`✓ Integrations: ${selectedIntegrations.join(' · ')}`);
+  } else {
+    lines.push('~ Integrations: none selected');
+  }
+
+  return lines;
+}
+
+/**
+ * Display the final setup plan before files are written.
+ */
+export function displaySetupPlan(
+  config: ViberailsConfig,
+  integrations: IntegrationChoice,
+  opts: {
+    replacingExistingConfig?: boolean;
+    configFile?: string;
+  } = {},
+): void {
+  const configFile = opts.configFile ?? 'viberails.config.json';
+  const lines = summarizeSelectedIntegrations(integrations, {
+    hasBoundaries: config.rules.enforceBoundaries,
+    hasCoverage: config.rules.testCoverage > 0,
+  });
+
+  console.log('');
+  console.log(`  ${chalk.bold('Ready to write:')}`);
+  console.log(
+    `  ${opts.replacingExistingConfig ? chalk.yellow('!') : chalk.green('✓')} ${configFile}${opts.replacingExistingConfig ? chalk.dim(' (replacing existing config)') : ''}`,
+  );
+  console.log(`  ${chalk.green('✓')} .viberails/context.md`);
+  console.log(`  ${chalk.green('✓')} .viberails/scan-result.json`);
+  for (const line of lines) {
+    const icon = line.startsWith('✓') ? chalk.green('✓') : chalk.yellow('~');
+    console.log(`  ${icon} ${line.slice(2)}`);
+  }
+  console.log('');
+}
