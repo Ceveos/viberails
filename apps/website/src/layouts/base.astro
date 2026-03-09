@@ -1,0 +1,43 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Guardrails for vibe coding. Scan your codebase, generate AI context, and enforce conventions.',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://viberails.sh" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/jetbrains-mono-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/jetbrains-mono-bold.woff2" as="font" type="font/woff2" crossorigin />
+    <title>{title}</title>
+  </head>
+  <body
+    class="bg-blueprint-bg text-text-primary font-sans min-h-screen antialiased"
+    style="background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 59px, var(--color-blueprint-grid) 59px, var(--color-blueprint-grid) 60px),
+      repeating-linear-gradient(90deg, transparent, transparent 59px, var(--color-blueprint-grid) 59px, var(--color-blueprint-grid) 60px);"
+  >
+    <slot />
+  </body>
+</html>
+
+<style>
+  @import '../styles/global.css';
+</style>

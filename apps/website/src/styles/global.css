@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import './fonts.css';
+
+@theme {
+  --color-blueprint-bg: #0a0e1a;
+  --color-blueprint-grid: rgba(100, 160, 255, 0.06);
+  --color-blueprint-line: rgba(100, 160, 255, 0.15);
+  --color-accent: #00d4ff;
+  --color-accent-dim: #0891b2;
+  --color-accent-muted: rgba(0, 212, 255, 0.1);
+  --color-terminal-bg: #0d1117;
+  --color-text-primary: #e4e4e7;
+  --color-text-muted: #71717a;
+  --color-border: #1e293b;
+  --color-border-accent: rgba(0, 212, 255, 0.25);
+
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}

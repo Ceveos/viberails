@@ -1,0 +1,50 @@
+---
+const features = [
+  {
+    title: 'Scan',
+    description:
+      'Detects your framework, tooling, file structure, and naming conventions with a confidence model. High confidence means it saw 90%+ consistency.',
+  },
+  {
+    title: 'Enforce',
+    description:
+      'File size limits, naming rules, test coverage thresholds, and import boundary violations. Runs as a pre-commit hook or in CI.',
+  },
+  {
+    title: 'Fix',
+    description:
+      'Auto-renames files to match conventions and generates test stubs. AST-aware import rewriting keeps everything connected.',
+  },
+  {
+    title: 'Integrate',
+    description:
+      'Pre-commit hooks, Claude Code PostToolUse hooks, and GitHub Actions workflow. Guardrails wherever your code flows.',
+  },
+];
+---
+
+<section class="mx-auto max-w-5xl px-6 py-20">
+  <!-- Section label -->
+  <div class="flex items-center gap-3 mb-10">
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+    <span class="text-xs font-mono text-text-muted tracking-widest uppercase">features</span>
+    <div class="h-px flex-1 bg-blueprint-line"></div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {
+      features.map((feature) => (
+        <div class="relative border border-dashed border-border-accent rounded-lg p-6 bg-accent-muted/30">
+          {/* Blueprint corner markers */}
+          <div class="absolute -top-1 -left-1 w-3 h-3 border-t border-l border-accent/40" />
+          <div class="absolute -top-1 -right-1 w-3 h-3 border-t border-r border-accent/40" />
+          <div class="absolute -bottom-1 -left-1 w-3 h-3 border-b border-l border-accent/40" />
+          <div class="absolute -bottom-1 -right-1 w-3 h-3 border-b border-r border-accent/40" />
+
+          <h3 class="font-mono font-bold text-accent text-lg mb-3">{feature.title}</h3>
+          <p class="text-text-muted text-sm leading-relaxed">{feature.description}</p>
+        </div>
+      ))
+    }
+  </div>
+</section>

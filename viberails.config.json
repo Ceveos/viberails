@@ -113,17 +113,33 @@
         "testCoverage": 0,
         "enforceMissingTests": false
       }
+    },
+    {
+      "name": "@viberails/website",
+      "path": "apps/website",
+      "stack": {
+        "framework": "astro@5",
+        "styling": "tailwindcss@4"
+      },
+      "structure": {
+        "pages": "src/pages",
+        "components": "src/components"
+      },
+      "rules": {
+        "enforceMissingTests": false,
+        "testCoverage": 0
+      }
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-08T21:22:44.381Z",
+    "lastSync": "2026-03-09T02:14:09.698Z",
     "packages": {
       "packages/cli": {
         "conventions": {
           "fileNaming": {
             "value": "kebab-case",
             "confidence": "medium",
-            "consistency": 78
+            "consistency": 77
           }
         }
       },
