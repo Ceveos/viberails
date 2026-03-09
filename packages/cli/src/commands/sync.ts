@@ -60,8 +60,10 @@ export async function syncCommand(
   const previousStats = loadPreviousStats(projectRoot);
 
   // 3. Re-scan
-  console.log(chalk.dim('Scanning project...'));
+  const s = clack.spinner();
+  s.start('Scanning project...');
   const scanResult = await scan(projectRoot);
+  s.stop('Scan complete');
 
   // 4. Merge config and detect changes
   const merged = mergeConfig(existing, scanResult);

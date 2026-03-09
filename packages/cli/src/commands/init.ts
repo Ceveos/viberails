@@ -70,9 +70,11 @@ export async function initCommand(
 }
 
 async function initNonInteractive(projectRoot: string, configPath: string): Promise<void> {
-  console.log(chalk.dim('Scanning project...'));
+  const s = clack.spinner();
+  s.start('Scanning project...');
   const scanResult = await scan(projectRoot);
   const config = generateConfig(scanResult);
+  s.stop('Scan complete');
 
   for (const pkg of config.packages) {
     const pkgMeta = config._meta?.packages?.[pkg.path]?.conventions;
@@ -92,7 +94,8 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   }
 
   if (config.packages.length > 1) {
-    console.log(chalk.dim('Building import graph...'));
+    const bs = clack.spinner();
+    bs.start('Building import graph...');
     const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
     const packages = resolveWorkspacePackages(projectRoot, config.packages);
     const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
@@ -101,7 +104,9 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
     if (denyCount > 0) {
       config.boundaries = inferred;
       config.rules.enforceBoundaries = true;
-      console.log(`  Inferred ${denyCount} boundary rules`);
+      bs.stop(`Inferred ${denyCount} boundary rules`);
+    } else {
+      bs.stop('No boundary rules inferred');
     }
   }
 
@@ -251,20 +256,25 @@ async function initInteractive(
     return;
   }
 
+  const ws = clack.spinner();
+  ws.start('Writing configuration and setting up integrations...');
+
   const compacted = compactConfig(config);
   fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
   writeGeneratedFiles(projectRoot, config, scanResult);
   updateGitignore(projectRoot);
 
-  const ok = chalk.green('\u2713');
-  clack.log.step(`${ok} ${path.basename(configPath)}`);
-  clack.log.step(`${ok} .viberails/context.md`);
-  clack.log.step(`${ok} .viberails/scan-result.json`);
-
   setupSelectedIntegrations(projectRoot, integrations, {
     linter: rootPkgStack?.linter?.split('@')[0],
     packageManager: rootPkgStack?.packageManager?.split('@')[0],
   });
+
+  ws.stop('Configuration written');
+
+  const ok = chalk.green('\u2713');
+  clack.log.step(`${ok} ${path.basename(configPath)}`);
+  clack.log.step(`${ok} .viberails/context.md`);
+  clack.log.step(`${ok} .viberails/scan-result.json`);
 
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +
