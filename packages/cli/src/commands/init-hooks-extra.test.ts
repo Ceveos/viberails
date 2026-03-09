@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { addPreCommitStep, setupLintHook, setupTypecheckHook } from './init-hooks-extra.js';
+import {
+  addPreCommitStep,
+  hasTurboTask,
+  setupLintHook,
+  setupTypecheckHook,
+} from './init-hooks-extra.js';
 
 describe('addPreCommitStep', () => {
   let tmpDir: string;
@@ -75,6 +80,51 @@ describe('addPreCommitStep', () => {
   });
 });
 
+describe('hasTurboTask', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-turbo-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('returns false when turbo.json does not exist', () => {
+    expect(hasTurboTask(tmpDir, 'typecheck')).toBe(false);
+  });
+
+  it('returns true when turbo v2 tasks contains the task', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, typecheck: {} } }),
+    );
+    expect(hasTurboTask(tmpDir, 'typecheck')).toBe(true);
+  });
+
+  it('returns false when turbo v2 tasks does not contain the task', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, test: {} } }),
+    );
+    expect(hasTurboTask(tmpDir, 'typecheck')).toBe(false);
+  });
+
+  it('returns true when turbo v1 pipeline contains the task', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ pipeline: { typecheck: {} } }),
+    );
+    expect(hasTurboTask(tmpDir, 'typecheck')).toBe(true);
+  });
+
+  it('returns false for invalid JSON', () => {
+    fs.writeFileSync(path.join(tmpDir, 'turbo.json'), 'not json');
+    expect(hasTurboTask(tmpDir, 'typecheck')).toBe(false);
+  });
+});
+
 describe('setupTypecheckHook', () => {
   let tmpDir: string;
 
@@ -88,12 +138,37 @@ describe('setupTypecheckHook', () => {
     vi.restoreAllMocks();
   });
 
-  it('adds tsc --noEmit to pre-commit', () => {
+  it('adds tsc --noEmit when no turbo.json exists', () => {
     fs.mkdirSync(path.join(tmpDir, '.git'));
     const target = setupTypecheckHook(tmpDir);
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
     expect(content).toContain('npx tsc --noEmit');
+  });
+
+  it('adds tsc --noEmit when turbo.json has no typecheck task', () => {
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, test: {} } }),
+    );
+    const target = setupTypecheckHook(tmpDir);
+    expect(target).toBe('.git/hooks/pre-commit');
+    const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
+    expect(content).toContain('npx tsc --noEmit');
+    expect(content).not.toContain('turbo');
+  });
+
+  it('adds turbo typecheck when turbo.json defines typecheck task', () => {
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, typecheck: {} } }),
+    );
+    const target = setupTypecheckHook(tmpDir);
+    expect(target).toBe('.git/hooks/pre-commit');
+    const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
+    expect(content).toContain('npx turbo typecheck');
   });
 });
 

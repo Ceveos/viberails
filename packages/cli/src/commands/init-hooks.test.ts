@@ -325,10 +325,30 @@ describe('setupGithubAction', () => {
     expect(content).toContain('biome check .');
   });
 
-  it('adds typecheck step when typecheck option is set', () => {
+  it('adds tsc --noEmit typecheck when no turbo typecheck task', () => {
     setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
     const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
     expect(content).toContain('tsc --noEmit');
+    expect(content).not.toContain('turbo typecheck');
+  });
+
+  it('adds turbo typecheck when turbo.json defines typecheck task', () => {
+    fs.writeFileSync(path.join(tmpDir, 'turbo.json'), JSON.stringify({ tasks: { typecheck: {} } }));
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('turbo typecheck');
+    expect(content).not.toContain('tsc --noEmit');
+  });
+
+  it('adds tsc --noEmit when turbo.json exists without typecheck task', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'turbo.json'),
+      JSON.stringify({ tasks: { build: {}, test: {} } }),
+    );
+    setupGithubAction(tmpDir, 'pnpm', { typecheck: true });
+    const content = fs.readFileSync(path.join(tmpDir, '.github/workflows/viberails.yml'), 'utf-8');
+    expect(content).toContain('tsc --noEmit');
+    expect(content).not.toContain('turbo typecheck');
   });
 
   it('adds both lint and typecheck steps', () => {

@@ -4,6 +4,22 @@ import chalk from 'chalk';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 /**
+ * Check if turbo.json defines a "typecheck" task.
+ * Supports both Turbo v2 ("tasks") and v1 ("pipeline") schemas.
+ */
+function hasTurboTypecheckTask(projectRoot: string): boolean {
+  const turboPath = path.join(projectRoot, 'turbo.json');
+  if (!fs.existsSync(turboPath)) return false;
+  try {
+    const turbo = JSON.parse(fs.readFileSync(turboPath, 'utf-8'));
+    const tasks = turbo.tasks ?? turbo.pipeline ?? {};
+    return 'typecheck' in tasks;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Set up a pre-commit hook that runs viberails check on staged files.
  * Detects Lefthook, Husky, or falls back to a raw git hook.
  */
@@ -232,8 +248,8 @@ export function setupGithubAction(
   );
 
   if (options?.typecheck) {
-    const isMonorepo = fs.existsSync(path.join(projectRoot, 'turbo.json'));
-    const tsCmd = isMonorepo ? `${runPrefix} turbo typecheck` : `${runPrefix} tsc --noEmit`;
+    const useTurbo = hasTurboTypecheckTask(projectRoot);
+    const tsCmd = useTurbo ? `${runPrefix} turbo typecheck` : `${runPrefix} tsc --noEmit`;
     lines.push(`      - run: ${tsCmd}`);
   }
   if (options?.linter) {

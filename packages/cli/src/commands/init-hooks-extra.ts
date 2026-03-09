@@ -65,11 +65,27 @@ export function addPreCommitStep(
   return undefined;
 }
 
-/** Set up a tsc --noEmit pre-commit step. Uses turbo in monorepos. */
+/**
+ * Check if turbo.json defines a specific task.
+ * Supports both Turbo v2 ("tasks") and v1 ("pipeline") schemas.
+ */
+export function hasTurboTask(projectRoot: string, taskName: string): boolean {
+  const turboPath = path.join(projectRoot, 'turbo.json');
+  if (!fs.existsSync(turboPath)) return false;
+  try {
+    const turbo = JSON.parse(fs.readFileSync(turboPath, 'utf-8'));
+    const tasks = turbo.tasks ?? turbo.pipeline ?? {};
+    return taskName in tasks;
+  } catch {
+    return false;
+  }
+}
+
+/** Set up a tsc --noEmit pre-commit step. Uses turbo typecheck if the task exists. */
 export function setupTypecheckHook(projectRoot: string): string | undefined {
-  const isMonorepo = fs.existsSync(path.join(projectRoot, 'turbo.json'));
-  const command = isMonorepo ? 'npx turbo typecheck' : 'npx tsc --noEmit';
-  const label = isMonorepo ? 'turbo typecheck' : 'tsc --noEmit';
+  const useTurbo = hasTurboTask(projectRoot, 'typecheck');
+  const command = useTurbo ? 'npx turbo typecheck' : 'npx tsc --noEmit';
+  const label = useTurbo ? 'turbo typecheck' : 'tsc --noEmit';
   const target = addPreCommitStep(projectRoot, 'typecheck', command, 'typecheck');
   if (target) {
     console.log(`  ${chalk.green('✓')} ${target} — added typecheck (${label})`);
