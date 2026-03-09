@@ -1,10 +1,10 @@
-import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as clack from '@clack/prompts';
 import type { ScanResult } from '@viberails/types';
 import chalk from 'chalk';
 import { assertNotCancelled } from './prompt.js';
+import { spawnAsync } from './spawn-async.js';
 
 export interface PrereqResult {
   label: string;
@@ -149,12 +149,7 @@ export async function promptMissingPrereqs(
     if (choice === 'install') {
       const is = clack.spinner();
       is.start(`Installing ${m.label}...`);
-      const result = spawnSync(m.installCommand, {
-        cwd: projectRoot,
-        shell: true,
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      });
+      const result = await spawnAsync(m.installCommand, projectRoot);
       if (result.status === 0) {
         is.stop(`Installed ${m.label}`);
       } else {

@@ -4,7 +4,7 @@ import { defineConfig } from 'tsup';
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/build-graph-worker.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   clean: true,

@@ -17,8 +17,8 @@ vi.mock('@clack/prompts', () => ({
   log: { warn: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock('node:child_process', () => ({
-  spawnSync: vi.fn(() => ({ status: 1 })),
+vi.mock('./spawn-async.js', () => ({
+  spawnAsync: vi.fn(() => Promise.resolve({ status: 1, stdout: '', stderr: '' })),
 }));
 
 describe('promptIntegrations', () => {

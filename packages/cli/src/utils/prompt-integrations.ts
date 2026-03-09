@@ -1,6 +1,6 @@
-import { spawnSync } from 'node:child_process';
 import * as clack from '@clack/prompts';
 import { assertNotCancelled } from './prompt.js';
+import { spawnAsync } from './spawn-async.js';
 
 export interface IntegrationChoice {
   preCommitHook: boolean;
@@ -56,12 +56,7 @@ async function promptHookManagerInstall(
 
   const s = clack.spinner();
   s.start('Installing Lefthook...');
-  const result = spawnSync(installCmd, {
-    cwd: projectRoot,
-    shell: true,
-    encoding: 'utf-8',
-    stdio: 'pipe',
-  });
+  const result = await spawnAsync(installCmd, projectRoot);
 
   if (result.status === 0) {
     // Create a minimal lefthook.yml so setupPreCommitHook detects it

@@ -1,4 +1,5 @@
 import { relative } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import type { ImportGraph, ImportGraphNode, WorkspacePackage } from '@viberails/types';
 import { Project } from 'ts-morph';
 import { detectCycles } from './detect-cycles.js';
@@ -30,8 +31,9 @@ const DEFAULT_IGNORE = [
 /**
  * Builds a complete import graph for a project.
  *
- * Creates a ts-morph Project, adds all source files, parses imports,
- * resolves specifiers, and optionally detects cycles.
+ * Runs in a worker thread to keep the main thread responsive
+ * (e.g. for CLI spinner animations). Falls back to in-process
+ * execution if the worker cannot be spawned.
  *
  * @param projectRoot - Absolute path to the project root.
  * @param options - Configuration options.
@@ -41,6 +43,43 @@ export async function buildImportGraph(
   projectRoot: string,
   options?: GraphOptions,
 ): Promise<ImportGraph> {
+  try {
+    return await buildImportGraphInWorker(projectRoot, options);
+  } catch {
+    // Worker failed (e.g. bundler issue, test environment) — run in-process
+    return buildImportGraphSync(projectRoot, options);
+  }
+}
+
+/**
+ * Spawns a worker thread to run the graph build off the main thread.
+ */
+function buildImportGraphInWorker(
+  projectRoot: string,
+  options?: GraphOptions,
+): Promise<ImportGraph> {
+  return new Promise((resolve, reject) => {
+    // Resolve worker script path relative to this file's compiled location
+    const workerPath = new URL('./build-graph-worker.js', import.meta.url);
+    const worker = new Worker(workerPath, {
+      workerData: { projectRoot, options },
+    });
+    worker.on('message', (result: ImportGraph) => {
+      resolve(result);
+      void worker.terminate();
+    });
+    worker.on('error', reject);
+    worker.on('exit', (code) => {
+      if (code !== 0) reject(new Error(`Worker exited with code ${code}`));
+    });
+  });
+}
+
+/**
+ * Core import graph building logic. Runs synchronously on whichever
+ * thread calls it (main thread as fallback, or worker thread).
+ */
+export function buildImportGraphSync(projectRoot: string, options?: GraphOptions): ImportGraph {
   const packages = options?.packages ?? [];
   const shouldDetectCycles = options?.detectCycles !== false;
   const ignorePatterns = options?.ignore ?? DEFAULT_IGNORE;
