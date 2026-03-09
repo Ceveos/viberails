@@ -8,6 +8,12 @@ export interface ImportUpdateRecord {
   line: number;
 }
 
+export interface SkippedAliasRecord {
+  file: string;
+  specifier: string;
+  line: number;
+}
+
 /**
  * Strip known JS/TS extensions from a file path for specifier comparison.
  * E.g. "/foo/bar.ts" → "/foo/bar", "/foo/bar.js" → "/foo/bar"
@@ -38,13 +44,13 @@ function computeNewSpecifier(oldSpecifier: string, newBare: string): string {
  *
  * @param renames - The renames that were applied
  * @param projectRoot - Absolute path to project root
- * @returns Records of all import updates made
+ * @returns Records of all import updates made, plus any skipped alias imports
  */
 export async function updateImportsAfterRenames(
   renames: RenameRecord[],
   projectRoot: string,
-): Promise<ImportUpdateRecord[]> {
-  if (renames.length === 0) return [];
+): Promise<{ updates: ImportUpdateRecord[]; skippedAliases: SkippedAliasRecord[] }> {
+  if (renames.length === 0) return { updates: [], skippedAliases: [] };
 
   // Lazy import ts-morph to avoid startup cost
   const { Project, SyntaxKind } = await import('ts-morph');
@@ -67,7 +73,15 @@ export async function updateImportsAfterRenames(
   project.addSourceFilesAtPaths(path.join(projectRoot, '**/*.{ts,tsx,js,jsx,mjs,cjs}'));
 
   const updates: ImportUpdateRecord[] = [];
+  const skippedAliases: SkippedAliasRecord[] = [];
   const extensions = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js'];
+
+  // Build a set of old bare filenames (without extension) for alias detection
+  const oldBareNames = new Set<string>();
+  for (const r of renames) {
+    const oldFilename = path.basename(r.oldPath);
+    oldBareNames.add(oldFilename.slice(0, oldFilename.indexOf('.')));
+  }
 
   for (const sourceFile of project.getSourceFiles()) {
     const filePath = sourceFile.getFilePath();
@@ -90,7 +104,21 @@ export async function updateImportsAfterRenames(
     // Process static imports
     for (const decl of sourceFile.getImportDeclarations()) {
       const specifier = decl.getModuleSpecifierValue();
-      if (!specifier.startsWith('.')) continue;
+      if (!specifier.startsWith('.')) {
+        // Check if this non-relative import might reference a renamed file (e.g. @/MyUtil)
+        if (specifier.includes('/')) {
+          const lastSegment = specifier.split('/').pop() ?? '';
+          const bare = lastSegment.replace(/\.(tsx?|jsx?|mjs|cjs)$/, '');
+          if (oldBareNames.has(bare)) {
+            skippedAliases.push({
+              file: filePath,
+              specifier,
+              line: decl.getStartLineNumber(),
+            });
+          }
+        }
+        continue;
+      }
 
       const match = resolveToRenamedFile(specifier, fileDir, renameMap, extensions);
       if (!match) continue;
@@ -156,7 +184,7 @@ export async function updateImportsAfterRenames(
     await project.save();
   }
 
-  return updates;
+  return { updates, skippedAliases };
 }
 
 /**

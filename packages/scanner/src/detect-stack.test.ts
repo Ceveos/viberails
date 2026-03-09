@@ -372,4 +372,40 @@ describe('detectStack', () => {
       expect(result.packageManager).toEqual({ name: 'pnpm' });
     });
   });
+
+  describe('package manager detection from packageManager field', () => {
+    let tempDir: string;
+
+    beforeAll(async () => {
+      tempDir = await mkdtemp(join(tmpdir(), 'viberails-pm-field-'));
+    });
+
+    afterAll(async () => {
+      await rm(tempDir, { recursive: true, force: true });
+    });
+
+    it('detects pnpm from packageManager field when no lock file exists', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', packageManager: 'pnpm@10.6.4' }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.packageManager).toEqual({ name: 'pnpm' });
+    });
+
+    it('detects yarn from packageManager field', async () => {
+      await writeFile(
+        join(tempDir, 'package.json'),
+        JSON.stringify({ name: 'test', packageManager: 'yarn@4.0.0' }),
+      );
+      const result = await detectStack(tempDir);
+      expect(result.packageManager).toEqual({ name: 'yarn' });
+    });
+
+    it('defaults to npm when no lock file and no packageManager field', async () => {
+      await writeFile(join(tempDir, 'package.json'), JSON.stringify({ name: 'test' }));
+      const result = await detectStack(tempDir);
+      expect(result.packageManager).toEqual({ name: 'npm' });
+    });
+  });
 });

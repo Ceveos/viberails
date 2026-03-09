@@ -129,8 +129,27 @@ export async function fixCommand(options: FixOptions, cwd?: string): Promise<num
   let importUpdateCount = 0;
   if (renameCount > 0) {
     const appliedRenames = dedupedRenames.filter((r) => fs.existsSync(r.newAbsPath));
-    const updates = await updateImportsAfterRenames(appliedRenames, projectRoot);
+    const { updates, skippedAliases } = await updateImportsAfterRenames(
+      appliedRenames,
+      projectRoot,
+    );
     importUpdateCount = updates.length;
+    if (skippedAliases.length > 0) {
+      console.log('');
+      console.log(
+        chalk.yellow(
+          `Note: ${skippedAliases.length} aliased import${skippedAliases.length > 1 ? 's' : ''} could not be updated automatically:`,
+        ),
+      );
+      for (const alias of skippedAliases.slice(0, 5)) {
+        const relFile = path.relative(projectRoot, alias.file);
+        console.log(chalk.dim(`  ${relFile}:${alias.line} — ${alias.specifier}`));
+      }
+      if (skippedAliases.length > 5) {
+        console.log(chalk.dim(`  ... and ${skippedAliases.length - 5} more`));
+      }
+      console.log(chalk.dim('  Update these imports manually to match the new file names.'));
+    }
   }
 
   // Apply: 3. Test stubs

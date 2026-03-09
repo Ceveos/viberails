@@ -113,9 +113,9 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
   setupClaudeCodeHook(projectRoot);
   setupClaudeMdReference(projectRoot);
   const rootPkg = config.packages[0];
-  const rootPkgPm = rootPkg?.stack?.packageManager ?? 'npm';
+  const rootPkgPm = rootPkg?.stack?.packageManager?.split('@')[0] ?? 'npm';
   const linter = rootPkg?.stack?.linter?.split('@')[0];
-  const isTypeScript = rootPkg?.stack?.language === 'typescript';
+  const isTypeScript = rootPkg?.stack?.language?.split('@')[0] === 'typescript';
   const actionTarget = setupGithubAction(projectRoot, rootPkgPm, {
     linter,
     typecheck: isTypeScript,
@@ -139,7 +139,7 @@ async function initNonInteractive(projectRoot: string, configPath: string): Prom
     actionTarget ? `${ok} ${actionTarget} \u2014 blocks PRs on violations` : '',
   ].filter(Boolean);
 
-  if (hasHookManager && rootPkg?.stack?.language === 'typescript') setupTypecheckHook(projectRoot);
+  if (hasHookManager && isTypeScript) setupTypecheckHook(projectRoot, rootPkgPm);
   if (hasHookManager && linter) setupLintHook(projectRoot, linter);
   console.log(`\nCreated:\n${created.map((f) => `  ${f}`).join('\n')}`);
 }
@@ -239,9 +239,9 @@ async function initInteractive(
 
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
   const integrations = await promptIntegrations(projectRoot, hookManager, {
-    isTypeScript: rootPkgStack?.language === 'typescript',
+    isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
     linter: rootPkgStack?.linter?.split('@')[0],
-    packageManager: rootPkgStack?.packageManager,
+    packageManager: rootPkgStack?.packageManager?.split('@')[0],
     isWorkspace: config.packages.length > 1,
   });
 

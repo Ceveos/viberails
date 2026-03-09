@@ -132,14 +132,14 @@
     }
   ],
   "_meta": {
-    "lastSync": "2026-03-09T02:14:09.698Z",
+    "lastSync": "2026-03-09T04:17:26.193Z",
     "packages": {
       "packages/cli": {
         "conventions": {
           "fileNaming": {
             "value": "kebab-case",
             "confidence": "medium",
-            "consistency": 77
+            "consistency": 78
           }
         }
       },

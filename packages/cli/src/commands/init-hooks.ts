@@ -207,7 +207,7 @@ export function setupGithubAction(
     '',
     'on:',
     '  pull_request:',
-    '    branches: [main]',
+    '    branches: [main, master]',
     '',
     'jobs:',
     '  check:',
@@ -227,7 +227,7 @@ export function setupGithubAction(
     '      - uses: actions/setup-node@v4',
     '        with:',
     '          node-version: 22',
-    pm !== 'npm' ? `          cache: ${pm}` : '',
+    `          cache: ${pm}`,
     '',
     `      - run: ${installCmd}`,
   );
