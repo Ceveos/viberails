@@ -21,7 +21,9 @@ export const HOOK_NAMING_OPTIONS = [
 ] as const;
 
 /** Sub-menu for file limit settings. */
-export async function promptFileLimitsMenu(state: RuleOverrides): Promise<void> {
+export async function promptFileLimitsMenu(
+  state: Pick<RuleOverrides, 'maxFileLines' | 'maxTestFileLines'>,
+): Promise<void> {
   while (true) {
     const choice = await clack.select({
       message: 'File limits',

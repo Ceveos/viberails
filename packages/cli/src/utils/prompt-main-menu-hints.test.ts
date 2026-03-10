@@ -205,13 +205,23 @@ describe('packageOverridesHint', () => {
     expect(packageOverridesHint(config)).toBe('1 packages');
   });
 
-  it('shows customized count', () => {
+  it('shows customized count for packages with rules or coverage overrides', () => {
     const config = makeConfig();
     config.packages.push(
-      { name: 'a', path: 'packages/a', conventions: { fileNaming: 'PascalCase' } } as PackageConfig,
+      { name: 'a', path: 'packages/a', rules: { testCoverage: 0 } } as PackageConfig,
       { name: 'b', path: 'packages/b' } as PackageConfig,
     );
     expect(packageOverridesHint(config)).toBe('2 packages (1 customized)');
+  });
+
+  it('does not count scanner-derived conventions as customized', () => {
+    const config = makeConfig();
+    config.packages.push({
+      name: 'a',
+      path: 'packages/a',
+      conventions: { fileNaming: 'PascalCase' },
+    } as PackageConfig);
+    expect(packageOverridesHint(config)).toBe('1 packages');
   });
 });
 

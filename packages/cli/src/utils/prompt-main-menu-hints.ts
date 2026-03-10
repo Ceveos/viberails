@@ -86,7 +86,7 @@ export function integrationsHint(state: InitMenuState): string {
 /** @internal Exported for testing. */
 export function packageOverridesHint(config: ViberailsConfig): string {
   const editable = config.packages.filter((p) => p.path !== '.');
-  const customized = editable.filter((p) => p.conventions || p.rules || p.coverage).length;
+  const customized = editable.filter((p) => p.rules || p.coverage).length;
   return customized > 0
     ? `${editable.length} packages (${customized} customized)`
     : `${editable.length} packages`;
@@ -102,11 +102,10 @@ export function boundariesHint(config: ViberailsConfig, state: InitMenuState): s
   return `${ruleCount} rules across ${pkgCount} packages`;
 }
 
-function statusIcon(status: 'ok' | 'needs-input' | 'disabled' | 'none'): string {
+function statusIcon(status: 'ok' | 'needs-input' | 'disabled'): string {
   if (status === 'ok') return '\u2713';
   if (status === 'needs-input') return '?';
-  if (status === 'disabled') return '~';
-  return ' ';
+  return '~';
 }
 
 /** @internal Exported for testing. */

@@ -70,7 +70,5 @@ export async function promptExistingConfigAction(
 }
 
 export type { IntegrationChoice } from './prompt-integrations.js';
-// Re-export from split modules so existing imports continue to work
-export { promptIntegrations } from './prompt-integrations.js';
 export type { RuleOverrides } from './prompt-rules.js';
 export { promptRuleMenu } from './prompt-rules.js';

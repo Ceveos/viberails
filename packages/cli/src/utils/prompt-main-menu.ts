@@ -31,20 +31,11 @@ interface MainMenuOpts {
   tools: DetectedTools;
 }
 
-// --- Sub-menu state adapters ---
+// --- Sub-menu handlers ---
 
-function configToFileLimitsState(
-  config: ViberailsConfig,
-): Pick<RuleOverrides, 'maxFileLines' | 'maxTestFileLines'> {
-  return {
-    maxFileLines: config.rules.maxFileLines,
-    maxTestFileLines: config.rules.maxTestFileLines,
-  };
-}
-
-function configToAdvancedNamingState(config: ViberailsConfig): RuleOverrides {
+async function handleAdvancedNaming(config: ViberailsConfig): Promise<void> {
   const rootPkg = getRootPackage(config.packages);
-  return {
+  const state: RuleOverrides = {
     maxFileLines: config.rules.maxFileLines,
     maxTestFileLines: config.rules.maxTestFileLines,
     testCoverage: config.rules.testCoverage,
@@ -57,11 +48,14 @@ function configToAdvancedNamingState(config: ViberailsConfig): RuleOverrides {
     coverageSummaryPath: rootPkg.coverage?.summaryPath ?? 'coverage/coverage-summary.json',
     coverageCommand: config.defaults?.coverage?.command,
   };
-}
-
-function applyAdvancedNamingToConfig(config: ViberailsConfig, state: RuleOverrides): void {
-  const rootPkg = getRootPackage(config.packages);
+  await promptNamingMenu(state);
   rootPkg.conventions = rootPkg.conventions ?? {};
+  config.rules.enforceNaming = state.enforceNaming;
+  if (state.fileNamingValue) {
+    rootPkg.conventions.fileNaming = state.fileNamingValue;
+  } else {
+    delete rootPkg.conventions.fileNaming;
+  }
   rootPkg.conventions.componentNaming = state.componentNaming || undefined;
   rootPkg.conventions.hookNaming = state.hookNaming || undefined;
   rootPkg.conventions.importAlias = state.importAlias || undefined;
@@ -99,19 +93,18 @@ export async function promptMainMenu(
     }
 
     if (choice === 'fileLimits') {
-      const adapter = configToFileLimitsState(config);
-      await promptFileLimitsMenu(adapter as RuleOverrides);
-      config.rules.maxFileLines = adapter.maxFileLines;
-      config.rules.maxTestFileLines = adapter.maxTestFileLines;
+      const s = {
+        maxFileLines: config.rules.maxFileLines,
+        maxTestFileLines: config.rules.maxTestFileLines,
+      };
+      await promptFileLimitsMenu(s);
+      config.rules.maxFileLines = s.maxFileLines;
+      config.rules.maxTestFileLines = s.maxTestFileLines;
     }
     if (choice === 'fileNaming') await handleFileNaming(config, scanResult);
     if (choice === 'missingTests') await handleMissingTests(config);
     if (choice === 'coverage') await handleCoverage(config, state, opts);
-    if (choice === 'advancedNaming') {
-      const adapter = configToAdvancedNamingState(config);
-      await promptNamingMenu(adapter);
-      applyAdvancedNamingToConfig(config, adapter);
-    }
+    if (choice === 'advancedNaming') await handleAdvancedNaming(config);
     if (choice === 'packageOverrides') await handlePackageOverrides(config);
     if (choice === 'boundaries') await handleBoundaries(config, state, opts);
     if (choice === 'integrations') await handleIntegrations(state, opts);
@@ -195,7 +188,7 @@ async function handleCoverage(
   }
 
   const planned = planCoverageInstall(opts.coveragePrereqs);
-  if (planned && !state.deferredInstalls.some((d) => d.label === planned.label)) {
+  if (planned) {
     const choice = await clack.select({
       message: `${planned.label} is not installed. Needed for coverage checks.`,
       options: [
@@ -213,6 +206,8 @@ async function handleCoverage(
       ],
     });
     assertNotCancelled(choice);
+    // Clear any previously queued install for this command
+    state.deferredInstalls = state.deferredInstalls.filter((d) => d.command !== planned.command);
     if (choice === 'install') {
       planned.onFailure = () => {
         config.rules.testCoverage = 0;
@@ -266,18 +261,23 @@ async function handleBoundaries(
   }
   const bs = clack.spinner();
   bs.start('Building import graph...');
-  const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-  const packages = resolveWorkspacePackages(opts.projectRoot, config.packages);
-  const graph = await buildImportGraph(opts.projectRoot, { packages, ignore: config.ignore });
-  const inferred = inferBoundaries(graph);
-  const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
-  if (denyCount > 0) {
-    config.boundaries = inferred;
-    config.rules.enforceBoundaries = true;
-    const pkgCount = Object.keys(inferred.deny).length;
-    bs.stop(`Inferred ${denyCount} boundary rules across ${pkgCount} packages`);
-  } else {
-    bs.stop('No boundary rules inferred');
+  try {
+    const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
+    const packages = resolveWorkspacePackages(opts.projectRoot, config.packages);
+    const graph = await buildImportGraph(opts.projectRoot, { packages, ignore: config.ignore });
+    const inferred = inferBoundaries(graph);
+    const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
+    if (denyCount > 0) {
+      config.boundaries = inferred;
+      config.rules.enforceBoundaries = true;
+      const pkgCount = Object.keys(inferred.deny).length;
+      bs.stop(`Inferred ${denyCount} boundary rules across ${pkgCount} packages`);
+    } else {
+      bs.stop('No boundary rules inferred');
+    }
+  } catch (err) {
+    bs.stop('Failed to build import graph');
+    clack.log.warn(`Boundary inference failed: ${err instanceof Error ? err.message : err}`);
   }
 }
 
@@ -290,7 +290,8 @@ async function handleIntegrations(state: InitMenuState, opts: MainMenuOpts): Pro
   );
   state.visited.integrations = true;
   state.integrations = result.choice;
-  if (result.lefthookInstall && !state.deferredInstalls.some((d) => d.label === 'Lefthook')) {
+  state.deferredInstalls = state.deferredInstalls.filter((d) => !d.command.includes('lefthook'));
+  if (result.lefthookInstall) {
     state.deferredInstalls.push(result.lefthookInstall);
   }
 }

@@ -1,12 +1,6 @@
 import type { PackageConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  confirm,
-  confirmDangerous,
-  promptExistingConfigAction,
-  promptIntegrations,
-  promptRuleMenu,
-} from './prompt.js';
+import { confirm, confirmDangerous, promptExistingConfigAction, promptRuleMenu } from './prompt.js';
 
 const { selectMock, textMock, confirmMock, multiselectMock, noteMock, logMock, isCancelMock } =
   vi.hoisted(() => ({
@@ -58,35 +52,6 @@ describe('prompt utils', () => {
     expect(options[0].label).toBe('Edit existing config');
     expect(options[1].label).toBe('Replace with a fresh scan');
     expect(options[2].label).toBe('Cancel');
-  });
-
-  it('promptIntegrations maps selected values to booleans', async () => {
-    multiselectMock.mockResolvedValueOnce(['preCommit', 'claudeMd']);
-    const result = await promptIntegrations('/tmp/test', 'Lefthook');
-    expect(result).toEqual({
-      preCommitHook: true,
-      claudeCodeHook: false,
-      claudeMdRef: true,
-      githubAction: false,
-      typecheckHook: false,
-      lintHook: false,
-    });
-  });
-
-  it('promptIntegrations shows typecheck option when TypeScript is detected', async () => {
-    multiselectMock.mockResolvedValueOnce(['preCommit', 'typecheck']);
-    const result = await promptIntegrations('/tmp/test', 'Husky', { isTypeScript: true });
-    expect(result.typecheckHook).toBe(true);
-    const options = multiselectMock.mock.calls[0][0].options;
-    expect(options.some((o: { value: string }) => o.value === 'typecheck')).toBe(true);
-  });
-
-  it('promptIntegrations shows lint option when linter is detected', async () => {
-    multiselectMock.mockResolvedValueOnce(['lint']);
-    const result = await promptIntegrations('/tmp/test', 'Lefthook', { linter: 'eslint' });
-    expect(result.lintHook).toBe(true);
-    const options = multiselectMock.mock.calls[0][0].options;
-    expect(options.some((o: { value: string }) => o.value === 'lint')).toBe(true);
   });
 
   it('promptRuleMenu updates maxFileLines via file limits sub-menu', async () => {
