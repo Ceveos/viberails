@@ -1,5 +1,6 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
+import { getRootPackage } from './get-root-package.js';
 import { assertNotCancelled } from './prompt.js';
 import { buildMenuOptions, clonePackages, handleMenuChoice } from './prompt-menu-handlers.js';
 
@@ -16,10 +17,6 @@ export interface RuleOverrides {
   coverageSummaryPath: string;
   coverageCommand?: string;
   packageOverrides?: PackageConfig[];
-}
-
-function getRootPackage(packages: PackageConfig[]): PackageConfig {
-  return packages.find((pkg) => pkg.path === '.') ?? packages[0];
 }
 
 /**

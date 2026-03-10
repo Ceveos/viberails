@@ -1,5 +1,6 @@
 import type { PackageConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SENTINEL_DONE, SENTINEL_INHERIT, SENTINEL_NONE } from './prompt-constants.js';
 import {
   normalizePackageOverrides,
   packageOverrideHint,
@@ -136,7 +137,7 @@ describe('promptPackageOverrides', () => {
       { name: 'web', path: 'apps/web' },
     ];
 
-    selectMock.mockResolvedValueOnce('__done__');
+    selectMock.mockResolvedValueOnce(SENTINEL_DONE);
 
     const result = await promptPackageOverrides(packages, defaults);
     expect(result).toEqual(packages);
@@ -165,7 +166,7 @@ describe('promptPackageOverrides', () => {
       .mockResolvedValueOnce('apps/web')
       .mockResolvedValueOnce('reset')
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
 
     const result = await promptPackageOverrides(packages, defaults);
 
@@ -187,7 +188,7 @@ describe('promptPackageOverrides', () => {
       .mockResolvedValueOnce('fileNaming')
       .mockResolvedValueOnce('PascalCase')
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
 
     const result = await promptPackageOverrides(packages, defaults);
 
@@ -208,9 +209,9 @@ describe('promptPackageOverrides', () => {
     selectMock
       .mockResolvedValueOnce('apps/web')
       .mockResolvedValueOnce('fileNaming')
-      .mockResolvedValueOnce('__inherit__')
+      .mockResolvedValueOnce(SENTINEL_INHERIT)
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
 
     const result = await promptPackageOverrides(packages, defaults);
 
@@ -228,7 +229,7 @@ describe('promptPackageOverrides', () => {
       .mockResolvedValueOnce('apps/web')
       .mockResolvedValueOnce('maxFileLines')
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
     textMock.mockResolvedValueOnce('500');
 
     const result = await promptPackageOverrides(packages, defaults);
@@ -246,14 +247,29 @@ describe('promptPackageOverrides', () => {
     selectMock
       .mockResolvedValueOnce('apps/web')
       .mockResolvedValueOnce('fileNaming')
-      .mockResolvedValueOnce('__none__')
+      .mockResolvedValueOnce(SENTINEL_NONE)
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
 
     const result = await promptPackageOverrides(packages, defaults);
 
     const web = result.find((pkg) => pkg.path === 'apps/web');
     expect(web?.conventions?.fileNaming).toBe('');
+  });
+
+  it('exits gracefully when user cancels at package select', async () => {
+    const packages: PackageConfig[] = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web' },
+    ];
+
+    selectMock.mockResolvedValueOnce('__cancel__');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    await expect(promptPackageOverrides(packages, defaults)).rejects.toThrow('exit');
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
   });
 
   it('clears maxFileLines when input matches default', async () => {
@@ -266,7 +282,7 @@ describe('promptPackageOverrides', () => {
       .mockResolvedValueOnce('apps/web')
       .mockResolvedValueOnce('maxFileLines')
       .mockResolvedValueOnce('back')
-      .mockResolvedValueOnce('__done__');
+      .mockResolvedValueOnce(SENTINEL_DONE);
     textMock.mockResolvedValueOnce('300');
 
     const result = await promptPackageOverrides(packages, defaults);

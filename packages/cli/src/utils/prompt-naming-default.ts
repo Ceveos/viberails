@@ -1,6 +1,8 @@
 import * as clack from '@clack/prompts';
 import type { DetectedConvention, ScanResult, ViberailsConfig } from '@viberails/types';
+import { getRootPackage } from './get-root-package.js';
 import { assertNotCancelled } from './prompt.js';
+import { SENTINEL_SKIP } from './prompt-constants.js';
 import { FILE_NAMING_OPTIONS } from './prompt-submenus.js';
 
 interface PackageNamingInfo {
@@ -21,7 +23,7 @@ export async function resolveNamingDefault(
   config: ViberailsConfig,
   scanResult: ScanResult,
 ): Promise<boolean> {
-  const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const rootPkg = getRootPackage(config.packages);
   if (!config.rules.enforceNaming || rootPkg?.conventions?.fileNaming) return false;
 
   const isMonorepo = config.packages.length > 1;
@@ -35,7 +37,7 @@ export async function resolveNamingDefault(
     : [];
 
   const chosen = await promptNamingDefault(pkgNamingData, isMonorepo);
-  if (chosen === '__skip__') {
+  if (chosen === SENTINEL_SKIP) {
     config.rules.enforceNaming = false;
   } else if (rootPkg) {
     rootPkg.conventions = rootPkg.conventions ?? {};
@@ -50,7 +52,7 @@ export async function resolveNamingDefault(
  *
  * @param pkgNamingData - Per-package naming detection data (monorepo only)
  * @param isMonorepo - Whether the project is a monorepo
- * @returns The chosen naming convention, or '__skip__' to disable enforcement
+ * @returns The chosen naming convention, or SENTINEL_SKIP to disable enforcement
  */
 async function promptNamingDefault(
   pkgNamingData: PackageNamingInfo[],
@@ -82,7 +84,7 @@ async function promptNamingDefault(
 
   const selected = await clack.select({
     message,
-    options: [...options, { value: '__skip__', label: "Don't enforce naming" }],
+    options: [...options, { value: SENTINEL_SKIP, label: "Don't enforce naming" }],
   });
   assertNotCancelled(selected);
   return selected;

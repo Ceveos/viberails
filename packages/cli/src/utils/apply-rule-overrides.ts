@@ -1,4 +1,5 @@
 import type { ViberailsConfig } from '@viberails/types';
+import { getRootPackage } from './get-root-package.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 /**
@@ -10,7 +11,7 @@ import type { RuleOverrides } from './prompt-rules.js';
  */
 export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverrides): void {
   if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
-  const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+  const rootPkg = getRootPackage(config.packages);
 
   config.rules.maxFileLines = overrides.maxFileLines;
   config.rules.maxTestFileLines = overrides.maxTestFileLines;

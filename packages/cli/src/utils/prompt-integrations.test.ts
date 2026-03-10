@@ -70,6 +70,16 @@ describe('promptIntegrations', () => {
     expect(selectMock).not.toHaveBeenCalled();
   });
 
+  it('exits gracefully when user cancels at multiselect', async () => {
+    multiselectMock.mockResolvedValueOnce('__cancel__');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    await expect(promptIntegrations('/tmp/test', 'Lefthook')).rejects.toThrow('exit');
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
+  });
+
   it('uses optional integrations message', async () => {
     multiselectMock.mockResolvedValueOnce([]);
     await promptIntegrations('/tmp/test', 'Lefthook');

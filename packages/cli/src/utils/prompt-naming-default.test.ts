@@ -1,5 +1,6 @@
 import type { DetectedConvention, ScanResult, ViberailsConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SENTINEL_SKIP } from './prompt-constants.js';
 import { resolveNamingDefault } from './prompt-naming-default.js';
 
 const { selectMock, isCancelMock, noteMock } = vi.hoisted(() => ({
@@ -83,11 +84,22 @@ describe('resolveNamingDefault', () => {
   });
 
   it('disables enforcement when user picks skip', async () => {
-    selectMock.mockResolvedValueOnce('__skip__');
+    selectMock.mockResolvedValueOnce(SENTINEL_SKIP);
     const config = makeConfig();
     await resolveNamingDefault(config, makeScanResult());
 
     expect(config.rules.enforceNaming).toBe(false);
+  });
+
+  it('exits gracefully when user cancels at naming select', async () => {
+    selectMock.mockResolvedValueOnce('__cancel__');
+    const config = makeConfig();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    await expect(resolveNamingDefault(config, makeScanResult())).rejects.toThrow('exit');
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
   });
 
   it('shows per-package note for monorepos with detection data', async () => {

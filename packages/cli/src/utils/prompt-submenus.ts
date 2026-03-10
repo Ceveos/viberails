@@ -1,5 +1,6 @@
 import * as clack from '@clack/prompts';
 import { assertNotCancelled } from './prompt.js';
+import { SENTINEL_CLEAR, SENTINEL_CUSTOM } from './prompt-constants.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 export const FILE_NAMING_OPTIONS = [
@@ -145,22 +146,25 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         message: 'Component naming convention',
         options: [
           ...COMPONENT_NAMING_OPTIONS,
-          { value: '__clear__', label: 'Clear (no convention)' },
+          { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
         ],
-        initialValue: state.componentNaming ?? '__clear__',
+        initialValue: state.componentNaming ?? SENTINEL_CLEAR,
       });
       assertNotCancelled(selected);
-      state.componentNaming = selected === '__clear__' ? undefined : selected;
+      state.componentNaming = selected === SENTINEL_CLEAR ? undefined : selected;
     }
 
     if (choice === 'hookNaming') {
       const selected = await clack.select({
         message: 'Hook naming convention',
-        options: [...HOOK_NAMING_OPTIONS, { value: '__clear__', label: 'Clear (no convention)' }],
-        initialValue: state.hookNaming ?? '__clear__',
+        options: [
+          ...HOOK_NAMING_OPTIONS,
+          { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
+        ],
+        initialValue: state.hookNaming ?? SENTINEL_CLEAR,
       });
       assertNotCancelled(selected);
-      state.hookNaming = selected === '__clear__' ? undefined : selected;
+      state.hookNaming = selected === SENTINEL_CLEAR ? undefined : selected;
     }
 
     if (choice === 'importAlias') {
@@ -169,17 +173,17 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         options: [
           { value: '@/*', label: '@/*', hint: "import { x } from '@/utils'" },
           { value: '~/*', label: '~/*', hint: "import { x } from '~/utils'" },
-          { value: '__custom__', label: 'Custom...' },
-          { value: '__clear__', label: 'Clear (no alias)' },
+          { value: SENTINEL_CUSTOM, label: 'Custom...' },
+          { value: SENTINEL_CLEAR, label: 'Clear (no alias)' },
         ],
-        initialValue: state.importAlias ?? '__clear__',
+        initialValue: state.importAlias ?? SENTINEL_CLEAR,
       });
       assertNotCancelled(selected);
-      if (selected === '__clear__') {
+      if (selected === SENTINEL_CLEAR) {
         state.importAlias = undefined;
-      } else if (selected === '__custom__') {
+      } else if (selected === SENTINEL_CUSTOM) {
         const result = await clack.text({
-          message: 'Import alias pattern?',
+          message: 'Custom import alias (e.g. #/*)?',
           initialValue: state.importAlias ?? '',
           placeholder: 'e.g. #/*',
           validate: (v) => {

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SENTINEL_CLEAR, SENTINEL_CUSTOM } from './prompt-constants.js';
 import type { RuleOverrides } from './prompt-rules.js';
 import {
   COMPONENT_NAMING_OPTIONS,
@@ -155,7 +156,7 @@ describe('promptNamingMenu', () => {
   it('clears componentNaming via Clear option', async () => {
     selectMock
       .mockResolvedValueOnce('componentNaming')
-      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce(SENTINEL_CLEAR)
       .mockResolvedValueOnce('back');
     const state = makeState({ componentNaming: 'PascalCase' });
     await promptNamingMenu(state);
@@ -175,7 +176,7 @@ describe('promptNamingMenu', () => {
   it('clears hookNaming via Clear option', async () => {
     selectMock
       .mockResolvedValueOnce('hookNaming')
-      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce(SENTINEL_CLEAR)
       .mockResolvedValueOnce('back');
     const state = makeState({ hookNaming: 'useXxx' });
     await promptNamingMenu(state);
@@ -195,7 +196,7 @@ describe('promptNamingMenu', () => {
   it('selects Custom and enters validated importAlias', async () => {
     selectMock
       .mockResolvedValueOnce('importAlias')
-      .mockResolvedValueOnce('__custom__')
+      .mockResolvedValueOnce(SENTINEL_CUSTOM)
       .mockResolvedValueOnce('back');
     textMock.mockResolvedValueOnce('#src/*');
     const state = makeState();
@@ -206,11 +207,77 @@ describe('promptNamingMenu', () => {
   it('clears importAlias via Clear option', async () => {
     selectMock
       .mockResolvedValueOnce('importAlias')
-      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce(SENTINEL_CLEAR)
       .mockResolvedValueOnce('back');
     const state = makeState({ importAlias: '@/*' });
     await promptNamingMenu(state);
     expect(state.importAlias).toBeUndefined();
+  });
+
+  it('exits gracefully when user cancels', async () => {
+    selectMock.mockResolvedValueOnce('__cancel__');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    await expect(promptNamingMenu(makeState())).rejects.toThrow('exit');
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
+  });
+});
+
+describe('promptFileLimitsMenu validators', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    textMock.mockReset();
+  });
+
+  it('maxFileLines validator rejects negative, non-numeric, and zero', async () => {
+    selectMock.mockResolvedValueOnce('maxFileLines').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('100');
+    const state = makeState();
+    await promptFileLimitsMenu(state);
+
+    const validate = textMock.mock.calls[0][0].validate;
+    expect(validate('-1')).toBe('Enter a positive number');
+    expect(validate('abc')).toBe('Enter a positive number');
+    expect(validate('0')).toBe('Enter a positive number');
+    expect(validate('100')).toBeUndefined();
+  });
+
+  it('testCoverage validator rejects >100, <0, and non-numeric', async () => {
+    selectMock.mockResolvedValueOnce('testCoverage').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('80');
+    const state = makeState();
+    await promptTestingMenu(state);
+
+    const validate = textMock.mock.calls[0][0].validate;
+    expect(validate('101')).toBe('Enter a number between 0 and 100');
+    expect(validate('-1')).toBe('Enter a number between 0 and 100');
+    expect(validate('abc')).toBe('Enter a number between 0 and 100');
+    expect(validate('50')).toBeUndefined();
+  });
+});
+
+describe('promptNamingMenu importAlias validator', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    textMock.mockReset();
+  });
+
+  it('importAlias custom validator rejects empty and invalid patterns', async () => {
+    selectMock
+      .mockResolvedValueOnce('importAlias')
+      .mockResolvedValueOnce(SENTINEL_CUSTOM)
+      .mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('#src/*');
+    const state = makeState();
+    await promptNamingMenu(state);
+
+    const validate = textMock.mock.calls[0][0].validate;
+    expect(validate('')).toBe('Alias cannot be empty');
+    expect(validate('  ')).toBe('Alias cannot be empty');
+    expect(validate('invalid')).toBe('Must match pattern like @/*, ~/*, or #src/*');
+    expect(validate('@/*')).toBeUndefined();
   });
 });
 

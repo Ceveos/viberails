@@ -58,7 +58,7 @@ export function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string
 
 /** Build the top-level grouped options for the rule customization menu. */
 export function buildMenuOptions(
-  state: RuleOverrides & { packageOverrides?: PackageConfig[] },
+  state: RuleOverrides,
   packageCount: number,
 ): { value: string; label: string; hint?: string }[] {
   const fileLimitsHint =
@@ -98,28 +98,14 @@ export function buildMenuOptions(
 }
 
 export function clonePackages(packages?: PackageConfig[]): PackageConfig[] | undefined {
-  return packages?.map((pkg) => ({
-    ...pkg,
-    stack: pkg.stack ? { ...pkg.stack } : undefined,
-    structure: pkg.structure ? { ...pkg.structure } : undefined,
-    conventions: pkg.conventions ? { ...pkg.conventions } : undefined,
-    rules: pkg.rules ? { ...pkg.rules } : undefined,
-    coverage: pkg.coverage ? { ...pkg.coverage } : undefined,
-    ignore: pkg.ignore ? [...pkg.ignore] : undefined,
-    boundaries: pkg.boundaries
-      ? {
-          deny: [...pkg.boundaries.deny],
-          ignore: pkg.boundaries.ignore ? [...pkg.boundaries.ignore] : undefined,
-        }
-      : undefined,
-  }));
+  return packages ? structuredClone(packages) : undefined;
 }
 
 /** Handle a single top-level menu choice and update state accordingly. */
 export async function handleMenuChoice(
   choice: string,
-  state: RuleOverrides & { packageOverrides?: PackageConfig[] },
-  defaults: RuleOverrides & { packageOverrides?: PackageConfig[] },
+  state: RuleOverrides,
+  defaults: RuleOverrides,
   root: PackageConfig | undefined,
 ): Promise<void> {
   if (choice === 'reset') {

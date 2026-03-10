@@ -1,6 +1,7 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
 import { assertNotCancelled } from './prompt.js';
+import { SENTINEL_DONE, SENTINEL_INHERIT, SENTINEL_NONE } from './prompt-constants.js';
 import { FILE_NAMING_OPTIONS } from './prompt-submenus.js';
 
 /** @internal Exported for testing. */
@@ -96,11 +97,11 @@ export async function promptPackageOverrides(
           label: `${pkg.path} (${pkg.name})`,
           hint: packageOverrideHint(pkg, defaults),
         })),
-        { value: '__done__', label: 'Done' },
+        { value: SENTINEL_DONE, label: 'Done' },
       ],
     });
     assertNotCancelled(selectedPath);
-    if (selectedPath === '__done__') break;
+    if (selectedPath === SENTINEL_DONE) break;
 
     const target = editablePackages.find((pkg) => pkg.path === selectedPath);
     if (!target) continue;
@@ -159,18 +160,18 @@ async function promptSinglePackageOverrides(
         message: `File naming for ${target.path}`,
         options: [
           ...FILE_NAMING_OPTIONS,
-          { value: '__none__', label: '(none \u2014 exempt from checks)' },
+          { value: SENTINEL_NONE, label: '(none \u2014 exempt from checks)' },
           {
-            value: '__inherit__',
+            value: SENTINEL_INHERIT,
             label: `Inherit default${defaults.fileNamingValue ? ` (${defaults.fileNamingValue})` : ''}`,
           },
         ],
-        initialValue: target.conventions?.fileNaming ?? '__inherit__',
+        initialValue: target.conventions?.fileNaming ?? SENTINEL_INHERIT,
       });
       assertNotCancelled(selected);
-      if (selected === '__inherit__') {
+      if (selected === SENTINEL_INHERIT) {
         if (target.conventions) delete target.conventions.fileNaming;
-      } else if (selected === '__none__') {
+      } else if (selected === SENTINEL_NONE) {
         target.conventions = { ...(target.conventions ?? {}), fileNaming: '' };
       } else {
         target.conventions = { ...(target.conventions ?? {}), fileNaming: selected };
@@ -214,7 +215,7 @@ async function promptSinglePackageOverrides(
 
     if (choice === 'summaryPath') {
       const result = await clack.text({
-        message: 'Package coverage.summaryPath (blank to inherit default)?',
+        message: 'Path to coverage summary file (blank to inherit default)?',
         initialValue: target.coverage?.summaryPath !== undefined ? target.coverage.summaryPath : '',
         placeholder: defaults.coverageSummaryPath,
       });
@@ -229,7 +230,7 @@ async function promptSinglePackageOverrides(
 
     if (choice === 'command') {
       const result = await clack.text({
-        message: 'Package coverage.command (blank to inherit default/auto)?',
+        message: 'Coverage command (blank to auto-detect)?',
         initialValue: target.coverage?.command !== undefined ? target.coverage.command : '',
         placeholder: defaults.coverageCommand ?? '(auto-detect from package.json test runner)',
       });

@@ -83,6 +83,68 @@ describe('promptRuleMenu', () => {
     expect(resetOption.label).toBe('Reset all to detected defaults');
   });
 
+  it('exits gracefully when user cancels at top-level menu', async () => {
+    selectMock.mockResolvedValueOnce('__cancel__');
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('exit');
+    });
+    await expect(
+      promptRuleMenu({
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceMissingTests: true,
+        enforceNaming: true,
+        coverageSummaryPath: 'coverage/coverage-summary.json',
+      }),
+    ).rejects.toThrow('exit');
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
+  });
+
+  it('navigates to submenu, edits a value, returns, and completes', async () => {
+    // Enter file limits → edit maxFileLines → back → done
+    selectMock
+      .mockResolvedValueOnce('fileLimits')
+      .mockResolvedValueOnce('maxFileLines')
+      .mockResolvedValueOnce('back')
+      .mockResolvedValueOnce('done');
+    textMock.mockResolvedValueOnce('200');
+
+    const result = await promptRuleMenu({
+      maxFileLines: 300,
+      maxTestFileLines: 0,
+      testCoverage: 80,
+      enforceMissingTests: true,
+      enforceNaming: true,
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+    });
+
+    expect(result.maxFileLines).toBe(200);
+  });
+
+  it('resets after modifications restores defaults', async () => {
+    // Enter file limits → edit → back → reset → done
+    selectMock
+      .mockResolvedValueOnce('fileLimits')
+      .mockResolvedValueOnce('maxFileLines')
+      .mockResolvedValueOnce('back')
+      .mockResolvedValueOnce('reset')
+      .mockResolvedValueOnce('done');
+    textMock.mockResolvedValueOnce('200');
+
+    const result = await promptRuleMenu({
+      maxFileLines: 300,
+      maxTestFileLines: 0,
+      testCoverage: 80,
+      enforceMissingTests: true,
+      enforceNaming: true,
+      coverageSummaryPath: 'coverage/coverage-summary.json',
+    });
+
+    expect(result.maxFileLines).toBe(300);
+  });
+
   it('groups naming before testing in top-level menu', async () => {
     selectMock.mockResolvedValueOnce('done');
 
