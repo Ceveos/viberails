@@ -85,8 +85,14 @@ export function integrationsHint(state: InitMenuState): string {
 
 /** @internal Exported for testing. */
 export function packageOverridesHint(config: ViberailsConfig): string {
+  const rootNaming = getRootPackage(config.packages).conventions?.fileNaming;
   const editable = config.packages.filter((p) => p.path !== '.');
-  const customized = editable.filter((p) => p.rules || p.coverage).length;
+  const customized = editable.filter(
+    (p) =>
+      p.rules ||
+      p.coverage ||
+      (p.conventions?.fileNaming !== undefined && p.conventions.fileNaming !== rootNaming),
+  ).length;
   return customized > 0
     ? `${editable.length} packages (${customized} customized)`
     : `${editable.length} packages`;

@@ -214,14 +214,24 @@ describe('packageOverridesHint', () => {
     expect(packageOverridesHint(config)).toBe('2 packages (1 customized)');
   });
 
-  it('does not count scanner-derived conventions as customized', () => {
+  it('does not count naming that matches root as customized', () => {
+    const config = makeConfig();
+    config.packages.push({
+      name: 'a',
+      path: 'packages/a',
+      conventions: { fileNaming: 'kebab-case' },
+    } as PackageConfig);
+    expect(packageOverridesHint(config)).toBe('1 packages');
+  });
+
+  it('counts naming override that differs from root as customized', () => {
     const config = makeConfig();
     config.packages.push({
       name: 'a',
       path: 'packages/a',
       conventions: { fileNaming: 'PascalCase' },
     } as PackageConfig);
-    expect(packageOverridesHint(config)).toBe('1 packages');
+    expect(packageOverridesHint(config)).toBe('1 packages (1 customized)');
   });
 });
 
