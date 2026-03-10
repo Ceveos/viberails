@@ -62,12 +62,17 @@ export function coverageHint(config: ViberailsConfig, hasTestRunner: boolean): s
 /** @internal Exported for testing. */
 export function advancedNamingHint(config: ViberailsConfig): string {
   const rootPkg = getRootPackage(config.packages);
+  if (!config.rules.enforceNaming) return 'not enforced';
   const parts: string[] = [];
-  if (rootPkg.conventions?.componentNaming)
-    parts.push(`${rootPkg.conventions.componentNaming} components`);
-  if (rootPkg.conventions?.hookNaming) parts.push(`${rootPkg.conventions.hookNaming} hooks`);
-  if (rootPkg.conventions?.importAlias) parts.push(rootPkg.conventions.importAlias);
-  return parts.length > 0 ? parts.join(', ') : 'component, hook, and alias conventions';
+  const naming = rootPkg.conventions?.fileNaming;
+  if (naming) parts.push(chalk.green(naming));
+  const comp = rootPkg.conventions?.componentNaming;
+  parts.push(comp ? chalk.green(`${comp} components`) : chalk.dim('components'));
+  const hook = rootPkg.conventions?.hookNaming;
+  parts.push(hook ? chalk.green(`${hook} hooks`) : chalk.dim('hooks'));
+  const alias = rootPkg.conventions?.importAlias;
+  parts.push(alias ? chalk.green(alias) : chalk.dim('alias'));
+  return parts.join(chalk.dim(', '));
 }
 
 /** @internal Exported for testing. */
@@ -109,9 +114,11 @@ export function boundariesHint(config: ViberailsConfig, state: InitMenuState): s
   return `${ruleCount} rules across ${pkgCount} packages`;
 }
 
-function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'unconfigured' {
+function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'disabled' | 'unconfigured' {
+  if (!config.rules.enforceNaming) return 'disabled';
   const rootPkg = getRootPackage(config.packages);
   const hasAny =
+    !!rootPkg.conventions?.fileNaming ||
     !!rootPkg.conventions?.componentNaming ||
     !!rootPkg.conventions?.hookNaming ||
     !!rootPkg.conventions?.importAlias;
