@@ -103,15 +103,27 @@ describe('prompt utils', () => {
     expect(options.some((o: { value: string }) => o.value === 'lint')).toBe(true);
   });
 
-  it('promptRuleMenu updates maxFileLines and testCoverage', async () => {
+  it('promptRuleMenu updates maxFileLines via file limits sub-menu', async () => {
     selectMock
+      // main menu → file limits
+      .mockResolvedValueOnce('fileLimits')
+      // file limits sub-menu → max file lines
       .mockResolvedValueOnce('maxFileLines')
+      // file limits sub-menu → back
+      .mockResolvedValueOnce('back')
+      // main menu → testing
+      .mockResolvedValueOnce('testing')
+      // testing sub-menu → test coverage
       .mockResolvedValueOnce('testCoverage')
+      // testing sub-menu → back
+      .mockResolvedValueOnce('back')
+      // main menu → done
       .mockResolvedValueOnce('done');
     textMock.mockResolvedValueOnce('250').mockResolvedValueOnce('90');
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -119,26 +131,26 @@ describe('prompt utils', () => {
       coverageSummaryPath: 'coverage/coverage-summary.json',
     });
 
-    expect(result).toEqual({
-      maxFileLines: 250,
-      testCoverage: 90,
-      enforceMissingTests: true,
-      enforceNaming: true,
-      fileNamingValue: 'kebab-case',
-      coverageSummaryPath: 'coverage/coverage-summary.json',
-      coverageCommand: undefined,
-      packageOverrides: undefined,
-    });
+    expect(result.maxFileLines).toBe(250);
+    expect(result.testCoverage).toBe(90);
   });
 
-  it('promptRuleMenu lets user override file naming convention', async () => {
+  it('promptRuleMenu lets user override file naming via naming sub-menu', async () => {
     selectMock
+      // main menu → naming
+      .mockResolvedValueOnce('naming')
+      // naming sub-menu → file naming
       .mockResolvedValueOnce('fileNaming')
+      // naming select
       .mockResolvedValueOnce('snake_case')
+      // naming sub-menu → back
+      .mockResolvedValueOnce('back')
+      // main menu → done
       .mockResolvedValueOnce('done');
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -178,6 +190,7 @@ describe('prompt utils', () => {
 
     await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -193,10 +206,15 @@ describe('prompt utils', () => {
     expect(message).not.toContain('packages/same');
   });
 
-  it('promptRuleMenu updates coverage defaults', async () => {
+  it('promptRuleMenu updates coverage defaults via testing sub-menu', async () => {
     selectMock
+      // main menu → testing
+      .mockResolvedValueOnce('testing')
+      // testing sub-menu
       .mockResolvedValueOnce('coverageSummaryPath')
       .mockResolvedValueOnce('coverageCommand')
+      .mockResolvedValueOnce('back')
+      // main menu → done
       .mockResolvedValueOnce('done');
     textMock
       .mockResolvedValueOnce('artifacts/coverage-summary.json')
@@ -204,6 +222,7 @@ describe('prompt utils', () => {
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -215,7 +234,7 @@ describe('prompt utils', () => {
     expect(result.coverageCommand).toBe('pnpm test:coverage');
   });
 
-  it('promptRuleMenu edits per-package coverage overrides', async () => {
+  it('promptRuleMenu edits per-package overrides', async () => {
     const packages: PackageConfig[] = [
       { name: 'root', path: '.' },
       { name: 'web', path: 'apps/web' },
@@ -243,6 +262,7 @@ describe('prompt utils', () => {
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -258,13 +278,21 @@ describe('prompt utils', () => {
 
   it('promptRuleMenu resets to detected defaults', async () => {
     selectMock
+      // main menu → file limits
+      .mockResolvedValueOnce('fileLimits')
+      // file limits → change max file lines
       .mockResolvedValueOnce('maxFileLines')
+      // file limits → back
+      .mockResolvedValueOnce('back')
+      // main menu → reset
       .mockResolvedValueOnce('reset')
+      // main menu → done
       .mockResolvedValueOnce('done');
     textMock.mockResolvedValueOnce('100');
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,

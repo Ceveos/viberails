@@ -49,10 +49,14 @@ export async function configCommand(
   const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   const overrides = await promptRuleMenu({
     maxFileLines: config.rules.maxFileLines,
+    maxTestFileLines: config.rules.maxTestFileLines,
     testCoverage: config.rules.testCoverage,
     enforceMissingTests: config.rules.enforceMissingTests,
     enforceNaming: config.rules.enforceNaming,
     fileNamingValue: rootPkg.conventions?.fileNaming,
+    componentNaming: rootPkg.conventions?.componentNaming,
+    hookNaming: rootPkg.conventions?.hookNaming,
+    importAlias: rootPkg.conventions?.importAlias,
     coverageSummaryPath: rootPkg.coverage?.summaryPath ?? 'coverage/coverage-summary.json',
     coverageCommand: config.defaults?.coverage?.command,
     packageOverrides: config.packages,

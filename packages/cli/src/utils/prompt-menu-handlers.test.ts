@@ -4,6 +4,7 @@ import { buildMenuOptions, clonePackages } from './prompt-menu-handlers.js';
 describe('buildMenuOptions', () => {
   const baseState = {
     maxFileLines: 300,
+    maxTestFileLines: 0,
     testCoverage: 80,
     enforceMissingTests: true,
     enforceNaming: true,
@@ -12,46 +13,64 @@ describe('buildMenuOptions', () => {
     coverageCommand: undefined,
   };
 
-  it('includes all basic options', () => {
+  it('includes grouped menu options', () => {
     const options = buildMenuOptions(baseState, 0);
     const values = options.map((o) => o.value);
-    expect(values).toContain('maxFileLines');
-    expect(values).toContain('enforceNaming');
-    expect(values).toContain('testCoverage');
+    expect(values).toContain('fileLimits');
+    expect(values).toContain('naming');
+    expect(values).toContain('testing');
     expect(values).toContain('done');
   });
 
-  it('includes coverage options when testCoverage > 0', () => {
-    const options = buildMenuOptions(baseState, 0);
-    const values = options.map((o) => o.value);
-    expect(values).toContain('coverageSummaryPath');
-    expect(values).toContain('coverageCommand');
-  });
-
-  it('hides coverage options when testCoverage is 0', () => {
-    const options = buildMenuOptions({ ...baseState, testCoverage: 0 }, 0);
-    const values = options.map((o) => o.value);
-    expect(values).not.toContain('coverageSummaryPath');
-    expect(values).not.toContain('coverageCommand');
-    expect(values).not.toContain('packageOverrides');
-  });
-
-  it('includes packageOverrides when packages exist and coverage enabled', () => {
+  it('includes per-package overrides for monorepos', () => {
     const options = buildMenuOptions(baseState, 3);
     const values = options.map((o) => o.value);
     expect(values).toContain('packageOverrides');
   });
 
-  it('includes file naming option when fileNamingValue is set', () => {
+  it('hides per-package overrides for single projects', () => {
     const options = buildMenuOptions(baseState, 0);
     const values = options.map((o) => o.value);
-    expect(values).toContain('fileNaming');
+    expect(values).not.toContain('packageOverrides');
   });
 
-  it('excludes file naming option when no value detected', () => {
-    const options = buildMenuOptions({ ...baseState, fileNamingValue: undefined }, 0);
+  it('shows per-package overrides even when coverage is disabled', () => {
+    const options = buildMenuOptions({ ...baseState, testCoverage: 0 }, 3);
     const values = options.map((o) => o.value);
-    expect(values).not.toContain('fileNaming');
+    expect(values).toContain('packageOverrides');
+  });
+
+  it('shows naming hint as enforced with convention', () => {
+    const options = buildMenuOptions(baseState, 0);
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('kebab-case (enforced)');
+  });
+
+  it('shows naming hint as not enforced', () => {
+    const options = buildMenuOptions({ ...baseState, enforceNaming: false }, 0);
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('not enforced');
+  });
+
+  it('shows naming hint as not set when enforced without value', () => {
+    const options = buildMenuOptions(
+      { ...baseState, enforceNaming: true, fileNamingValue: undefined },
+      0,
+    );
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('not set (enforced)');
+  });
+
+  it('shows file limits hint with test file limit', () => {
+    const options = buildMenuOptions({ ...baseState, maxTestFileLines: 500 }, 0);
+    const fileLimits = options.find((o) => o.value === 'fileLimits');
+    expect(fileLimits?.hint).toBe('max 300 lines, tests 500');
+  });
+
+  it('shows file limits hint as unlimited when test limit is 0', () => {
+    const options = buildMenuOptions(baseState, 0);
+    const fileLimits = options.find((o) => o.value === 'fileLimits');
+    expect(fileLimits?.hint).toBe('max 300 lines, test files unlimited');
   });
 });
 

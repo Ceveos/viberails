@@ -5,10 +5,14 @@ import { buildMenuOptions, clonePackages, handleMenuChoice } from './prompt-menu
 
 export interface RuleOverrides {
   maxFileLines: number;
+  maxTestFileLines: number;
   testCoverage: number;
   enforceMissingTests: boolean;
   enforceNaming: boolean;
   fileNamingValue?: string;
+  componentNaming?: string;
+  hookNaming?: string;
+  importAlias?: string;
   coverageSummaryPath: string;
   coverageCommand?: string;
   packageOverrides?: PackageConfig[];
@@ -28,10 +32,14 @@ function getRootPackage(packages: PackageConfig[]): PackageConfig {
  */
 export async function promptRuleMenu(defaults: {
   maxFileLines: number;
+  maxTestFileLines: number;
   testCoverage: number;
   enforceMissingTests: boolean;
   enforceNaming: boolean;
   fileNamingValue?: string;
+  componentNaming?: string;
+  hookNaming?: string;
+  importAlias?: string;
   coverageSummaryPath: string;
   coverageCommand?: string;
   packageOverrides?: PackageConfig[];
@@ -57,10 +65,14 @@ export async function promptRuleMenu(defaults: {
 
   return {
     maxFileLines: state.maxFileLines,
+    maxTestFileLines: state.maxTestFileLines,
     testCoverage: state.testCoverage,
     enforceMissingTests: state.enforceMissingTests,
     enforceNaming: state.enforceNaming,
     fileNamingValue: state.fileNamingValue,
+    componentNaming: state.componentNaming,
+    hookNaming: state.hookNaming,
+    importAlias: state.importAlias,
     coverageSummaryPath: state.coverageSummaryPath,
     coverageCommand: state.coverageCommand,
     packageOverrides: state.packageOverrides,

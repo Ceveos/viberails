@@ -1,10 +1,10 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
-import { assertNotCancelled } from './prompt.js';
-import { promptPackageCoverageOverrides } from './prompt-package-overrides.js';
+import { promptPackageOverrides } from './prompt-package-overrides.js';
 import type { RuleOverrides } from './prompt-rules.js';
+import { promptFileLimitsMenu, promptNamingMenu, promptTestingMenu } from './prompt-submenus.js';
 
-function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
+export function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
   const diffs: string[] = [];
 
   const convKeys = ['fileNaming', 'componentNaming', 'hookNaming', 'importAlias'] as const;
@@ -55,62 +55,37 @@ function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
   return diffs;
 }
 
-/** Build the options list for the rule customization menu. */
+/** Build the top-level grouped options for the rule customization menu. */
 export function buildMenuOptions(
   state: RuleOverrides & { packageOverrides?: PackageConfig[] },
   packageCount: number,
 ): { value: string; label: string; hint?: string }[] {
+  const fileLimitsHint =
+    state.maxTestFileLines > 0
+      ? `max ${state.maxFileLines} lines, tests ${state.maxTestFileLines}`
+      : `max ${state.maxFileLines} lines, test files unlimited`;
+
   const namingHint = state.enforceNaming
-    ? `yes${state.fileNamingValue ? ` (${state.fileNamingValue})` : ''}`
-    : 'no';
+    ? `${state.fileNamingValue ?? 'not set'} (enforced)`
+    : 'not enforced';
+
+  const testingHint =
+    state.testCoverage > 0
+      ? `${state.testCoverage}% coverage, missing tests ${state.enforceMissingTests ? 'enforced' : 'not enforced'}`
+      : `coverage disabled, missing tests ${state.enforceMissingTests ? 'enforced' : 'not enforced'}`;
 
   const options: { value: string; label: string; hint?: string }[] = [
-    { value: 'maxFileLines', label: 'Max file lines', hint: String(state.maxFileLines) },
-    { value: 'enforceNaming', label: 'Enforce file naming', hint: namingHint },
+    { value: 'fileLimits', label: 'File limits', hint: fileLimitsHint },
+    { value: 'naming', label: 'Naming & conventions', hint: namingHint },
+    { value: 'testing', label: 'Testing & coverage', hint: testingHint },
   ];
-  if (state.fileNamingValue) {
+
+  if (packageCount > 0) {
     options.push({
-      value: 'fileNaming',
-      label: 'File naming convention',
-      hint: state.fileNamingValue,
+      value: 'packageOverrides',
+      label: 'Per-package overrides',
+      hint: `${packageCount} package${packageCount > 1 ? 's' : ''} configurable`,
     });
-  }
-  const isMonorepo = packageCount > 0;
-  const coverageLabel = isMonorepo ? 'Default coverage target' : 'Test coverage target';
-  const coverageHint =
-    state.testCoverage === 0
-      ? '0 (disabled)'
-      : isMonorepo
-        ? `${state.testCoverage}% (per-package default)`
-        : `${state.testCoverage}%`;
-  options.push({ value: 'testCoverage', label: coverageLabel, hint: coverageHint });
-  options.push({
-    value: 'enforceMissingTests',
-    label: 'Enforce missing tests',
-    hint: state.enforceMissingTests ? 'yes' : 'no',
-  });
-
-  if (state.testCoverage > 0) {
-    options.push(
-      {
-        value: 'coverageSummaryPath',
-        label: isMonorepo ? 'Default coverage summary path' : 'Coverage summary path',
-        hint: state.coverageSummaryPath,
-      },
-      {
-        value: 'coverageCommand',
-        label: isMonorepo ? 'Default coverage command' : 'Coverage command',
-        hint: state.coverageCommand ?? 'auto-detect from package.json test runner',
-      },
-    );
-
-    if (isMonorepo) {
-      options.push({
-        value: 'packageOverrides',
-        label: 'Per-package coverage overrides',
-        hint: `${packageCount} package${packageCount > 1 ? 's' : ''} configurable`,
-      });
-    }
   }
 
   options.push(
@@ -139,7 +114,7 @@ export function clonePackages(packages?: PackageConfig[]): PackageConfig[] | und
   }));
 }
 
-/** Handle a single menu choice and update state accordingly. */
+/** Handle a single top-level menu choice and update state accordingly. */
 export async function handleMenuChoice(
   choice: string,
   state: RuleOverrides & { packageOverrides?: PackageConfig[] },
@@ -148,14 +123,33 @@ export async function handleMenuChoice(
 ): Promise<void> {
   if (choice === 'reset') {
     state.maxFileLines = defaults.maxFileLines;
+    state.maxTestFileLines = defaults.maxTestFileLines;
     state.testCoverage = defaults.testCoverage;
     state.enforceMissingTests = defaults.enforceMissingTests;
     state.enforceNaming = defaults.enforceNaming;
     state.fileNamingValue = defaults.fileNamingValue;
+    state.componentNaming = defaults.componentNaming;
+    state.hookNaming = defaults.hookNaming;
+    state.importAlias = defaults.importAlias;
     state.coverageSummaryPath = defaults.coverageSummaryPath;
     state.coverageCommand = defaults.coverageCommand;
     state.packageOverrides = clonePackages(defaults.packageOverrides);
     clack.log.info('Reset all rules to detected defaults.');
+    return;
+  }
+
+  if (choice === 'fileLimits') {
+    await promptFileLimitsMenu(state);
+    return;
+  }
+
+  if (choice === 'naming') {
+    await promptNamingMenu(state);
+    return;
+  }
+
+  if (choice === 'testing') {
+    await promptTestingMenu(state);
     return;
   }
 
@@ -167,7 +161,9 @@ export async function handleMenuChoice(
             .map((pkg) => ({ pkg, diffs: getPackageDiffs(pkg, root) }))
             .filter((entry) => entry.diffs.length > 0)
         : [];
-      state.packageOverrides = await promptPackageCoverageOverrides(state.packageOverrides, {
+      state.packageOverrides = await promptPackageOverrides(state.packageOverrides, {
+        fileNamingValue: state.fileNamingValue,
+        maxFileLines: state.maxFileLines,
         testCoverage: state.testCoverage,
         coverageSummaryPath: state.coverageSummaryPath,
         coverageCommand: state.coverageCommand,
@@ -178,91 +174,5 @@ export async function handleMenuChoice(
       }
     }
     return;
-  }
-
-  if (choice === 'maxFileLines') {
-    const result = await clack.text({
-      message: 'Maximum lines per source file?',
-      initialValue: String(state.maxFileLines),
-      validate: (v) => {
-        if (typeof v !== 'string') return 'Enter a positive number';
-        const n = Number.parseInt(v, 10);
-        if (Number.isNaN(n) || n < 1) return 'Enter a positive number';
-      },
-    });
-    assertNotCancelled(result);
-    state.maxFileLines = Number.parseInt(result, 10);
-  }
-
-  if (choice === 'enforceMissingTests') {
-    const result = await clack.confirm({
-      message: 'Require every source file to have a corresponding test file?',
-      initialValue: state.enforceMissingTests,
-    });
-    assertNotCancelled(result);
-    state.enforceMissingTests = result;
-  }
-
-  if (choice === 'testCoverage') {
-    const result = await clack.text({
-      message: 'Test coverage target (0 disables coverage checks)?',
-      initialValue: String(state.testCoverage),
-      validate: (v) => {
-        if (typeof v !== 'string') return 'Enter a number between 0 and 100';
-        const n = Number.parseInt(v, 10);
-        if (Number.isNaN(n) || n < 0 || n > 100) return 'Enter a number between 0 and 100';
-      },
-    });
-    assertNotCancelled(result);
-    state.testCoverage = Number.parseInt(result, 10);
-  }
-
-  if (choice === 'coverageSummaryPath') {
-    const result = await clack.text({
-      message: 'Coverage summary path (relative to package root)?',
-      initialValue: state.coverageSummaryPath,
-      validate: (v) => {
-        if (typeof v !== 'string' || v.trim().length === 0) return 'Path cannot be empty';
-      },
-    });
-    assertNotCancelled(result);
-    state.coverageSummaryPath = result.trim();
-  }
-
-  if (choice === 'coverageCommand') {
-    const result = await clack.text({
-      message: 'Coverage command (blank to auto-detect from package.json)?',
-      initialValue: state.coverageCommand ?? '',
-      placeholder: '(auto-detect from package.json test runner)',
-    });
-    assertNotCancelled(result);
-    const trimmed = result.trim();
-    state.coverageCommand = trimmed.length > 0 ? trimmed : undefined;
-  }
-
-  if (choice === 'enforceNaming') {
-    const result = await clack.confirm({
-      message: state.fileNamingValue
-        ? `Enforce file naming? (detected: ${state.fileNamingValue})`
-        : 'Enforce file naming?',
-      initialValue: state.enforceNaming,
-    });
-    assertNotCancelled(result);
-    state.enforceNaming = result;
-  }
-
-  if (choice === 'fileNaming') {
-    const selected = await clack.select({
-      message: 'Which file naming convention should be enforced?',
-      options: [
-        { value: 'kebab-case', label: 'kebab-case' },
-        { value: 'camelCase', label: 'camelCase' },
-        { value: 'PascalCase', label: 'PascalCase' },
-        { value: 'snake_case', label: 'snake_case' },
-      ],
-      initialValue: state.fileNamingValue,
-    });
-    assertNotCancelled(selected);
-    state.fileNamingValue = selected;
   }
 }

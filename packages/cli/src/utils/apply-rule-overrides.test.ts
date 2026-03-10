@@ -31,6 +31,7 @@ function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
 function makeOverrides(overrides: Partial<RuleOverrides> = {}): RuleOverrides {
   return {
     maxFileLines: 300,
+    maxTestFileLines: 0,
     testCoverage: 80,
     enforceMissingTests: true,
     enforceNaming: true,
@@ -142,5 +143,44 @@ describe('applyRuleOverrides', () => {
     expect(() =>
       applyRuleOverrides(config, makeOverrides({ coverageCommand: 'test' })),
     ).not.toThrow();
+  });
+
+  it('applies maxTestFileLines to config', () => {
+    const config = makeConfig();
+    applyRuleOverrides(config, makeOverrides({ maxTestFileLines: 500 }));
+    expect(config.rules.maxTestFileLines).toBe(500);
+  });
+
+  it('applies componentNaming to root package', () => {
+    const config = makeConfig();
+    applyRuleOverrides(config, makeOverrides({ componentNaming: 'PascalCase' }));
+    expect(config.packages[0].conventions?.componentNaming).toBe('PascalCase');
+  });
+
+  it('applies hookNaming to root package', () => {
+    const config = makeConfig();
+    applyRuleOverrides(config, makeOverrides({ hookNaming: 'useXxx' }));
+    expect(config.packages[0].conventions?.hookNaming).toBe('useXxx');
+  });
+
+  it('applies importAlias to root package', () => {
+    const config = makeConfig();
+    applyRuleOverrides(config, makeOverrides({ importAlias: '@/*' }));
+    expect(config.packages[0].conventions?.importAlias).toBe('@/*');
+  });
+
+  it('clears convention when empty string is provided', () => {
+    const config = makeConfig();
+    config.packages[0].conventions = { fileNaming: 'kebab-case', componentNaming: 'PascalCase' };
+    applyRuleOverrides(config, makeOverrides({ componentNaming: '' }));
+    expect(config.packages[0].conventions?.componentNaming).toBeUndefined();
+  });
+
+  it('sets file naming on root package when none existed before', () => {
+    const config = makeConfig({
+      packages: [{ name: 'root', path: '.', conventions: {} }],
+    });
+    applyRuleOverrides(config, makeOverrides({ fileNamingValue: 'camelCase' }));
+    expect(config.packages[0].conventions?.fileNaming).toBe('camelCase');
   });
 });

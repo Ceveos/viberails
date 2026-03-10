@@ -35,6 +35,7 @@ describe('promptRuleMenu', () => {
 
     const result = await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -47,11 +48,12 @@ describe('promptRuleMenu', () => {
     expect(result.enforceNaming).toBe(true);
   });
 
-  it('shows testCoverage=0 hint with disabled explanation', async () => {
+  it('shows coverage disabled in testing hint', async () => {
     selectMock.mockResolvedValueOnce('done');
 
     await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 0,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -59,8 +61,8 @@ describe('promptRuleMenu', () => {
     });
 
     const options = selectMock.mock.calls[0][0].options;
-    const coverageOption = options.find((o: { value: string }) => o.value === 'testCoverage');
-    expect(coverageOption.hint).toContain('disabled');
+    const testingOption = options.find((o: { value: string }) => o.value === 'testing');
+    expect(testingOption.hint).toContain('coverage disabled');
   });
 
   it('includes reset option in menu', async () => {
@@ -68,6 +70,7 @@ describe('promptRuleMenu', () => {
 
     await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -80,11 +83,12 @@ describe('promptRuleMenu', () => {
     expect(resetOption.label).toBe('Reset all to detected defaults');
   });
 
-  it('groups basic rules before coverage rules', async () => {
+  it('groups naming before testing in top-level menu', async () => {
     selectMock.mockResolvedValueOnce('done');
 
     await promptRuleMenu({
       maxFileLines: 300,
+      maxTestFileLines: 0,
       testCoverage: 80,
       enforceMissingTests: true,
       enforceNaming: true,
@@ -94,8 +98,8 @@ describe('promptRuleMenu', () => {
 
     const options = selectMock.mock.calls[0][0].options;
     const values = options.map((o: { value: string }) => o.value);
-    const namingIdx = values.indexOf('enforceNaming');
-    const coverageIdx = values.indexOf('testCoverage');
-    expect(namingIdx).toBeLessThan(coverageIdx);
+    const namingIdx = values.indexOf('naming');
+    const testingIdx = values.indexOf('testing');
+    expect(namingIdx).toBeLessThan(testingIdx);
   });
 });
