@@ -7,7 +7,8 @@ pre-commit:
       stage_fixed: true
     lint:
       glob: "{packages,tests}/**/*.{ts,tsx,js}"
-      run: npx biome check {staged_files}
+      run: npx biome check --write {staged_files}
+      stage_fixed: true
     typecheck:
       glob: "{packages,tests}/**/*.{ts,tsx}"
       run: bash -c 'for p in packages/*/tsconfig.json; do pnpm exec tsc -p "$p" --noEmit || exit 1; done'
