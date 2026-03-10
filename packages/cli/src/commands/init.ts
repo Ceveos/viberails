@@ -134,12 +134,10 @@ async function initInteractive(
   }
 
   // Integrations — prompt after config is finalized
-  const isTypeScript = rootPkgStack?.language?.split('@')[0] === 'typescript';
+  const typecheckResolved = resolveTypecheckCommand(projectRoot, packageManager);
   const integrations = await promptIntegrationsDeferred(prereqs.hookManager, {
-    isTypeScript,
-    hasTypecheckCommand: isTypeScript
-      ? !!resolveTypecheckCommand(projectRoot, packageManager).command
-      : false,
+    isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
+    typecheckLabel: typecheckResolved.label,
     linter: rootPkgStack?.linter?.split('@')[0],
     packageManager,
     isWorkspace,

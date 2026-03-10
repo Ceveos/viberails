@@ -74,19 +74,18 @@ describe('promptIntegrationsDeferred', () => {
     expect(initialValues).not.toContain('preCommit');
   });
 
-  it('includes typecheck option when TypeScript detected and command available', async () => {
+  it('includes typecheck option with resolved label', async () => {
     multiselectMock.mockResolvedValueOnce(['typecheck']);
-    await promptIntegrationsDeferred('Lefthook', { isTypeScript: true, hasTypecheckCommand: true });
+    await promptIntegrationsDeferred('Lefthook', { typecheckLabel: 'turbo typecheck' });
     const opts = multiselectMock.mock.calls[0][0].options;
-    expect(opts.find((o: { value: string }) => o.value === 'typecheck')).toBeDefined();
+    const tc = opts.find((o: { value: string }) => o.value === 'typecheck');
+    expect(tc).toBeDefined();
+    expect(tc?.label).toBe('Typecheck (turbo typecheck)');
   });
 
-  it('omits typecheck option when no typecheck command available', async () => {
+  it('omits typecheck option when no label provided', async () => {
     multiselectMock.mockResolvedValueOnce([]);
-    await promptIntegrationsDeferred('Lefthook', {
-      isTypeScript: true,
-      hasTypecheckCommand: false,
-    });
+    await promptIntegrationsDeferred('Lefthook', { isTypeScript: true });
     const opts = multiselectMock.mock.calls[0][0].options;
     expect(opts.find((o: { value: string }) => o.value === 'typecheck')).toBeUndefined();
   });
