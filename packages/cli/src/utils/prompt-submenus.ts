@@ -87,12 +87,12 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
       },
       {
         value: 'componentNaming',
-        label: `${state.componentNaming ? ok : unset} Component naming`,
+        label: `${state.componentNaming ? ok : unset} Component exports`,
         hint: state.componentNaming ?? HINT_NOT_SET,
       },
       {
         value: 'hookNaming',
-        label: `${state.hookNaming ? ok : unset} Hook naming`,
+        label: `${state.hookNaming ? ok : unset} Hook exports`,
         hint: state.hookNaming ?? HINT_NOT_SET,
       },
       {
@@ -133,7 +133,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
 
     if (choice === 'componentNaming') {
       const selected = await clack.select({
-        message: 'Component naming convention',
+        message: 'Component export naming (e.g. UserProfile)',
         options: [
           ...COMPONENT_NAMING_OPTIONS,
           { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
@@ -146,7 +146,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
 
     if (choice === 'hookNaming') {
       const selected = await clack.select({
-        message: 'Hook naming convention',
+        message: 'Hook export naming (e.g. useAuth)',
         options: [
           ...HOOK_NAMING_OPTIONS,
           { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },

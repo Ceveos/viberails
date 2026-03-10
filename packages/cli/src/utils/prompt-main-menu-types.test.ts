@@ -4,12 +4,12 @@ import type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 describe('prompt-main-menu-types', () => {
   it('InitMenuState satisfies expected shape', () => {
     const state: InitMenuState = {
-      visited: { integrations: false, boundaries: false },
+      visited: { boundaries: false },
       deferredInstalls: [],
       hasTestRunner: true,
       hookManager: undefined,
     };
-    expect(state.visited.integrations).toBe(false);
+    expect(state.visited.boundaries).toBe(false);
   });
 
   it('MainMenuOpts satisfies expected shape', () => {

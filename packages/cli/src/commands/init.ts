@@ -8,7 +8,9 @@ import { checkCoveragePrereqs } from '../utils/check-prerequisites.js';
 import { executeDeferredInstalls } from '../utils/deferred-install.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
 import { confirm, confirmDangerous, promptExistingConfigAction } from '../utils/prompt.js';
+import { promptIntegrationsDeferred } from '../utils/prompt-integrations.js';
 import { promptMainMenu } from '../utils/prompt-main-menu.js';
+import { promptPrereqs } from '../utils/prompt-prereqs.js';
 import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 import { configCommand } from './config.js';
@@ -89,24 +91,37 @@ async function initInteractive(
     );
   }
 
-  const hasTestRunner = !!scanResult.stack.testRunner;
-
-  // Prerequisites detection (no prompts yet — handled in menu)
-  const hookManager = detectHookManager(projectRoot);
-  const coveragePrereqs = checkCoveragePrereqs(projectRoot, scanResult);
+  // Prerequisites — prompt to install missing tools before the menu
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
+  const packageManager = rootPkgStack?.packageManager?.split('@')[0] ?? 'npm';
+  const isWorkspace = config.packages.length > 1;
+
+  const prereqs = await promptPrereqs(
+    projectRoot,
+    scanResult,
+    detectHookManager(projectRoot),
+    packageManager,
+    isWorkspace,
+  );
+
+  if (prereqs.skipCoverage) config.rules.testCoverage = 0;
+
+  // Coverage prereqs (for provider libs like @vitest/coverage-v8)
+  const coveragePrereqs = prereqs.hasTestRunner
+    ? checkCoveragePrereqs(projectRoot, scanResult)
+    : [];
 
   // Main menu loop
   const state = await promptMainMenu(config, scanResult, {
-    hasTestRunner,
-    hookManager,
+    hasTestRunner: prereqs.hasTestRunner,
+    hookManager: prereqs.hookManager,
     coveragePrereqs,
     projectRoot,
     tools: {
       isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
       linter: rootPkgStack?.linter?.split('@')[0],
-      packageManager: rootPkgStack?.packageManager?.split('@')[0],
-      isWorkspace: config.packages.length > 1,
+      packageManager,
+      isWorkspace,
     },
   });
 
@@ -117,7 +132,15 @@ async function initInteractive(
     return;
   }
 
-  // Execute deferred installs
+  // Integrations — prompt after config is finalized
+  const integrations = await promptIntegrationsDeferred(prereqs.hookManager, {
+    isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
+    linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager,
+    isWorkspace,
+  });
+
+  // Execute deferred installs (coverage provider)
   if (state.deferredInstalls.length > 0) {
     await executeDeferredInstalls(projectRoot, state.deferredInstalls);
   }
@@ -136,15 +159,12 @@ async function initInteractive(
   clack.log.step(`${ok} .viberails/context.md`);
   clack.log.step(`${ok} .viberails/scan-result.json`);
 
-  // Setup integrations (only if user visited the integrations menu)
-  if (state.visited.integrations && state.integrations) {
-    const lefthookExpected = state.deferredInstalls.some((d) => d.command.includes('lefthook'));
-    setupSelectedIntegrations(projectRoot, state.integrations, {
-      linter: rootPkgStack?.linter?.split('@')[0],
-      packageManager: rootPkgStack?.packageManager?.split('@')[0],
-      lefthookExpected,
-    });
-  }
+  // Setup integrations
+  setupSelectedIntegrations(projectRoot, integrations.choice, {
+    linter: rootPkgStack?.linter?.split('@')[0],
+    packageManager,
+    lefthookExpected: prereqs.hookManager === 'lefthook',
+  });
 
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +

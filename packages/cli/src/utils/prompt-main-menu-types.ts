@@ -1,11 +1,10 @@
 import type { PrereqResult } from './check-prerequisites.js';
 import type { DeferredInstall } from './deferred-install.js';
-import type { DetectedTools, IntegrationChoice } from './prompt-integrations.js';
+import type { DetectedTools } from './prompt-integrations.js';
 
 export interface InitMenuState {
-  visited: { integrations: boolean; boundaries: boolean };
+  visited: { boundaries: boolean };
   deferredInstalls: DeferredInstall[];
-  integrations?: IntegrationChoice;
   hasTestRunner: boolean;
   hookManager: string | undefined;
 }

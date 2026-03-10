@@ -1,6 +1,3 @@
-import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildLefthookInstallCommand, promptIntegrationsDeferred } from './prompt-integrations.js';
 
@@ -38,23 +35,11 @@ describe('promptIntegrationsDeferred', () => {
     multiselectMock.mockReset();
   });
 
-  it('includes installLefthook option when no hook manager', async () => {
-    multiselectMock.mockResolvedValueOnce(['installLefthook', 'preCommit']);
-    const result = await promptIntegrationsDeferred(undefined, undefined, 'pnpm', false);
-    const opts = multiselectMock.mock.calls[0][0].options;
-    expect(opts[0].value).toBe('installLefthook');
-    expect(result.lefthookInstall).toBeDefined();
-    expect(result.lefthookInstall?.command).toBe('pnpm add -D lefthook');
-    expect(result.choice.preCommitHook).toBe(true);
-  });
-
-  it('labels pre-commit without hook-manager name when no hook manager', async () => {
+  it('does not include installLefthook option', async () => {
     multiselectMock.mockResolvedValueOnce(['preCommit']);
-    await promptIntegrationsDeferred(undefined, undefined, 'pnpm');
+    await promptIntegrationsDeferred(undefined);
     const opts = multiselectMock.mock.calls[0][0].options;
-    const preCommit = opts.find((o: { value: string }) => o.value === 'preCommit');
-    expect(preCommit?.label).toBe('Pre-commit hook');
-    expect(preCommit?.hint).toContain('local git hook');
+    expect(opts.find((o: { value: string }) => o.value === 'installLefthook')).toBeUndefined();
   });
 
   it('labels pre-commit with hook manager name when present', async () => {
@@ -66,45 +51,50 @@ describe('promptIntegrationsDeferred', () => {
     expect(preCommit?.hint).toBe('runs viberails checks when you commit');
   });
 
-  it('omits installLefthook when hook manager exists', async () => {
-    multiselectMock.mockResolvedValueOnce(['preCommit']);
-    const result = await promptIntegrationsDeferred('Lefthook');
+  it('labels pre-commit without hook manager name when absent', async () => {
+    multiselectMock.mockResolvedValueOnce([]);
+    await promptIntegrationsDeferred(undefined);
     const opts = multiselectMock.mock.calls[0][0].options;
-    expect(opts.find((o: { value: string }) => o.value === 'installLefthook')).toBeUndefined();
-    expect(result.lefthookInstall).toBeUndefined();
+    const preCommit = opts.find((o: { value: string }) => o.value === 'preCommit');
+    expect(preCommit?.label).toBe('Pre-commit hook');
+    expect(preCommit?.hint).toContain('local hook only');
   });
 
-  it('returns no lefthookInstall when user deselects it', async () => {
+  it('default-checks preCommit when hook manager exists', async () => {
     multiselectMock.mockResolvedValueOnce(['preCommit']);
-    const result = await promptIntegrationsDeferred(undefined, undefined, 'npm');
-    expect(result.lefthookInstall).toBeUndefined();
+    await promptIntegrationsDeferred('Lefthook');
+    const initialValues = multiselectMock.mock.calls[0][0].initialValues;
+    expect(initialValues).toContain('preCommit');
   });
 
-  it('lefthook onSuccess creates lefthook.yml when projectRoot is provided', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-test-'));
-    try {
-      multiselectMock.mockResolvedValueOnce(['installLefthook', 'preCommit']);
-      const result = await promptIntegrationsDeferred(undefined, undefined, 'pnpm', false, tmpDir);
-      const onSuccess = result.lefthookInstall?.onSuccess;
-      expect(onSuccess).toBeDefined();
-      onSuccess?.();
-      expect(fs.existsSync(path.join(tmpDir, 'lefthook.yml'))).toBe(true);
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true });
-    }
+  it('default-unchecks preCommit when no hook manager', async () => {
+    multiselectMock.mockResolvedValueOnce([]);
+    await promptIntegrationsDeferred(undefined);
+    const initialValues = multiselectMock.mock.calls[0][0].initialValues;
+    expect(initialValues).not.toContain('preCommit');
   });
 
-  it('lefthook onSuccess does not overwrite existing lefthook.yml', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-test-'));
-    const ymlPath = path.join(tmpDir, 'lefthook.yml');
-    fs.writeFileSync(ymlPath, 'existing: content\n');
-    try {
-      multiselectMock.mockResolvedValueOnce(['installLefthook', 'preCommit']);
-      const result = await promptIntegrationsDeferred(undefined, undefined, 'pnpm', false, tmpDir);
-      result.lefthookInstall?.onSuccess?.();
-      expect(fs.readFileSync(ymlPath, 'utf-8')).toBe('existing: content\n');
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true });
-    }
+  it('includes typecheck option when TypeScript detected', async () => {
+    multiselectMock.mockResolvedValueOnce(['typecheck']);
+    await promptIntegrationsDeferred('Lefthook', { isTypeScript: true });
+    const opts = multiselectMock.mock.calls[0][0].options;
+    expect(opts.find((o: { value: string }) => o.value === 'typecheck')).toBeDefined();
+  });
+
+  it('includes lint option when linter detected', async () => {
+    multiselectMock.mockResolvedValueOnce(['lint']);
+    await promptIntegrationsDeferred('Lefthook', { linter: 'biome' });
+    const opts = multiselectMock.mock.calls[0][0].options;
+    const lint = opts.find((o: { value: string }) => o.value === 'lint');
+    expect(lint?.label).toContain('Biome');
+  });
+
+  it('returns correct choice flags', async () => {
+    multiselectMock.mockResolvedValueOnce(['preCommit', 'claude', 'githubAction']);
+    const result = await promptIntegrationsDeferred('Lefthook');
+    expect(result.choice.preCommitHook).toBe(true);
+    expect(result.choice.claudeCodeHook).toBe(true);
+    expect(result.choice.claudeMdRef).toBe(false);
+    expect(result.choice.githubAction).toBe(true);
   });
 });

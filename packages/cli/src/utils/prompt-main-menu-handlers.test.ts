@@ -1,6 +1,7 @@
 import type { PackageConfig, ScanResult, ViberailsConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  handleAiContext,
   handleBoundaries,
   handleCoverage,
   handleFileNaming,
@@ -83,7 +84,7 @@ function makeScanResult(): ScanResult {
 
 function makeState(overrides: Partial<InitMenuState> = {}): InitMenuState {
   return {
-    visited: { integrations: false, boundaries: false },
+    visited: { boundaries: false },
     deferredInstalls: [],
     hasTestRunner: true,
     hookManager: undefined,
@@ -213,5 +214,60 @@ describe('handleBoundaries', () => {
     await handleBoundaries(config, state, defaultOpts);
     expect(state.visited.boundaries).toBe(true);
     expect(config.rules.enforceBoundaries).toBe(false);
+  });
+});
+
+describe('handleAiContext', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns without changes when user selects back', async () => {
+    selectMock.mockResolvedValueOnce('back');
+    const config = makeConfig();
+    await handleAiContext(config);
+    expect(config.packages[0].conventions?.componentNaming).toBeUndefined();
+  });
+
+  it('sets componentNaming when selected', async () => {
+    selectMock
+      .mockResolvedValueOnce('componentNaming')
+      .mockResolvedValueOnce('PascalCase')
+      .mockResolvedValueOnce('back');
+    const config = makeConfig();
+    await handleAiContext(config);
+    expect(config.packages[0].conventions?.componentNaming).toBe('PascalCase');
+  });
+
+  it('clears componentNaming when clear selected', async () => {
+    selectMock
+      .mockResolvedValueOnce('componentNaming')
+      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce('back');
+    const config = makeConfig();
+    config.packages[0].conventions = {
+      ...config.packages[0].conventions,
+      componentNaming: 'PascalCase',
+    };
+    await handleAiContext(config);
+    expect(config.packages[0].conventions?.componentNaming).toBeUndefined();
+  });
+
+  it('sets hookNaming when selected', async () => {
+    selectMock
+      .mockResolvedValueOnce('hookNaming')
+      .mockResolvedValueOnce('useXxx')
+      .mockResolvedValueOnce('back');
+    const config = makeConfig();
+    await handleAiContext(config);
+    expect(config.packages[0].conventions?.hookNaming).toBe('useXxx');
+  });
+
+  it('sets importAlias when selected', async () => {
+    selectMock
+      .mockResolvedValueOnce('importAlias')
+      .mockResolvedValueOnce('@/*')
+      .mockResolvedValueOnce('back');
+    const config = makeConfig();
+    await handleAiContext(config);
+    expect(config.packages[0].conventions?.importAlias).toBe('@/*');
   });
 });

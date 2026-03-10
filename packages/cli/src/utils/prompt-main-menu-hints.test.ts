@@ -1,14 +1,13 @@
 import type { PackageConfig, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
 import {
-  advancedNamingHint,
+  aiContextHint,
   boundariesHint,
   buildMainMenuOptions,
   coverageHint,
   fileLimitsHint,
   fileNamingHint,
   fileNamingStatus,
-  integrationsHint,
   missingTestsHint,
   packageOverridesHint,
 } from './prompt-main-menu-hints.js';
@@ -52,7 +51,7 @@ function makeScanResult(packages: ScanResult['packages'] = []): ScanResult {
 
 function makeState(overrides: Partial<InitMenuState> = {}): InitMenuState {
   return {
-    visited: { integrations: false, boundaries: false },
+    visited: { boundaries: false },
     deferredInstalls: [],
     hasTestRunner: true,
     hookManager: undefined,
@@ -85,12 +84,10 @@ describe('fileNamingHint', () => {
     expect(fileNamingHint(makeConfig(), scan)).toBe('kebab-case (detected)');
   });
 
-  it('returns mixed when no naming set on root', () => {
+  it('returns not set when no naming on root', () => {
     const config = makeConfig();
     config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
-    expect(fileNamingHint(config, makeScanResult())).toBe(
-      'mixed \u2014 will not enforce if skipped',
-    );
+    expect(fileNamingHint(config, makeScanResult())).toBe('not set \u2014 select to configure');
   });
 
   it('returns not enforced when disabled', () => {
@@ -161,32 +158,21 @@ describe('coverageHint', () => {
   });
 });
 
-describe('advancedNamingHint', () => {
-  it('returns not enforced when naming disabled', () => {
+describe('aiContextHint', () => {
+  it('returns none set when no conventions', () => {
+    expect(aiContextHint(makeConfig())).toBe('none set \u2014 optional AI guidelines');
+  });
+
+  it('returns count when some set', () => {
     const config = makeConfig();
-    config.rules.enforceNaming = false;
-    expect(advancedNamingHint(config)).toBe('not enforced');
+    config.packages[0].conventions = {
+      ...config.packages[0].conventions,
+      componentNaming: 'PascalCase',
+    };
+    expect(aiContextHint(config)).toBe('1 of 3 conventions');
   });
 
-  it('shows check/cross labels when some conventions set', () => {
-    const hint = advancedNamingHint(makeConfig());
-    expect(hint).toContain('\u2713 file naming');
-    expect(hint).toContain('\u2717 components');
-    expect(hint).toContain('\u2717 hooks');
-    expect(hint).toContain('\u2717 alias');
-  });
-
-  it('shows all crosses when no conventions set', () => {
-    const config = makeConfig();
-    config.packages[0] = { name: 'root', path: '.', conventions: {} } as PackageConfig;
-    const hint = advancedNamingHint(config);
-    expect(hint).toContain('\u2717 file naming');
-    expect(hint).toContain('\u2717 components');
-    expect(hint).toContain('\u2717 hooks');
-    expect(hint).toContain('\u2717 alias');
-  });
-
-  it('shows all checks when all conventions set', () => {
+  it('returns all set when all conventions configured', () => {
     const config = makeConfig();
     config.packages[0].conventions = {
       ...config.packages[0].conventions,
@@ -194,35 +180,7 @@ describe('advancedNamingHint', () => {
       hookNaming: 'useXxx',
       importAlias: '@/*',
     };
-    const hint = advancedNamingHint(config);
-    expect(hint).toContain('\u2713 file naming');
-    expect(hint).toContain('\u2713 components');
-    expect(hint).toContain('\u2713 hooks');
-    expect(hint).toContain('\u2713 alias');
-  });
-});
-
-describe('integrationsHint', () => {
-  it('returns not configured when not visited', () => {
-    expect(integrationsHint(makeState())).toBe('not configured \u2014 select to set up');
-  });
-
-  it('lists selected items', () => {
-    const state = makeState({
-      visited: { integrations: true, boundaries: false },
-      integrations: {
-        preCommitHook: true,
-        claudeCodeHook: true,
-        claudeMdRef: false,
-        githubAction: false,
-        typecheckHook: false,
-        lintHook: false,
-      },
-    });
-    const hint = integrationsHint(state);
-    expect(hint).toContain('pre-commit');
-    expect(hint).toContain('Claude');
-    expect(hint).toContain('\u00b7');
+    expect(aiContextHint(config)).toBe('all set');
   });
 });
 
@@ -272,7 +230,7 @@ describe('boundariesHint', () => {
     const config = makeConfig();
     config.rules.enforceBoundaries = true;
     config.boundaries = { deny: { '@pkg/a': ['@pkg/b', '@pkg/c'], '@pkg/d': ['@pkg/e'] } };
-    const state = makeState({ visited: { integrations: false, boundaries: true } });
+    const state = makeState({ visited: { boundaries: true } });
     expect(boundariesHint(config, state)).toBe('3 rules across 2 packages');
   });
 });
@@ -314,61 +272,40 @@ describe('buildMainMenuOptions', () => {
     expect(cov?.label).toContain('~');
   });
 
-  it('uses - icon for unvisited integrations', () => {
+  it('includes aiContext option', () => {
     const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'integrations');
+    const item = opts.find((o) => o.value === 'aiContext');
+    expect(item).toBeDefined();
     expect(item?.label).toContain('-');
   });
 
-  it('uses ✓ icon for visited integrations', () => {
-    const state = makeState({ visited: { integrations: true, boundaries: false } });
-    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), state);
-    const item = opts.find((o) => o.value === 'integrations');
-    expect(item?.label).toContain('✓');
-  });
-
-  it('uses ~ icon for advanced naming when only file naming is set', () => {
-    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
+  it('uses ~ icon for aiContext when some conventions set', () => {
+    const config = makeConfig();
+    config.packages[0].conventions = {
+      ...config.packages[0].conventions,
+      componentNaming: 'PascalCase',
+    };
+    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'aiContext');
     expect(item?.label).toContain('~');
   });
 
-  it('uses ✓ icon for advanced naming when all conventions are set', () => {
+  it('uses ✓ icon for aiContext when all conventions set', () => {
     const config = makeConfig();
     config.packages[0].conventions = {
-      fileNaming: 'kebab-case',
+      ...config.packages[0].conventions,
       componentNaming: 'PascalCase',
       hookNaming: 'useXxx',
       importAlias: '@/*',
     };
     const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
+    const item = opts.find((o) => o.value === 'aiContext');
     expect(item?.label).toContain('✓');
   });
 
-  it('uses - icon for advanced naming when enforce naming is off', () => {
-    const config = makeConfig();
-    config.rules.enforceNaming = false;
-    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
-    expect(item?.label).toContain('-');
-  });
-
-  it('uses - icon for advanced naming when enforced but no conventions set', () => {
-    const config = makeConfig();
-    config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
-    config.rules.enforceNaming = true;
-    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
-    expect(item?.label).toContain('-');
-  });
-
-  it('uses ~ icon for advanced naming when some conventions set', () => {
-    const config = makeConfig();
-    config.rules.enforceNaming = true;
-    // makeConfig() sets fileNaming: 'kebab-case' but not the others
-    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
-    expect(item?.label).toContain('~');
+  it('does not include advancedNaming or integrations', () => {
+    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
+    expect(opts.find((o) => o.value === 'advancedNaming')).toBeUndefined();
+    expect(opts.find((o) => o.value === 'integrations')).toBeUndefined();
   });
 });

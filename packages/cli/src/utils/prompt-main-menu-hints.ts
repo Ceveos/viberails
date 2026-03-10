@@ -23,7 +23,7 @@ export function fileNamingHint(config: ViberailsConfig, scanResult: ScanResult):
     );
     return detected ? `${naming} (detected)` : naming;
   }
-  return 'mixed \u2014 will not enforce if skipped';
+  return 'not set \u2014 select to configure';
 }
 
 /** @internal Exported for testing. */
@@ -60,32 +60,28 @@ export function coverageHint(config: ViberailsConfig, hasTestRunner: boolean): s
 }
 
 /** @internal Exported for testing. */
-export function advancedNamingHint(config: ViberailsConfig): string {
+export function aiContextHint(config: ViberailsConfig): string {
   const rootPkg = getRootPackage(config.packages);
-  if (!config.rules.enforceNaming) return 'not enforced';
-  const ok = chalk.green('\u2713');
-  const no = chalk.dim('\u2717');
-  const parts: string[] = [
-    `${rootPkg.conventions?.fileNaming ? ok : no} file naming`,
-    `${rootPkg.conventions?.componentNaming ? ok : no} components`,
-    `${rootPkg.conventions?.hookNaming ? ok : no} hooks`,
-    `${rootPkg.conventions?.importAlias ? ok : no} alias`,
-  ];
-  return parts.join(chalk.dim(', '));
+  const count = [
+    rootPkg.conventions?.componentNaming,
+    rootPkg.conventions?.hookNaming,
+    rootPkg.conventions?.importAlias,
+  ].filter(Boolean).length;
+  if (count === 3) return 'all set';
+  if (count > 0) return `${count} of 3 conventions`;
+  return 'none set \u2014 optional AI guidelines';
 }
 
-/** @internal Exported for testing. */
-export function integrationsHint(state: InitMenuState): string {
-  if (!state.visited.integrations || !state.integrations)
-    return 'not configured \u2014 select to set up';
-  const items: string[] = [];
-  if (state.integrations.preCommitHook) items.push(chalk.green('pre-commit'));
-  if (state.integrations.typecheckHook) items.push(chalk.green('typecheck'));
-  if (state.integrations.lintHook) items.push(chalk.green('lint'));
-  if (state.integrations.claudeCodeHook) items.push(chalk.green('Claude'));
-  if (state.integrations.claudeMdRef) items.push(chalk.green('CLAUDE.md'));
-  if (state.integrations.githubAction) items.push(chalk.green('CI'));
-  return items.length > 0 ? items.join(chalk.dim(' \u00b7 ')) : 'none selected';
+function aiContextStatus(config: ViberailsConfig): 'ok' | 'partial' | 'unconfigured' {
+  const rootPkg = getRootPackage(config.packages);
+  const count = [
+    rootPkg.conventions?.componentNaming,
+    rootPkg.conventions?.hookNaming,
+    rootPkg.conventions?.importAlias,
+  ].filter(Boolean).length;
+  if (count === 3) return 'ok';
+  if (count > 0) return 'partial';
+  return 'unconfigured';
 }
 
 /** @internal Exported for testing. */
@@ -111,18 +107,6 @@ export function boundariesHint(config: ViberailsConfig, state: InitMenuState): s
   const ruleCount = Object.values(deny).reduce((s, a) => s + a.length, 0);
   const pkgCount = Object.keys(deny).length;
   return `${ruleCount} rules across ${pkgCount} packages`;
-}
-
-function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'partial' | 'unconfigured' {
-  if (!config.rules.enforceNaming) return 'unconfigured';
-  const rootPkg = getRootPackage(config.packages);
-  const hasFile = !!rootPkg.conventions?.fileNaming;
-  const hasComp = !!rootPkg.conventions?.componentNaming;
-  const hasHook = !!rootPkg.conventions?.hookNaming;
-  const hasAlias = !!rootPkg.conventions?.importAlias;
-  if (hasFile && hasComp && hasHook && hasAlias) return 'ok';
-  if (hasFile || hasComp || hasHook || hasAlias) return 'partial';
-  return 'unconfigured';
 }
 
 function packageOverridesStatus(config: ViberailsConfig): 'ok' | 'unconfigured' {
@@ -163,7 +147,7 @@ export function buildMainMenuOptions(
     },
     {
       value: 'fileNaming',
-      label: `${statusIcon(namingStatus)} Default file naming`,
+      label: `${statusIcon(namingStatus)} File naming`,
       hint: fileNamingHint(config, scanResult),
     },
     {
@@ -177,9 +161,9 @@ export function buildMainMenuOptions(
       hint: coverageHint(config, state.hasTestRunner),
     },
     {
-      value: 'advancedNaming',
-      label: `${statusIcon(advancedNamingStatus(config))} Advanced naming`,
-      hint: advancedNamingHint(config),
+      value: 'aiContext',
+      label: `${statusIcon(aiContextStatus(config))} AI context`,
+      hint: aiContextHint(config),
     },
   ];
 
@@ -198,9 +182,7 @@ export function buildMainMenuOptions(
     );
   }
 
-  const iIcon = state.visited.integrations ? statusIcon('ok') : statusIcon('unconfigured');
   options.push(
-    { value: 'integrations', label: `${iIcon} Integrations`, hint: integrationsHint(state) },
     { value: 'reset', label: '  Reset all to defaults' },
     { value: 'review', label: '  Review scan details', hint: 'detected stack & conventions' },
     { value: 'done', label: '  Done \u2014 write config' },

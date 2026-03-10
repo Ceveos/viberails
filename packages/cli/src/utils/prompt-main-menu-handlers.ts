@@ -1,43 +1,18 @@
 import * as clack from '@clack/prompts';
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
+import chalk from 'chalk';
 import { planCoverageInstall } from './check-prerequisites.js';
 import { getRootPackage } from './get-root-package.js';
 import { isCancelled } from './prompt.js';
-import { SENTINEL_SKIP } from './prompt-constants.js';
-import { promptIntegrationsDeferred } from './prompt-integrations.js';
+import { SENTINEL_CLEAR, SENTINEL_CUSTOM, SENTINEL_SKIP } from './prompt-constants.js';
 import type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 import { normalizePackageOverrides, promptPackageOverrides } from './prompt-package-overrides.js';
-import type { RuleOverrides } from './prompt-rules.js';
-import { FILE_NAMING_OPTIONS, promptNamingMenu } from './prompt-submenus.js';
+import {
+  COMPONENT_NAMING_OPTIONS,
+  FILE_NAMING_OPTIONS,
+  HOOK_NAMING_OPTIONS,
+} from './prompt-submenus.js';
 import { resolveWorkspacePackages } from './resolve-workspace-packages.js';
-
-export async function handleAdvancedNaming(config: ViberailsConfig): Promise<void> {
-  const rootPkg = getRootPackage(config.packages);
-  const state: RuleOverrides = {
-    maxFileLines: config.rules.maxFileLines,
-    maxTestFileLines: config.rules.maxTestFileLines,
-    testCoverage: config.rules.testCoverage,
-    enforceMissingTests: config.rules.enforceMissingTests,
-    enforceNaming: config.rules.enforceNaming,
-    fileNamingValue: rootPkg.conventions?.fileNaming,
-    componentNaming: rootPkg.conventions?.componentNaming,
-    hookNaming: rootPkg.conventions?.hookNaming,
-    importAlias: rootPkg.conventions?.importAlias,
-    coverageSummaryPath: rootPkg.coverage?.summaryPath ?? 'coverage/coverage-summary.json',
-    coverageCommand: config.defaults?.coverage?.command,
-  };
-  await promptNamingMenu(state);
-  rootPkg.conventions = rootPkg.conventions ?? {};
-  config.rules.enforceNaming = state.enforceNaming;
-  if (state.fileNamingValue) {
-    rootPkg.conventions.fileNaming = state.fileNamingValue;
-  } else {
-    delete rootPkg.conventions.fileNaming;
-  }
-  rootPkg.conventions.componentNaming = state.componentNaming || undefined;
-  rootPkg.conventions.hookNaming = state.hookNaming || undefined;
-  rootPkg.conventions.importAlias = state.importAlias || undefined;
-}
 
 export async function handleFileNaming(
   config: ViberailsConfig,
@@ -204,18 +179,95 @@ export async function handleBoundaries(
   }
 }
 
-export async function handleIntegrations(state: InitMenuState, opts: MainMenuOpts): Promise<void> {
-  const result = await promptIntegrationsDeferred(
-    state.hookManager,
-    opts.tools,
-    opts.tools.packageManager,
-    opts.tools.isWorkspace,
-    opts.projectRoot,
-  );
-  state.visited.integrations = true;
-  state.integrations = result.choice;
-  state.deferredInstalls = state.deferredInstalls.filter((d) => !d.command.includes('lefthook'));
-  if (result.lefthookInstall) {
-    state.deferredInstalls.push(result.lefthookInstall);
+export async function handleAiContext(config: ViberailsConfig): Promise<void> {
+  const rootPkg = getRootPackage(config.packages);
+  rootPkg.conventions = rootPkg.conventions ?? {};
+
+  while (true) {
+    const ok = chalk.green('\u2713');
+    const unset = chalk.dim('-');
+
+    const options: { value: string; label: string; hint?: string }[] = [
+      {
+        value: 'componentNaming',
+        label: `${rootPkg.conventions.componentNaming ? ok : unset} Component exports`,
+        hint: rootPkg.conventions.componentNaming ?? 'not set',
+      },
+      {
+        value: 'hookNaming',
+        label: `${rootPkg.conventions.hookNaming ? ok : unset} Hook exports`,
+        hint: rootPkg.conventions.hookNaming ?? 'not set',
+      },
+      {
+        value: 'importAlias',
+        label: `${rootPkg.conventions.importAlias ? ok : unset} Import alias`,
+        hint: rootPkg.conventions.importAlias ?? 'not set',
+      },
+      { value: 'back', label: '  Back' },
+    ];
+
+    const choice = await clack.select({
+      message: 'AI context \u2014 conventions written to context.md for AI tools',
+      options,
+    });
+    if (isCancelled(choice) || choice === 'back') return;
+
+    if (choice === 'componentNaming') {
+      const selected = await clack.select({
+        message: 'Component export naming (e.g. UserProfile)',
+        options: [
+          ...COMPONENT_NAMING_OPTIONS,
+          { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
+        ],
+        initialValue: rootPkg.conventions.componentNaming ?? SENTINEL_CLEAR,
+      });
+      if (isCancelled(selected)) continue;
+      rootPkg.conventions.componentNaming = selected === SENTINEL_CLEAR ? undefined : selected;
+    }
+
+    if (choice === 'hookNaming') {
+      const selected = await clack.select({
+        message: 'Hook export naming (e.g. useAuth)',
+        options: [
+          ...HOOK_NAMING_OPTIONS,
+          { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
+        ],
+        initialValue: rootPkg.conventions.hookNaming ?? SENTINEL_CLEAR,
+      });
+      if (isCancelled(selected)) continue;
+      rootPkg.conventions.hookNaming = selected === SENTINEL_CLEAR ? undefined : selected;
+    }
+
+    if (choice === 'importAlias') {
+      const selected = await clack.select({
+        message: 'Import alias pattern',
+        options: [
+          { value: '@/*', label: '@/*', hint: "import { x } from '@/utils'" },
+          { value: '~/*', label: '~/*', hint: "import { x } from '~/utils'" },
+          { value: SENTINEL_CUSTOM, label: 'Custom...' },
+          { value: SENTINEL_CLEAR, label: 'Clear (no alias)' },
+        ],
+        initialValue: rootPkg.conventions.importAlias ?? SENTINEL_CLEAR,
+      });
+      if (isCancelled(selected)) continue;
+      if (selected === SENTINEL_CLEAR) {
+        rootPkg.conventions.importAlias = undefined;
+      } else if (selected === SENTINEL_CUSTOM) {
+        const result = await clack.text({
+          message: 'Custom import alias (e.g. #/*)?',
+          initialValue: rootPkg.conventions.importAlias ?? '',
+          placeholder: 'e.g. #/*',
+          validate: (v) => {
+            if (typeof v !== 'string' || !v.trim()) return 'Alias cannot be empty';
+            if (!/^[a-zA-Z@~#$][a-zA-Z0-9@~#$_-]*\/\*$/.test(v.trim()))
+              return 'Must match pattern like @/*, ~/*, or #src/*';
+          },
+        });
+        if (isCancelled(result)) continue;
+        rootPkg.conventions.importAlias = result.trim();
+      } else {
+        rootPkg.conventions.importAlias = selected;
+      }
+    }
   }
 }

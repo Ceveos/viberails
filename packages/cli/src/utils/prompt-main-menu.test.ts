@@ -30,25 +30,6 @@ vi.mock('./prompt-submenus.js', async (importOriginal) => {
   };
 });
 
-vi.mock('./prompt-integrations.js', async (importOriginal) => {
-  const orig = await importOriginal<typeof import('./prompt-integrations.js')>();
-  return {
-    ...orig,
-    promptIntegrationsDeferred: vi.fn(() =>
-      Promise.resolve({
-        choice: {
-          preCommitHook: true,
-          claudeCodeHook: false,
-          claudeMdRef: false,
-          githubAction: false,
-          typecheckHook: false,
-          lintHook: false,
-        },
-      }),
-    ),
-  };
-});
-
 vi.mock('./prompt-package-overrides.js', async (importOriginal) => {
   const orig = await importOriginal<typeof import('./prompt-package-overrides.js')>();
   return {
@@ -119,7 +100,6 @@ describe('promptMainMenu', () => {
     selectMock.mockResolvedValueOnce('done');
     const config = makeConfig();
     const state = await promptMainMenu(config, makeScanResult(), defaultOpts);
-    expect(state.visited.integrations).toBe(false);
     expect(state.deferredInstalls).toEqual([]);
   });
 
@@ -155,14 +135,6 @@ describe('promptMainMenu', () => {
       expect.stringContaining('No test runner'),
       'Coverage inactive',
     );
-  });
-
-  it('marks integrations as visited', async () => {
-    selectMock.mockResolvedValueOnce('integrations').mockResolvedValueOnce('done');
-    const config = makeConfig();
-    const state = await promptMainMenu(config, makeScanResult(), defaultOpts);
-    expect(state.visited.integrations).toBe(true);
-    expect(state.integrations).toBeDefined();
   });
 
   it('reset clears state when confirmed', async () => {
@@ -269,22 +241,6 @@ describe('promptMainMenu', () => {
     expect(state.deferredInstalls).toHaveLength(0);
   });
 
-  it('advancedNaming writes back enforceNaming and fileNamingValue', async () => {
-    const { promptNamingMenu } = await import('./prompt-submenus.js');
-    const namingMock = vi.mocked(promptNamingMenu);
-    namingMock.mockImplementationOnce(async (state) => {
-      state.enforceNaming = false;
-      state.fileNamingValue = undefined;
-      state.componentNaming = 'PascalCase';
-    });
-    selectMock.mockResolvedValueOnce('advancedNaming').mockResolvedValueOnce('done');
-    const config = makeConfig();
-    await promptMainMenu(config, makeScanResult(), defaultOpts);
-    expect(config.rules.enforceNaming).toBe(false);
-    expect(config.packages[0].conventions?.fileNaming).toBeUndefined();
-    expect(config.packages[0].conventions?.componentNaming).toBe('PascalCase');
-  });
-
   it('fileNaming sets convention on root package', async () => {
     selectMock
       .mockResolvedValueOnce('fileNaming')
@@ -326,41 +282,6 @@ describe('promptMainMenu', () => {
     await promptMainMenu(config, makeScanResult(), defaultOpts);
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('parse failed'));
     expect(config.rules.enforceBoundaries).toBe(false);
-  });
-
-  it('integrations removes lefthook install when deselected on revisit', async () => {
-    const { promptIntegrationsDeferred } = await import('./prompt-integrations.js');
-    const mock = vi.mocked(promptIntegrationsDeferred);
-    // First visit: includes lefthook
-    mock.mockResolvedValueOnce({
-      choice: {
-        preCommitHook: true,
-        claudeCodeHook: false,
-        claudeMdRef: false,
-        githubAction: false,
-        typecheckHook: false,
-        lintHook: false,
-      },
-      lefthookInstall: { label: 'Lefthook', command: 'pnpm add -D lefthook' },
-    });
-    // Second visit: no lefthook
-    mock.mockResolvedValueOnce({
-      choice: {
-        preCommitHook: true,
-        claudeCodeHook: false,
-        claudeMdRef: false,
-        githubAction: false,
-        typecheckHook: false,
-        lintHook: false,
-      },
-    });
-    selectMock
-      .mockResolvedValueOnce('integrations')
-      .mockResolvedValueOnce('integrations')
-      .mockResolvedValueOnce('done');
-    const config = makeConfig();
-    const state = await promptMainMenu(config, makeScanResult(), defaultOpts);
-    expect(state.deferredInstalls).toHaveLength(0);
   });
 
   it('packageOverrides delegates to promptPackageOverrides', async () => {
