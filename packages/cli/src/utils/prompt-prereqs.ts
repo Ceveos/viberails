@@ -17,65 +17,71 @@ export interface PrereqResolution {
   typecheckLabel: string | undefined;
 }
 
+type ItemStatus = 'ok' | 'missing' | 'skipped';
+
+interface ReadinessState {
+  testRunner: { status: ItemStatus; label?: string };
+  hookManager: { status: ItemStatus; label?: string };
+  linter: { status: 'ok' | 'none'; label?: string };
+  typecheck: { status: ItemStatus; label?: string; reason?: string };
+}
+
 function buildVitestInstallCommand(pm: string, isWorkspace: boolean): string {
   if (pm === 'yarn') return 'yarn add -D vitest';
   if (pm === 'npm') return 'npm install -D vitest';
   return isWorkspace ? 'pnpm add -D -w vitest' : 'pnpm add -D vitest';
 }
 
-/** Build the readiness note lines. Returns empty array if everything is detected. */
-export function buildReadinessLines(
-  hasTestRunner: boolean,
-  testRunnerName: string | undefined,
-  hookManager: string | undefined,
-  linterName: string | undefined,
-  typecheckResolved: { label?: string; reason?: string },
-): string[] {
-  const ok = chalk.green('\u2713');
-  const warn = chalk.yellow('!');
-  const dim = chalk.dim('-');
+function statusIcon(status: ItemStatus | 'none'): string {
+  if (status === 'ok') return chalk.green('\u2713');
+  if (status === 'missing') return chalk.yellow('!');
+  if (status === 'skipped') return chalk.dim('\u2717');
+  return chalk.dim('-'); // none
+}
 
+/** Build the readiness note content from current state. */
+export function buildReadinessNote(state: ReadinessState): string {
   const lines: string[] = [];
-  let hasMissing = false;
 
-  // Test runner
-  if (hasTestRunner) {
-    lines.push(`${ok} Test runner     ${testRunnerName ?? 'detected'}`);
+  const tr = state.testRunner;
+  lines.push(
+    `${statusIcon(tr.status)} Test runner     ${tr.label ?? (tr.status === 'skipped' ? 'skipped' : 'not detected')}`,
+  );
+
+  const hm = state.hookManager;
+  lines.push(
+    `${statusIcon(hm.status)} Hook manager    ${hm.label ?? (hm.status === 'skipped' ? 'skipped' : 'not detected')}`,
+  );
+
+  const li = state.linter;
+  lines.push(`${statusIcon(li.status)} Linter          ${li.label ?? 'none'}`);
+
+  const tc = state.typecheck;
+  if (tc.status === 'ok') {
+    lines.push(`${statusIcon('ok')} Typecheck       ${tc.label}`);
+  } else if (tc.status === 'skipped') {
+    lines.push(`${statusIcon('skipped')} Typecheck       skipped`);
   } else {
-    lines.push(`${warn} Test runner     not detected`);
-    hasMissing = true;
+    lines.push(
+      `${statusIcon('missing')} Typecheck       needs root tsconfig.json, typecheck script, or turbo task`,
+    );
   }
 
-  // Hook manager
-  if (hookManager) {
-    lines.push(`${ok} Hook manager    ${hookManager}`);
-  } else {
-    lines.push(`${warn} Hook manager    not detected`);
-    hasMissing = true;
-  }
+  return lines.join('\n');
+}
 
-  // Linter (informational only)
-  if (linterName) {
-    const name = linterName === 'biome' ? 'Biome' : linterName === 'eslint' ? 'ESLint' : linterName;
-    lines.push(`${ok} Linter          ${name}`);
-  } else {
-    lines.push(`${dim} Linter          none`);
-  }
-
-  // Typecheck (informational only)
-  if (typecheckResolved.label) {
-    lines.push(`${ok} Typecheck       ${typecheckResolved.label}`);
-  } else {
-    lines.push(`${warn} Typecheck       needs root tsconfig.json, typecheck script, or turbo task`);
-    hasMissing = true;
-  }
-
-  return hasMissing ? lines : [];
+/** Returns true if any items need attention. */
+function hasMissing(state: ReadinessState): boolean {
+  return (
+    state.testRunner.status === 'missing' ||
+    state.hookManager.status === 'missing' ||
+    state.typecheck.status === 'missing'
+  );
 }
 
 /**
  * Check prerequisites before entering the main menu.
- * Shows a readiness summary, then prompts to install missing tools.
+ * Shows an iterative readiness summary, prompting for each missing item.
  */
 export async function promptPrereqs(
   projectRoot: string,
@@ -90,22 +96,37 @@ export async function promptPrereqs(
   let skipHooks = false;
 
   const linterName = scanResult.stack.linter?.name;
+  const linterLabel =
+    linterName === 'biome' ? 'Biome' : linterName === 'eslint' ? 'ESLint' : linterName;
   const typecheckResolved = resolveTypecheckCommand(projectRoot, packageManager);
 
-  // Show readiness note if anything is missing
-  const lines = buildReadinessLines(
-    hasTestRunner,
-    scanResult.stack.testRunner?.name,
-    currentHookManager,
-    linterName,
-    typecheckResolved,
-  );
-  if (lines.length > 0) {
-    clack.note(lines.join('\n'), 'Project readiness');
+  const state: ReadinessState = {
+    testRunner: hasTestRunner
+      ? { status: 'ok', label: scanResult.stack.testRunner?.name }
+      : { status: 'missing' },
+    hookManager: currentHookManager
+      ? { status: 'ok', label: currentHookManager }
+      : { status: 'missing' },
+    linter: linterName ? { status: 'ok', label: linterLabel } : { status: 'none' },
+    typecheck: typecheckResolved.label
+      ? { status: 'ok', label: typecheckResolved.label }
+      : { status: 'missing', reason: typecheckResolved.reason },
+  };
+
+  // If everything is ready, skip the readiness screen entirely
+  if (!hasMissing(state)) {
+    return {
+      hasTestRunner,
+      hookManager: currentHookManager,
+      skipCoverage,
+      skipHooks,
+      typecheckLabel: typecheckResolved.label,
+    };
   }
 
-  // Prompt for installable items
-  if (!hasTestRunner) {
+  // --- Test runner ---
+  if (state.testRunner.status === 'missing') {
+    clack.note(buildReadinessNote(state), 'Project readiness');
     const cmd = buildVitestInstallCommand(packageManager, isWorkspace);
     const choice = await clack.select({
       message: 'No test runner detected. Coverage checks require one.',
@@ -124,20 +145,25 @@ export async function promptPrereqs(
       if (result.status === 0) {
         s.stop('Installed vitest');
         hasTestRunner = true;
+        state.testRunner = { status: 'ok', label: 'vitest' };
       } else {
         s.stop('Failed to install vitest');
         clack.log.warn(`Install manually: ${cmd}`);
         skipCoverage = true;
+        state.testRunner = { status: 'skipped' };
       }
     } else if (choice === 'skip') {
       skipCoverage = true;
+      state.testRunner = { status: 'skipped' };
     } else {
       clack.outro('Aborted.');
       process.exit(0);
     }
   }
 
-  if (!currentHookManager) {
+  // --- Hook manager ---
+  if (state.hookManager.status === 'missing') {
+    clack.note(buildReadinessNote(state), 'Project readiness');
     const cmd = buildLefthookInstallCommand(packageManager, isWorkspace);
     const choice = await clack.select({
       message: 'No git hook manager detected. Pre-commit integration requires one.',
@@ -160,17 +186,46 @@ export async function promptPrereqs(
           fs.writeFileSync(ymlPath, '# Managed by viberails\npre-commit:\n  commands: {}\n');
         }
         currentHookManager = detectHookManager(projectRoot);
+        state.hookManager = { status: 'ok', label: currentHookManager ?? 'lefthook' };
       } else {
         s.stop('Failed to install lefthook');
         clack.log.warn(`Install manually: ${cmd}`);
         skipHooks = true;
+        state.hookManager = { status: 'skipped' };
       }
     } else if (choice === 'skip') {
       skipHooks = true;
+      state.hookManager = { status: 'skipped' };
     } else {
       clack.outro('Aborted.');
       process.exit(0);
     }
+  }
+
+  // --- Typecheck (informational — not installable) ---
+  if (state.typecheck.status === 'missing') {
+    clack.note(buildReadinessNote(state), 'Project readiness');
+    const choice = await clack.select({
+      message:
+        'No typecheck command found. Without this, pre-commit and CI typecheck hooks will be unavailable.',
+      options: [
+        {
+          value: 'continue' as const,
+          label: 'Continue without typecheck',
+          hint: 'add a root tsconfig.json or typecheck script later, then re-run viberails',
+        },
+        { value: 'exit' as const, label: 'Exit \u2014 fix this first' },
+      ],
+    });
+    assertNotCancelled(choice);
+
+    if (choice === 'exit') {
+      clack.outro(
+        'Add a root tsconfig.json, a typecheck script, or a turbo typecheck task, then re-run viberails.',
+      );
+      process.exit(0);
+    }
+    state.typecheck = { status: 'skipped' };
   }
 
   return {
