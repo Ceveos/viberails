@@ -48,6 +48,24 @@ describe('promptIntegrationsDeferred', () => {
     expect(result.choice.preCommitHook).toBe(true);
   });
 
+  it('labels pre-commit without hook-manager name when no hook manager', async () => {
+    multiselectMock.mockResolvedValueOnce(['preCommit']);
+    await promptIntegrationsDeferred(undefined, undefined, 'pnpm');
+    const opts = multiselectMock.mock.calls[0][0].options;
+    const preCommit = opts.find((o: { value: string }) => o.value === 'preCommit');
+    expect(preCommit?.label).toBe('Pre-commit hook');
+    expect(preCommit?.hint).toContain('local git hook');
+  });
+
+  it('labels pre-commit with hook manager name when present', async () => {
+    multiselectMock.mockResolvedValueOnce(['preCommit']);
+    await promptIntegrationsDeferred('Lefthook');
+    const opts = multiselectMock.mock.calls[0][0].options;
+    const preCommit = opts.find((o: { value: string }) => o.value === 'preCommit');
+    expect(preCommit?.label).toBe('Pre-commit hook (Lefthook)');
+    expect(preCommit?.hint).toBe('runs viberails checks when you commit');
+  });
+
   it('omits installLefthook when hook manager exists', async () => {
     multiselectMock.mockResolvedValueOnce(['preCommit']);
     const result = await promptIntegrationsDeferred('Lefthook');

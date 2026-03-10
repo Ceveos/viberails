@@ -145,9 +145,11 @@ async function initInteractive(
 
   // Setup integrations (only if user visited the integrations menu)
   if (state.visited.integrations && state.integrations) {
+    const lefthookExpected = state.deferredInstalls.some((d) => d.command.includes('lefthook'));
     setupSelectedIntegrations(projectRoot, state.integrations, {
       linter: rootPkgStack?.linter?.split('@')[0],
       packageManager: rootPkgStack?.packageManager?.split('@')[0],
+      lefthookExpected,
     });
   }
 

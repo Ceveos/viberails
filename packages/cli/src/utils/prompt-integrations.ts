@@ -63,9 +63,9 @@ export async function promptIntegrationsDeferred(
     });
   }
 
-  const hookLabel = hookManager ? `Pre-commit hook (${hookManager})` : 'Pre-commit hook (Lefthook)';
+  const hookLabel = hookManager ? `Pre-commit hook (${hookManager})` : 'Pre-commit hook';
   const hookHint = needsLefthook
-    ? 'requires Lefthook install above'
+    ? 'uses Lefthook if installed above, otherwise local git hook'
     : 'runs viberails checks when you commit';
 
   options.push({ value: 'preCommit', label: hookLabel, hint: hookHint });
