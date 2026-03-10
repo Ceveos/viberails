@@ -1,4 +1,5 @@
 import * as clack from '@clack/prompts';
+import chalk from 'chalk';
 import { isCancelled } from './prompt.js';
 import { HINT_NOT_SET, SENTINEL_CLEAR, SENTINEL_CUSTOM } from './prompt-constants.js';
 import type { RuleOverrides } from './prompt-rules.js';
@@ -76,7 +77,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
       {
         value: 'enforceNaming',
         label: 'Enforce file naming',
-        hint: state.enforceNaming ? 'yes' : 'no',
+        hint: state.enforceNaming ? chalk.green('yes') : chalk.dim('no'),
       },
     ];
 
@@ -208,7 +209,7 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
       {
         value: 'enforceMissingTests',
         label: 'Enforce missing tests',
-        hint: state.enforceMissingTests ? 'yes' : 'no',
+        hint: state.enforceMissingTests ? chalk.green('yes') : chalk.dim('no'),
       },
       {
         value: 'testCoverage',

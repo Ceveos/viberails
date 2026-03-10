@@ -80,13 +80,13 @@ export function integrationsHint(state: InitMenuState): string {
   if (!state.visited.integrations || !state.integrations)
     return 'not configured \u2014 select to set up';
   const items: string[] = [];
-  if (state.integrations.preCommitHook) items.push('pre-commit');
-  if (state.integrations.typecheckHook) items.push('typecheck');
-  if (state.integrations.lintHook) items.push('lint');
-  if (state.integrations.claudeCodeHook) items.push('Claude');
-  if (state.integrations.claudeMdRef) items.push('CLAUDE.md');
-  if (state.integrations.githubAction) items.push('CI');
-  return items.length > 0 ? items.join(' \u00b7 ') : 'none selected';
+  if (state.integrations.preCommitHook) items.push(chalk.green('pre-commit'));
+  if (state.integrations.typecheckHook) items.push(chalk.green('typecheck'));
+  if (state.integrations.lintHook) items.push(chalk.green('lint'));
+  if (state.integrations.claudeCodeHook) items.push(chalk.green('Claude'));
+  if (state.integrations.claudeMdRef) items.push(chalk.green('CLAUDE.md'));
+  if (state.integrations.githubAction) items.push(chalk.green('CI'));
+  return items.length > 0 ? items.join(chalk.dim(' \u00b7 ')) : 'none selected';
 }
 
 /** @internal Exported for testing. */
@@ -202,7 +202,7 @@ export function buildMainMenuOptions(
   options.push(
     { value: 'integrations', label: `${iIcon} Integrations`, hint: integrationsHint(state) },
     { value: 'reset', label: '  Reset all to defaults' },
-    { value: 'review', label: '  Review scan details' },
+    { value: 'review', label: '  Review scan details', hint: 'detected stack & conventions' },
     { value: 'done', label: '  Done \u2014 write config' },
   );
 

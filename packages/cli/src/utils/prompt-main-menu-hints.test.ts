@@ -208,7 +208,10 @@ describe('integrationsHint', () => {
         lintHook: false,
       },
     });
-    expect(integrationsHint(state)).toBe('pre-commit \u00b7 Claude');
+    const hint = integrationsHint(state);
+    expect(hint).toContain('pre-commit');
+    expect(hint).toContain('Claude');
+    expect(hint).toContain('\u00b7');
   });
 });
 
