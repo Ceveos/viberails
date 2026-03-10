@@ -251,9 +251,3 @@ async function promptSinglePackageOverrides(
     }
   }
 }
-
-/**
- * @deprecated Use promptPackageOverrides instead.
- * Kept for backwards compatibility with existing imports.
- */
-export const promptPackageCoverageOverrides = promptPackageOverrides;

@@ -116,4 +116,61 @@ describe('promptPackageOverrides', () => {
     const web = result.find((pkg) => pkg.path === 'apps/web');
     expect(web?.conventions?.fileNaming).toBeUndefined();
   });
+
+  it('sets per-package maxFileLines override', async () => {
+    const packages: PackageConfig[] = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web' },
+    ];
+
+    selectMock
+      .mockResolvedValueOnce('apps/web')
+      .mockResolvedValueOnce('maxFileLines')
+      .mockResolvedValueOnce('back')
+      .mockResolvedValueOnce('__done__');
+    textMock.mockResolvedValueOnce('500');
+
+    const result = await promptPackageOverrides(packages, defaults);
+
+    const web = result.find((pkg) => pkg.path === 'apps/web');
+    expect(web?.rules?.maxFileLines).toBe(500);
+  });
+
+  it('exempts package from naming checks via __none__', async () => {
+    const packages: PackageConfig[] = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web' },
+    ];
+
+    selectMock
+      .mockResolvedValueOnce('apps/web')
+      .mockResolvedValueOnce('fileNaming')
+      .mockResolvedValueOnce('__none__')
+      .mockResolvedValueOnce('back')
+      .mockResolvedValueOnce('__done__');
+
+    const result = await promptPackageOverrides(packages, defaults);
+
+    const web = result.find((pkg) => pkg.path === 'apps/web');
+    expect(web?.conventions?.fileNaming).toBe('');
+  });
+
+  it('clears maxFileLines when input matches default', async () => {
+    const packages: PackageConfig[] = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web', rules: { maxFileLines: 500 } },
+    ];
+
+    selectMock
+      .mockResolvedValueOnce('apps/web')
+      .mockResolvedValueOnce('maxFileLines')
+      .mockResolvedValueOnce('back')
+      .mockResolvedValueOnce('__done__');
+    textMock.mockResolvedValueOnce('300');
+
+    const result = await promptPackageOverrides(packages, defaults);
+
+    const web = result.find((pkg) => pkg.path === 'apps/web');
+    expect(web?.rules?.maxFileLines).toBeUndefined();
+  });
 });

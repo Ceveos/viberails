@@ -1,9 +1,225 @@
-import { describe, expect, it } from 'vitest';
-import { FILE_NAMING_OPTIONS } from './prompt-submenus.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { RuleOverrides } from './prompt-rules.js';
+import {
+  FILE_NAMING_OPTIONS,
+  promptFileLimitsMenu,
+  promptNamingMenu,
+  promptTestingMenu,
+} from './prompt-submenus.js';
+
+const { selectMock, textMock, confirmMock, isCancelMock } = vi.hoisted(() => ({
+  selectMock: vi.fn(),
+  textMock: vi.fn(),
+  confirmMock: vi.fn(),
+  isCancelMock: vi.fn((value: unknown) => value === '__cancel__'),
+}));
+
+vi.mock('@clack/prompts', () => ({
+  select: selectMock,
+  text: textMock,
+  confirm: confirmMock,
+  cancel: vi.fn(),
+  isCancel: isCancelMock,
+}));
+
+function makeState(overrides: Partial<RuleOverrides> = {}): RuleOverrides {
+  return {
+    maxFileLines: 300,
+    maxTestFileLines: 0,
+    testCoverage: 80,
+    enforceMissingTests: true,
+    enforceNaming: true,
+    fileNamingValue: 'kebab-case',
+    coverageSummaryPath: 'coverage/coverage-summary.json',
+    ...overrides,
+  };
+}
 
 describe('FILE_NAMING_OPTIONS', () => {
   it('contains the four standard naming conventions', () => {
     const values = FILE_NAMING_OPTIONS.map((o) => o.value);
     expect(values).toEqual(['kebab-case', 'camelCase', 'PascalCase', 'snake_case']);
+  });
+});
+
+describe('promptFileLimitsMenu', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    textMock.mockReset();
+  });
+
+  it('returns immediately when user selects back', async () => {
+    selectMock.mockResolvedValueOnce('back');
+    const state = makeState();
+    await promptFileLimitsMenu(state);
+    expect(state.maxFileLines).toBe(300);
+  });
+
+  it('updates maxFileLines via text input', async () => {
+    selectMock.mockResolvedValueOnce('maxFileLines').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('250');
+    const state = makeState();
+    await promptFileLimitsMenu(state);
+    expect(state.maxFileLines).toBe(250);
+  });
+
+  it('updates maxTestFileLines via text input', async () => {
+    selectMock.mockResolvedValueOnce('maxTestFileLines').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('500');
+    const state = makeState();
+    await promptFileLimitsMenu(state);
+    expect(state.maxTestFileLines).toBe(500);
+  });
+});
+
+describe('promptNamingMenu', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    textMock.mockReset();
+    confirmMock.mockReset();
+  });
+
+  it('returns immediately when user selects back', async () => {
+    selectMock.mockResolvedValueOnce('back');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.enforceNaming).toBe(true);
+  });
+
+  it('toggles enforceNaming off', async () => {
+    selectMock.mockResolvedValueOnce('enforceNaming').mockResolvedValueOnce('back');
+    confirmMock.mockResolvedValueOnce(false);
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.enforceNaming).toBe(false);
+  });
+
+  it('toggles enforceNaming on and auto-prompts for convention when none set', async () => {
+    selectMock
+      .mockResolvedValueOnce('enforceNaming')
+      .mockResolvedValueOnce('camelCase') // auto-prompted naming select
+      .mockResolvedValueOnce('back');
+    confirmMock.mockResolvedValueOnce(true);
+    const state = makeState({ enforceNaming: false, fileNamingValue: undefined });
+    await promptNamingMenu(state);
+    expect(state.enforceNaming).toBe(true);
+    expect(state.fileNamingValue).toBe('camelCase');
+  });
+
+  it('does not auto-prompt when fileNamingValue already set', async () => {
+    selectMock.mockResolvedValueOnce('enforceNaming').mockResolvedValueOnce('back');
+    confirmMock.mockResolvedValueOnce(true);
+    const state = makeState({ enforceNaming: false, fileNamingValue: 'kebab-case' });
+    await promptNamingMenu(state);
+    expect(state.enforceNaming).toBe(true);
+    // select should only be called twice (enforceNaming choice + back), not 3 times
+    expect(selectMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('updates fileNamingValue via naming option', async () => {
+    selectMock
+      .mockResolvedValueOnce('fileNaming')
+      .mockResolvedValueOnce('PascalCase')
+      .mockResolvedValueOnce('back');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.fileNamingValue).toBe('PascalCase');
+  });
+
+  it('sets componentNaming via text input', async () => {
+    selectMock.mockResolvedValueOnce('componentNaming').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('PascalCase');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.componentNaming).toBe('PascalCase');
+  });
+
+  it('clears componentNaming when blank input', async () => {
+    selectMock.mockResolvedValueOnce('componentNaming').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('  ');
+    const state = makeState({ componentNaming: 'PascalCase' });
+    await promptNamingMenu(state);
+    expect(state.componentNaming).toBeUndefined();
+  });
+
+  it('sets hookNaming via text input', async () => {
+    selectMock.mockResolvedValueOnce('hookNaming').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('useXxx');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.hookNaming).toBe('useXxx');
+  });
+
+  it('sets importAlias via text input', async () => {
+    selectMock.mockResolvedValueOnce('importAlias').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('@/*');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.importAlias).toBe('@/*');
+  });
+});
+
+describe('promptTestingMenu', () => {
+  beforeEach(() => {
+    selectMock.mockReset();
+    textMock.mockReset();
+    confirmMock.mockReset();
+  });
+
+  it('returns immediately when user selects back', async () => {
+    selectMock.mockResolvedValueOnce('back');
+    const state = makeState();
+    await promptTestingMenu(state);
+    expect(state.testCoverage).toBe(80);
+  });
+
+  it('toggles enforceMissingTests', async () => {
+    selectMock.mockResolvedValueOnce('enforceMissingTests').mockResolvedValueOnce('back');
+    confirmMock.mockResolvedValueOnce(false);
+    const state = makeState();
+    await promptTestingMenu(state);
+    expect(state.enforceMissingTests).toBe(false);
+  });
+
+  it('updates testCoverage via text input', async () => {
+    selectMock.mockResolvedValueOnce('testCoverage').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('90');
+    const state = makeState();
+    await promptTestingMenu(state);
+    expect(state.testCoverage).toBe(90);
+  });
+
+  it('updates coverageSummaryPath when coverage is enabled', async () => {
+    selectMock.mockResolvedValueOnce('coverageSummaryPath').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('custom/path.json');
+    const state = makeState();
+    await promptTestingMenu(state);
+    expect(state.coverageSummaryPath).toBe('custom/path.json');
+  });
+
+  it('updates coverageCommand', async () => {
+    selectMock.mockResolvedValueOnce('coverageCommand').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('pnpm test:coverage');
+    const state = makeState();
+    await promptTestingMenu(state);
+    expect(state.coverageCommand).toBe('pnpm test:coverage');
+  });
+
+  it('clears coverageCommand when blank input', async () => {
+    selectMock.mockResolvedValueOnce('coverageCommand').mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('  ');
+    const state = makeState({ coverageCommand: 'old-command' });
+    await promptTestingMenu(state);
+    expect(state.coverageCommand).toBeUndefined();
+  });
+
+  it('hides coverage path and command when coverage is disabled', async () => {
+    selectMock.mockResolvedValueOnce('back');
+    const state = makeState({ testCoverage: 0 });
+    await promptTestingMenu(state);
+    const options = selectMock.mock.calls[0][0].options;
+    const values = options.map((o: { value: string }) => o.value);
+    expect(values).not.toContain('coverageSummaryPath');
+    expect(values).not.toContain('coverageCommand');
   });
 });

@@ -52,7 +52,7 @@ export async function resolveNamingDefault(
  * @param isMonorepo - Whether the project is a monorepo
  * @returns The chosen naming convention, or '__skip__' to disable enforcement
  */
-export async function promptNamingDefault(
+async function promptNamingDefault(
   pkgNamingData: PackageNamingInfo[],
   isMonorepo: boolean,
 ): Promise<string> {

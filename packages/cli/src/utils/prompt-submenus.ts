@@ -107,9 +107,9 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         initialValue: state.enforceNaming,
       });
       assertNotCancelled(result);
-      state.enforceNaming = result;
 
       if (result && !state.fileNamingValue) {
+        // Must pick a convention before enabling enforcement
         const selected = await clack.select({
           message: 'Which file naming convention should be enforced?',
           options: [...FILE_NAMING_OPTIONS],
@@ -117,6 +117,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         assertNotCancelled(selected);
         state.fileNamingValue = selected;
       }
+      state.enforceNaming = result;
     }
 
     if (choice === 'fileNaming') {

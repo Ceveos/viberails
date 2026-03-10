@@ -4,7 +4,7 @@ import { promptPackageOverrides } from './prompt-package-overrides.js';
 import type { RuleOverrides } from './prompt-rules.js';
 import { promptFileLimitsMenu, promptNamingMenu, promptTestingMenu } from './prompt-submenus.js';
 
-export function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
+function getPackageDiffs(pkg: PackageConfig, root: PackageConfig): string[] {
   const diffs: string[] = [];
 
   const convKeys = ['fileNaming', 'componentNaming', 'hookNaming', 'importAlias'] as const;
