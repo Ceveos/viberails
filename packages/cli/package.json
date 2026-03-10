@@ -1,6 +1,6 @@
 {
   "name": "viberails",
-  "version": "0.6.9",
+  "version": "0.6.10",
   "description": "CLI tool for scanning JS/TS projects and generating AI context",
   "type": "module",
   "main": "./dist/index.cjs",
