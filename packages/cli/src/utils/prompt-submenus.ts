@@ -77,7 +77,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
       {
         value: 'enforceNaming',
         label: 'Enforce file naming',
-        hint: state.enforceNaming ? chalk.green('yes') : chalk.dim('no'),
+        hint: state.enforceNaming ? chalk.green('\u2713') : chalk.dim('\u2717'),
       },
     ];
 
@@ -209,7 +209,7 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
       {
         value: 'enforceMissingTests',
         label: 'Enforce missing tests',
-        hint: state.enforceMissingTests ? chalk.green('yes') : chalk.dim('no'),
+        hint: state.enforceMissingTests ? chalk.green('\u2713') : chalk.dim('\u2717'),
       },
       {
         value: 'testCoverage',

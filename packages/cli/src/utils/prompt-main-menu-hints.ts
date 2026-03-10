@@ -27,8 +27,8 @@ export function fileNamingHint(config: ViberailsConfig, scanResult: ScanResult):
 }
 
 /** @internal Exported for testing. */
-export function fileNamingStatus(config: ViberailsConfig): 'ok' | 'needs-input' | 'disabled' {
-  if (!config.rules.enforceNaming) return 'disabled';
+export function fileNamingStatus(config: ViberailsConfig): 'ok' | 'needs-input' | 'unconfigured' {
+  if (!config.rules.enforceNaming) return 'unconfigured';
   const rootPkg = getRootPackage(config.packages);
   return rootPkg.conventions?.fileNaming ? 'ok' : 'needs-input';
 }
@@ -114,15 +114,15 @@ export function boundariesHint(config: ViberailsConfig, state: InitMenuState): s
   return `${ruleCount} rules across ${pkgCount} packages`;
 }
 
-function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'disabled' | 'unconfigured' {
-  if (!config.rules.enforceNaming) return 'disabled';
+function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'partial' | 'unconfigured' {
+  if (!config.rules.enforceNaming) return 'unconfigured';
   const rootPkg = getRootPackage(config.packages);
-  const hasAny =
-    !!rootPkg.conventions?.fileNaming ||
-    !!rootPkg.conventions?.componentNaming ||
-    !!rootPkg.conventions?.hookNaming ||
-    !!rootPkg.conventions?.importAlias;
-  return hasAny ? 'ok' : 'unconfigured';
+  const hasFile = !!rootPkg.conventions?.fileNaming;
+  const hasComp = !!rootPkg.conventions?.componentNaming;
+  const hasHook = !!rootPkg.conventions?.hookNaming;
+  const hasAlias = !!rootPkg.conventions?.importAlias;
+  if (hasFile && hasComp && hasHook && hasAlias) return 'ok';
+  return 'partial';
 }
 
 function packageOverridesStatus(config: ViberailsConfig): 'ok' | 'unconfigured' {
@@ -137,11 +137,11 @@ function packageOverridesStatus(config: ViberailsConfig): 'ok' | 'unconfigured' 
   return customized ? 'ok' : 'unconfigured';
 }
 
-function statusIcon(status: 'ok' | 'needs-input' | 'disabled' | 'unconfigured'): string {
+function statusIcon(status: 'ok' | 'needs-input' | 'partial' | 'unconfigured'): string {
   if (status === 'ok') return chalk.green('\u2713');
   if (status === 'needs-input') return chalk.yellow('?');
   if (status === 'unconfigured') return chalk.dim('-');
-  return chalk.yellow('~');
+  return chalk.yellow('~'); // partial
 }
 
 /** @internal Exported for testing. */
@@ -152,8 +152,8 @@ export function buildMainMenuOptions(
 ): { value: string; label: string; hint?: string }[] {
   const namingStatus = fileNamingStatus(config);
   const coverageStatus =
-    config.rules.testCoverage === 0 ? 'disabled' : !state.hasTestRunner ? 'disabled' : 'ok';
-  const missingTestsStatus = config.rules.enforceMissingTests ? 'ok' : 'disabled';
+    config.rules.testCoverage === 0 ? 'unconfigured' : !state.hasTestRunner ? 'partial' : 'ok';
+  const missingTestsStatus = config.rules.enforceMissingTests ? 'ok' : 'unconfigured';
 
   const options: { value: string; label: string; hint?: string }[] = [
     {

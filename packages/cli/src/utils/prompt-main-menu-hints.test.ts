@@ -111,10 +111,10 @@ describe('fileNamingStatus', () => {
     expect(fileNamingStatus(config)).toBe('needs-input');
   });
 
-  it('returns disabled when enforce is off', () => {
+  it('returns unconfigured when enforce is off', () => {
     const config = makeConfig();
     config.rules.enforceNaming = false;
-    expect(fileNamingStatus(config)).toBe('disabled');
+    expect(fileNamingStatus(config)).toBe('unconfigured');
   });
 });
 
@@ -288,10 +288,17 @@ describe('buildMainMenuOptions', () => {
     expect(naming?.label).toContain('?');
   });
 
-  it('uses ~ icon for disabled coverage', () => {
+  it('uses - icon for unconfigured coverage when testCoverage is 0', () => {
     const config = makeConfig();
     config.rules.testCoverage = 0;
     const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const cov = opts.find((o) => o.value === 'coverage');
+    expect(cov?.label).toContain('-');
+  });
+
+  it('uses ~ icon for partial coverage when no test runner', () => {
+    const state = makeState({ hasTestRunner: false });
+    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), state);
     const cov = opts.find((o) => o.value === 'coverage');
     expect(cov?.label).toContain('~');
   });
@@ -309,26 +316,39 @@ describe('buildMainMenuOptions', () => {
     expect(item?.label).toContain('✓');
   });
 
-  it('uses ✓ icon for advanced naming when file naming is set', () => {
+  it('uses ~ icon for advanced naming when only file naming is set', () => {
     const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
-    const item = opts.find((o) => o.value === 'advancedNaming');
-    expect(item?.label).toContain('✓');
-  });
-
-  it('uses ~ icon for advanced naming when enforce naming is off', () => {
-    const config = makeConfig();
-    config.rules.enforceNaming = false;
-    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
     const item = opts.find((o) => o.value === 'advancedNaming');
     expect(item?.label).toContain('~');
   });
 
-  it('uses - icon for advanced naming when enforced but no conventions set', () => {
+  it('uses ✓ icon for advanced naming when all conventions are set', () => {
+    const config = makeConfig();
+    config.packages[0].conventions = {
+      fileNaming: 'kebab-case',
+      componentNaming: 'PascalCase',
+      hookNaming: 'useXxx',
+      importAlias: '@/*',
+    };
+    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'advancedNaming');
+    expect(item?.label).toContain('✓');
+  });
+
+  it('uses - icon for advanced naming when enforce naming is off', () => {
+    const config = makeConfig();
+    config.rules.enforceNaming = false;
+    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'advancedNaming');
+    expect(item?.label).toContain('-');
+  });
+
+  it('uses ~ icon for advanced naming when enforced but not all conventions set', () => {
     const config = makeConfig();
     config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
     config.rules.enforceNaming = true;
     const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
     const item = opts.find((o) => o.value === 'advancedNaming');
-    expect(item?.label).toContain('-');
+    expect(item?.label).toContain('~');
   });
 });

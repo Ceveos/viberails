@@ -89,14 +89,7 @@ async function initInteractive(
     );
   }
 
-  // Pre-menu: informational notes
   const hasTestRunner = !!scanResult.stack.testRunner;
-  if (!hasTestRunner) {
-    clack.log.info(
-      'No test runner detected. Coverage checks are inactive until a test runner is installed.\n' +
-        'Install a test runner (e.g. vitest) and re-run viberails init.',
-    );
-  }
 
   // Prerequisites detection (no prompts yet — handled in menu)
   const hookManager = detectHookManager(projectRoot);
