@@ -287,6 +287,7 @@ async function handleIntegrations(state: InitMenuState, opts: MainMenuOpts): Pro
     opts.tools,
     opts.tools.packageManager,
     opts.tools.isWorkspace,
+    opts.projectRoot,
   );
   state.visited.integrations = true;
   state.integrations = result.choice;

@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildLefthookInstallCommand, promptIntegrationsDeferred } from './prompt-integrations.js';
 
@@ -57,5 +60,33 @@ describe('promptIntegrationsDeferred', () => {
     multiselectMock.mockResolvedValueOnce(['preCommit']);
     const result = await promptIntegrationsDeferred(undefined, undefined, 'npm');
     expect(result.lefthookInstall).toBeUndefined();
+  });
+
+  it('lefthook onSuccess creates lefthook.yml when projectRoot is provided', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-test-'));
+    try {
+      multiselectMock.mockResolvedValueOnce(['installLefthook', 'preCommit']);
+      const result = await promptIntegrationsDeferred(undefined, undefined, 'pnpm', false, tmpDir);
+      const onSuccess = result.lefthookInstall?.onSuccess;
+      expect(onSuccess).toBeDefined();
+      onSuccess?.();
+      expect(fs.existsSync(path.join(tmpDir, 'lefthook.yml'))).toBe(true);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  it('lefthook onSuccess does not overwrite existing lefthook.yml', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'viberails-test-'));
+    const ymlPath = path.join(tmpDir, 'lefthook.yml');
+    fs.writeFileSync(ymlPath, 'existing: content\n');
+    try {
+      multiselectMock.mockResolvedValueOnce(['installLefthook', 'preCommit']);
+      const result = await promptIntegrationsDeferred(undefined, undefined, 'pnpm', false, tmpDir);
+      result.lefthookInstall?.onSuccess?.();
+      expect(fs.readFileSync(ymlPath, 'utf-8')).toBe('existing: content\n');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true });
+    }
   });
 });

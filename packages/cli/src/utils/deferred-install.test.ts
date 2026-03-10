@@ -54,6 +54,30 @@ describe('executeDeferredInstalls', () => {
     expect(onFailure).toHaveBeenCalledOnce();
   });
 
+  it('calls onSuccess when install succeeds', async () => {
+    spawnAsyncMock.mockResolvedValue({ status: 0, stdout: '', stderr: '' });
+    const onSuccess = vi.fn();
+
+    const installs: DeferredInstall[] = [
+      { label: 'pkg-a', command: 'npm install pkg-a', onSuccess },
+    ];
+
+    await executeDeferredInstalls('/project', installs);
+    expect(onSuccess).toHaveBeenCalledOnce();
+  });
+
+  it('does not call onSuccess when install fails', async () => {
+    spawnAsyncMock.mockResolvedValue({ status: 1, stdout: '', stderr: 'error' });
+    const onSuccess = vi.fn();
+
+    const installs: DeferredInstall[] = [
+      { label: 'pkg-a', command: 'npm install pkg-a', onSuccess },
+    ];
+
+    await executeDeferredInstalls('/project', installs);
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
   it('continues after a failed install', async () => {
     spawnAsyncMock
       .mockResolvedValueOnce({ status: 1, stdout: '', stderr: 'error' })

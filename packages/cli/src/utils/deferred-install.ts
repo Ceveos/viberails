@@ -6,6 +6,8 @@ export interface DeferredInstall {
   label: string;
   /** Shell command to execute (e.g. "pnpm add -D -w @vitest/coverage-v8") */
   command: string;
+  /** Callback to run on install success (e.g., create config files) */
+  onSuccess?: () => void;
   /** Callback to run on install failure (e.g., disable coverage in config) */
   onFailure?: () => void;
 }
@@ -33,6 +35,7 @@ export async function executeDeferredInstalls(
 
     if (result.status === 0) {
       s.stop(`Installed ${install.label}`);
+      install.onSuccess?.();
       successCount++;
     } else {
       s.stop(`Failed to install ${install.label}`);
