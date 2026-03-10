@@ -11,6 +11,7 @@ export interface IntegrationChoice {
 
 export interface DetectedTools {
   isTypeScript?: boolean;
+  hasTypecheckCommand?: boolean;
   linter?: string;
   packageManager?: string;
   isWorkspace?: boolean;
@@ -45,7 +46,7 @@ export async function promptIntegrationsDeferred(
 
   options.push({ value: 'preCommit', label: hookLabel, hint: hookHint });
 
-  if (tools?.isTypeScript) {
+  if (tools?.isTypeScript && tools.hasTypecheckCommand !== false) {
     options.push({
       value: 'typecheck',
       label: 'Typecheck (tsc --noEmit)',

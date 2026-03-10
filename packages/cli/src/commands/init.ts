@@ -17,6 +17,7 @@ import { configCommand } from './config.js';
 import { detectHookManager } from './init-hooks.js';
 import { setupSelectedIntegrations } from './init-hooks-extra.js';
 import { initNonInteractive } from './init-non-interactive.js';
+import { resolveTypecheckCommand } from './resolve-typecheck.js';
 
 const CONFIG_FILE = 'viberails.config.json';
 
@@ -133,8 +134,12 @@ async function initInteractive(
   }
 
   // Integrations — prompt after config is finalized
+  const isTypeScript = rootPkgStack?.language?.split('@')[0] === 'typescript';
   const integrations = await promptIntegrationsDeferred(prereqs.hookManager, {
-    isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
+    isTypeScript,
+    hasTypecheckCommand: isTypeScript
+      ? !!resolveTypecheckCommand(projectRoot, packageManager).command
+      : false,
     linter: rootPkgStack?.linter?.split('@')[0],
     packageManager,
     isWorkspace,
