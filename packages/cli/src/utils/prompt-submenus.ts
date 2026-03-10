@@ -1,6 +1,6 @@
 import * as clack from '@clack/prompts';
-import { assertNotCancelled } from './prompt.js';
-import { SENTINEL_CLEAR, SENTINEL_CUSTOM } from './prompt-constants.js';
+import { isCancelled } from './prompt.js';
+import { HINT_NOT_SET, SENTINEL_CLEAR, SENTINEL_CUSTOM } from './prompt-constants.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 export const FILE_NAMING_OPTIONS = [
@@ -37,8 +37,7 @@ export async function promptFileLimitsMenu(
         { value: 'back', label: 'Back' },
       ],
     });
-    assertNotCancelled(choice);
-    if (choice === 'back') return;
+    if (isCancelled(choice) || choice === 'back') return;
 
     if (choice === 'maxFileLines') {
       const result = await clack.text({
@@ -50,7 +49,7 @@ export async function promptFileLimitsMenu(
           if (Number.isNaN(n) || n < 1) return 'Enter a positive number';
         },
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       state.maxFileLines = Number.parseInt(result, 10);
     }
 
@@ -64,7 +63,7 @@ export async function promptFileLimitsMenu(
           if (Number.isNaN(n) || n < 0) return 'Enter a number (0 or positive)';
         },
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       state.maxTestFileLines = Number.parseInt(result, 10);
     }
   }
@@ -85,7 +84,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
       options.push({
         value: 'fileNaming',
         label: 'File naming convention',
-        hint: state.fileNamingValue ?? '(not set)',
+        hint: state.fileNamingValue ?? HINT_NOT_SET,
       });
     }
 
@@ -93,24 +92,23 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
       {
         value: 'componentNaming',
         label: 'Component naming',
-        hint: state.componentNaming ?? '(not set)',
+        hint: state.componentNaming ?? HINT_NOT_SET,
       },
       {
         value: 'hookNaming',
         label: 'Hook naming',
-        hint: state.hookNaming ?? '(not set)',
+        hint: state.hookNaming ?? HINT_NOT_SET,
       },
       {
         value: 'importAlias',
         label: 'Import alias',
-        hint: state.importAlias ?? '(not set)',
+        hint: state.importAlias ?? HINT_NOT_SET,
       },
       { value: 'back', label: 'Back' },
     );
 
     const choice = await clack.select({ message: 'Naming & conventions', options });
-    assertNotCancelled(choice);
-    if (choice === 'back') return;
+    if (isCancelled(choice) || choice === 'back') return;
 
     if (choice === 'enforceNaming') {
       const result = await clack.confirm({
@@ -119,7 +117,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
           : 'Enforce file naming?',
         initialValue: state.enforceNaming,
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
 
       if (result && !state.fileNamingValue) {
         // Must pick a convention before enabling enforcement
@@ -127,7 +125,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
           message: 'Which file naming convention should be enforced?',
           options: [...FILE_NAMING_OPTIONS],
         });
-        assertNotCancelled(selected);
+        if (isCancelled(selected)) continue;
         state.fileNamingValue = selected;
       }
       state.enforceNaming = result;
@@ -139,7 +137,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         options: [...FILE_NAMING_OPTIONS],
         initialValue: state.fileNamingValue,
       });
-      assertNotCancelled(selected);
+      if (isCancelled(selected)) continue;
       state.fileNamingValue = selected;
     }
 
@@ -152,7 +150,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         ],
         initialValue: state.componentNaming ?? SENTINEL_CLEAR,
       });
-      assertNotCancelled(selected);
+      if (isCancelled(selected)) continue;
       state.componentNaming = selected === SENTINEL_CLEAR ? undefined : selected;
     }
 
@@ -165,7 +163,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         ],
         initialValue: state.hookNaming ?? SENTINEL_CLEAR,
       });
-      assertNotCancelled(selected);
+      if (isCancelled(selected)) continue;
       state.hookNaming = selected === SENTINEL_CLEAR ? undefined : selected;
     }
 
@@ -180,7 +178,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
         ],
         initialValue: state.importAlias ?? SENTINEL_CLEAR,
       });
-      assertNotCancelled(selected);
+      if (isCancelled(selected)) continue;
       if (selected === SENTINEL_CLEAR) {
         state.importAlias = undefined;
       } else if (selected === SENTINEL_CUSTOM) {
@@ -194,7 +192,7 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
               return 'Must match pattern like @/*, ~/*, or #src/*';
           },
         });
-        assertNotCancelled(result);
+        if (isCancelled(result)) continue;
         state.importAlias = result.trim();
       } else {
         state.importAlias = selected;
@@ -237,15 +235,14 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
     options.push({ value: 'back', label: 'Back' });
 
     const choice = await clack.select({ message: 'Testing & coverage', options });
-    assertNotCancelled(choice);
-    if (choice === 'back') return;
+    if (isCancelled(choice) || choice === 'back') return;
 
     if (choice === 'enforceMissingTests') {
       const result = await clack.confirm({
         message: 'Require every source file to have a corresponding test file?',
         initialValue: state.enforceMissingTests,
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       state.enforceMissingTests = result;
     }
 
@@ -259,7 +256,7 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
           if (Number.isNaN(n) || n < 0 || n > 100) return 'Enter a number between 0 and 100';
         },
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       state.testCoverage = Number.parseInt(result, 10);
     }
 
@@ -271,7 +268,7 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
           if (typeof v !== 'string' || v.trim().length === 0) return 'Path cannot be empty';
         },
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       state.coverageSummaryPath = result.trim();
     }
 
@@ -281,7 +278,7 @@ export async function promptTestingMenu(state: RuleOverrides): Promise<void> {
         initialValue: state.coverageCommand ?? '',
         placeholder: '(auto-detect from package.json test runner)',
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       const trimmed = result.trim();
       state.coverageCommand = trimmed.length > 0 ? trimmed : undefined;
     }

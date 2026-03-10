@@ -147,12 +147,14 @@ describe('promptMainMenu', () => {
     expect(config.rules.enforceMissingTests).toBe(false);
   });
 
-  it('shows info when coverage selected with no test runner', async () => {
+  it('shows note when coverage selected with no test runner', async () => {
     selectMock.mockResolvedValueOnce('coverage').mockResolvedValueOnce('done');
     const config = makeConfig();
-    const { log } = await import('@clack/prompts');
     await promptMainMenu(config, makeScanResult(), { ...defaultOpts, hasTestRunner: false });
-    expect(log.info).toHaveBeenCalled();
+    expect(noteMock).toHaveBeenCalledWith(
+      expect.stringContaining('No test runner'),
+      'Coverage inactive',
+    );
   });
 
   it('marks integrations as visited', async () => {
@@ -163,15 +165,31 @@ describe('promptMainMenu', () => {
     expect(state.integrations).toBeDefined();
   });
 
-  it('reset clears state', async () => {
+  it('reset clears state when confirmed', async () => {
     selectMock
       .mockResolvedValueOnce('missingTests')
       .mockResolvedValueOnce('reset')
       .mockResolvedValueOnce('done');
-    confirmMock.mockResolvedValueOnce(false);
+    confirmMock
+      .mockResolvedValueOnce(false) // missingTests toggle
+      .mockResolvedValueOnce(true); // reset confirmation
     const config = makeConfig();
     await promptMainMenu(config, makeScanResult(), defaultOpts);
     expect(config.rules.enforceMissingTests).toBe(true);
+  });
+
+  it('reset does nothing when declined', async () => {
+    selectMock
+      .mockResolvedValueOnce('missingTests')
+      .mockResolvedValueOnce('reset')
+      .mockResolvedValueOnce('done');
+    confirmMock
+      .mockResolvedValueOnce(false) // missingTests toggle
+      .mockResolvedValueOnce(false); // reset declined
+    const config = makeConfig();
+    await promptMainMenu(config, makeScanResult(), defaultOpts);
+    // missingTests was toggled off and not reset
+    expect(config.rules.enforceMissingTests).toBe(false);
   });
 
   it('shows review scan details', async () => {

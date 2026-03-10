@@ -1,4 +1,5 @@
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
+import chalk from 'chalk';
 import { getRootPackage } from './get-root-package.js';
 import type { InitMenuState } from './prompt-main-menu.js';
 
@@ -108,10 +109,32 @@ export function boundariesHint(config: ViberailsConfig, state: InitMenuState): s
   return `${ruleCount} rules across ${pkgCount} packages`;
 }
 
-function statusIcon(status: 'ok' | 'needs-input' | 'disabled'): string {
-  if (status === 'ok') return '\u2713';
-  if (status === 'needs-input') return '?';
-  return '~';
+function advancedNamingStatus(config: ViberailsConfig): 'ok' | 'unconfigured' {
+  const rootPkg = getRootPackage(config.packages);
+  const hasAny =
+    !!rootPkg.conventions?.componentNaming ||
+    !!rootPkg.conventions?.hookNaming ||
+    !!rootPkg.conventions?.importAlias;
+  return hasAny ? 'ok' : 'unconfigured';
+}
+
+function packageOverridesStatus(config: ViberailsConfig): 'ok' | 'unconfigured' {
+  const rootNaming = getRootPackage(config.packages).conventions?.fileNaming;
+  const editable = config.packages.filter((p) => p.path !== '.');
+  const customized = editable.some(
+    (p) =>
+      p.rules ||
+      p.coverage ||
+      (p.conventions?.fileNaming !== undefined && p.conventions.fileNaming !== rootNaming),
+  );
+  return customized ? 'ok' : 'unconfigured';
+}
+
+function statusIcon(status: 'ok' | 'needs-input' | 'disabled' | 'unconfigured'): string {
+  if (status === 'ok') return chalk.green('\u2713');
+  if (status === 'needs-input') return chalk.yellow('?');
+  if (status === 'unconfigured') return chalk.dim('-');
+  return chalk.yellow('~');
 }
 
 /** @internal Exported for testing. */
@@ -133,7 +156,7 @@ export function buildMainMenuOptions(
     },
     {
       value: 'fileNaming',
-      label: `${statusIcon(namingStatus)} File naming`,
+      label: `${statusIcon(namingStatus)} Default file naming`,
       hint: fileNamingHint(config, scanResult),
     },
     {
@@ -146,23 +169,29 @@ export function buildMainMenuOptions(
       label: `${statusIcon(coverageStatus)} Coverage`,
       hint: coverageHint(config, state.hasTestRunner),
     },
-    { value: 'advancedNaming', label: '  Advanced naming', hint: advancedNamingHint(config) },
+    {
+      value: 'advancedNaming',
+      label: `${statusIcon(advancedNamingStatus(config))} Advanced naming`,
+      hint: advancedNamingHint(config),
+    },
   ];
 
   if (config.packages.length > 1) {
-    const bIcon =
-      state.visited.boundaries && config.rules.enforceBoundaries ? statusIcon('ok') : '  ';
+    const bIcon = statusIcon(
+      state.visited.boundaries && config.rules.enforceBoundaries ? 'ok' : 'unconfigured',
+    );
+    const poIcon = statusIcon(packageOverridesStatus(config));
     options.push(
       {
         value: 'packageOverrides',
-        label: '  Per-package overrides',
+        label: `${poIcon} Per-package overrides`,
         hint: packageOverridesHint(config),
       },
       { value: 'boundaries', label: `${bIcon} Boundaries`, hint: boundariesHint(config, state) },
     );
   }
 
-  const iIcon = state.visited.integrations ? statusIcon('ok') : '  ';
+  const iIcon = state.visited.integrations ? statusIcon('ok') : statusIcon('unconfigured');
   options.push(
     { value: 'integrations', label: `${iIcon} Integrations`, hint: integrationsHint(state) },
     { value: 'reset', label: '  Reset all to defaults' },

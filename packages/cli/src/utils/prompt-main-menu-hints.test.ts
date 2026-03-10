@@ -278,4 +278,34 @@ describe('buildMainMenuOptions', () => {
     const cov = opts.find((o) => o.value === 'coverage');
     expect(cov?.label).toContain('~');
   });
+
+  it('uses - icon for unvisited integrations', () => {
+    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'integrations');
+    expect(item?.label).toContain('-');
+  });
+
+  it('uses ✓ icon for visited integrations', () => {
+    const state = makeState({ visited: { integrations: true, boundaries: false } });
+    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), state);
+    const item = opts.find((o) => o.value === 'integrations');
+    expect(item?.label).toContain('✓');
+  });
+
+  it('uses - icon for advanced naming when no conventions set', () => {
+    const opts = buildMainMenuOptions(makeConfig(), makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'advancedNaming');
+    expect(item?.label).toContain('-');
+  });
+
+  it('uses ✓ icon for advanced naming when conventions are set', () => {
+    const config = makeConfig();
+    config.packages[0].conventions = {
+      ...config.packages[0].conventions,
+      componentNaming: 'PascalCase',
+    };
+    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'advancedNaming');
+    expect(item?.label).toContain('✓');
+  });
 });

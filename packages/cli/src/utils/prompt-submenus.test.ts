@@ -214,14 +214,13 @@ describe('promptNamingMenu', () => {
     expect(state.importAlias).toBeUndefined();
   });
 
-  it('exits gracefully when user cancels', async () => {
+  it('treats cancel as back', async () => {
     selectMock.mockResolvedValueOnce('__cancel__');
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('exit');
-    });
-    await expect(promptNamingMenu(makeState())).rejects.toThrow('exit');
-    expect(exitSpy).toHaveBeenCalledWith(0);
-    exitSpy.mockRestore();
+    const state = makeState();
+    await promptNamingMenu(state);
+    // State unchanged — cancel returns to parent without modifying anything
+    expect(state.enforceNaming).toBe(true);
+    expect(state.fileNamingValue).toBe('kebab-case');
   });
 });
 

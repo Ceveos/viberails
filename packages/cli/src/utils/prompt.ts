@@ -12,6 +12,14 @@ export function assertNotCancelled<T>(value: T | symbol): asserts value is T {
 }
 
 /**
+ * Check whether a clack prompt result was cancelled (Escape / Ctrl+C).
+ * Use in sub-menus where cancel should return to the parent menu instead of exiting.
+ */
+export function isCancelled<T>(value: T | symbol): value is symbol {
+  return clack.isCancel(value);
+}
+
+/**
  * Prompt the user for a yes/no confirmation.
  *
  * @param message - The question to display

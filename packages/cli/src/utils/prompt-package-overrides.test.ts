@@ -1,6 +1,11 @@
 import type { PackageConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SENTINEL_DONE, SENTINEL_INHERIT, SENTINEL_NONE } from './prompt-constants.js';
+import {
+  HINT_NO_OVERRIDES,
+  SENTINEL_DONE,
+  SENTINEL_INHERIT,
+  SENTINEL_NONE,
+} from './prompt-constants.js';
 import {
   normalizePackageOverrides,
   packageOverrideHint,
@@ -30,7 +35,7 @@ const defaults = {
 describe('packageOverrideHint', () => {
   it('returns "(no overrides)" for package with no differences', () => {
     const pkg: PackageConfig = { name: '@scope/web', path: 'apps/web' };
-    expect(packageOverrideHint(pkg, defaults)).toBe('(no overrides)');
+    expect(packageOverrideHint(pkg, defaults)).toBe(HINT_NO_OVERRIDES);
   });
 
   it('shows naming override', () => {
@@ -257,19 +262,15 @@ describe('promptPackageOverrides', () => {
     expect(web?.conventions?.fileNaming).toBe('');
   });
 
-  it('exits gracefully when user cancels at package select', async () => {
+  it('treats cancel as done at package select', async () => {
     const packages: PackageConfig[] = [
       { name: 'root', path: '.' },
       { name: 'web', path: 'apps/web' },
     ];
 
     selectMock.mockResolvedValueOnce('__cancel__');
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('exit');
-    });
-    await expect(promptPackageOverrides(packages, defaults)).rejects.toThrow('exit');
-    expect(exitSpy).toHaveBeenCalledWith(0);
-    exitSpy.mockRestore();
+    const result = await promptPackageOverrides(packages, defaults);
+    expect(result).toEqual(packages);
   });
 
   it('clears maxFileLines when input matches default', async () => {

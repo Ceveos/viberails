@@ -1,7 +1,13 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
-import { assertNotCancelled } from './prompt.js';
-import { SENTINEL_DONE, SENTINEL_INHERIT, SENTINEL_NONE } from './prompt-constants.js';
+import { isCancelled } from './prompt.js';
+import {
+  HINT_AUTO_DETECT,
+  HINT_NO_OVERRIDES,
+  SENTINEL_DONE,
+  SENTINEL_INHERIT,
+  SENTINEL_NONE,
+} from './prompt-constants.js';
 import { FILE_NAMING_OPTIONS } from './prompt-submenus.js';
 
 /** @internal Exported for testing. */
@@ -70,7 +76,7 @@ export function packageOverrideHint(pkg: PackageConfig, defaults: PackageOverrid
   if (hasSummaryOverride) tags.push('summary override');
   if (hasCommandOverride) tags.push('command override');
 
-  return tags.length > 0 ? tags.join(', ') : '(no overrides)';
+  return tags.length > 0 ? tags.join(', ') : HINT_NO_OVERRIDES;
 }
 
 /**
@@ -100,8 +106,7 @@ export async function promptPackageOverrides(
         { value: SENTINEL_DONE, label: 'Done' },
       ],
     });
-    assertNotCancelled(selectedPath);
-    if (selectedPath === SENTINEL_DONE) break;
+    if (isCancelled(selectedPath) || selectedPath === SENTINEL_DONE) break;
 
     const target = editablePackages.find((pkg) => pkg.path === selectedPath);
     if (!target) continue;
@@ -123,7 +128,7 @@ async function promptSinglePackageOverrides(
     const effectiveCoverage = target.rules?.testCoverage ?? defaults.testCoverage;
     const effectiveSummary = target.coverage?.summaryPath ?? defaults.coverageSummaryPath;
     const effectiveCommand =
-      target.coverage?.command ?? defaults.coverageCommand ?? '(auto-detect)';
+      target.coverage?.command ?? defaults.coverageCommand ?? HINT_AUTO_DETECT;
 
     const hasNamingOverride =
       target.conventions?.fileNaming !== undefined &&
@@ -134,10 +139,10 @@ async function promptSinglePackageOverrides(
 
     const namingHint = hasNamingOverride
       ? String(effectiveNaming)
-      : `(inherits: ${effectiveNaming ?? 'not set'})`;
+      : `inherits: ${effectiveNaming ?? 'not set'}`;
     const maxLinesHint = hasMaxLinesOverride
       ? String(effectiveMaxLines)
-      : `(inherits: ${effectiveMaxLines})`;
+      : `inherits: ${effectiveMaxLines}`;
 
     const choice = await clack.select({
       message: `Edit overrides for ${target.path}`,
@@ -151,9 +156,7 @@ async function promptSinglePackageOverrides(
         { value: 'back', label: 'Back to package list' },
       ],
     });
-    assertNotCancelled(choice);
-
-    if (choice === 'back') break;
+    if (isCancelled(choice) || choice === 'back') break;
 
     if (choice === 'fileNaming') {
       const selected = await clack.select({
@@ -168,7 +171,7 @@ async function promptSinglePackageOverrides(
         ],
         initialValue: target.conventions?.fileNaming ?? SENTINEL_INHERIT,
       });
-      assertNotCancelled(selected);
+      if (isCancelled(selected)) continue;
       if (selected === SENTINEL_INHERIT) {
         if (target.conventions) delete target.conventions.fileNaming;
       } else if (selected === SENTINEL_NONE) {
@@ -185,7 +188,7 @@ async function promptSinglePackageOverrides(
           target.rules?.maxFileLines !== undefined ? String(target.rules.maxFileLines) : '',
         placeholder: String(defaults.maxFileLines),
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       const value = result.trim();
       if (value.length === 0 || Number.parseInt(value, 10) === defaults.maxFileLines) {
         if (target.rules) delete target.rules.maxFileLines;
@@ -204,7 +207,7 @@ async function promptSinglePackageOverrides(
           if (Number.isNaN(n) || n < 0 || n > 100) return 'Enter a number between 0 and 100';
         },
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       const nextCoverage = Number.parseInt(result, 10);
       if (nextCoverage === defaults.testCoverage) {
         if (target.rules) delete target.rules.testCoverage;
@@ -219,7 +222,7 @@ async function promptSinglePackageOverrides(
         initialValue: target.coverage?.summaryPath !== undefined ? target.coverage.summaryPath : '',
         placeholder: defaults.coverageSummaryPath,
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       const value = result.trim();
       if (value.length === 0 || value === defaults.coverageSummaryPath) {
         if (target.coverage) delete target.coverage.summaryPath;
@@ -234,7 +237,7 @@ async function promptSinglePackageOverrides(
         initialValue: target.coverage?.command !== undefined ? target.coverage.command : '',
         placeholder: defaults.coverageCommand ?? '(auto-detect from package.json test runner)',
       });
-      assertNotCancelled(result);
+      if (isCancelled(result)) continue;
       const value = result.trim();
       const defaultCommand = defaults.coverageCommand ?? '';
       if (value.length === 0 || value === defaultCommand) {
