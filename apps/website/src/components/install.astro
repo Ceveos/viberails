@@ -43,12 +43,43 @@ const commands = [
       }
     </div>
 
-    <p class="mt-6 text-sm leading-7 text-text-muted">
-      The wizard scans your project, shows what it found, and writes config.
-      After that, use <code class="text-text-primary">check</code> to validate,
-      <code class="text-text-primary">sync</code> to refresh, and
-      <code class="text-text-primary">fix</code> to auto-correct.
-    </p>
+    <div class="mt-8">
+      <div class="text-[10px] uppercase tracking-[0.24em] text-text-dim mb-3">what it generates</div>
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded border border-border/70 bg-blueprint-bg/60 px-4 py-3">
+          <div class="text-xs text-text-primary">viberails.config.json</div>
+          <p class="mt-1.5 text-xs leading-5 text-text-dim">enforced rules from scan</p>
+        </div>
+        <div class="rounded border border-border/70 bg-blueprint-bg/60 px-4 py-3">
+          <div class="text-xs text-text-primary">.viberails/context.md</div>
+          <p class="mt-1.5 text-xs leading-5 text-text-dim">AI-readable directives</p>
+        </div>
+        <div class="rounded border border-border/70 bg-blueprint-bg/60 px-4 py-3">
+          <div class="text-xs text-text-primary">.viberails/scan-result.json</div>
+          <p class="mt-1.5 text-xs leading-5 text-text-dim">raw detection data</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <div class="text-[10px] uppercase tracking-[0.24em] text-text-dim mb-3">integrations</div>
+      <div class="flex flex-wrap gap-2">
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">Pre-commit hook</span>
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">Claude Code hook</span>
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">GitHub Actions</span>
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">CLAUDE.md ref</span>
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">Typecheck</span>
+        <span class="rounded-full border border-border/80 bg-terminal-bg/70 px-3 py-1.5 text-[11px] text-text-dim">Lint</span>
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <div class="text-[10px] uppercase tracking-[0.24em] text-text-dim mb-3">supported stacks</div>
+      <p class="text-sm leading-7 text-text-muted">
+        Next.js, React, Vue, Angular, Svelte, Astro, Remix, and 15+ more frameworks.
+        ESLint, Biome, Prettier. Vitest, Jest, Playwright, Cypress. npm, pnpm, yarn, bun.
+      </p>
+    </div>
   </div>
 </section>
 
