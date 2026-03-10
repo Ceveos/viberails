@@ -93,16 +93,20 @@ export function setupLintHook(projectRoot: string, linter: string): string | und
   let lefthookExtra: Record<string, string> | undefined;
 
   if (isLefthook) {
-    command = linter === 'biome' ? 'npx biome check {staged_files}' : 'npx eslint {staged_files}';
+    command =
+      linter === 'biome'
+        ? 'npx biome check --write {staged_files}'
+        : 'npx eslint --fix {staged_files}';
     lefthookExtra = {
       glob: linter === 'biome' ? '*.{js,ts,jsx,tsx,json,css}' : '*.{js,ts,jsx,tsx}',
+      stage_fixed: 'true',
     };
   } else {
     const exts =
       linter === 'biome'
         ? "'*.js' '*.ts' '*.jsx' '*.tsx' '*.json' '*.css'"
         : "'*.js' '*.ts' '*.jsx' '*.tsx'";
-    const lintCmd = linter === 'biome' ? 'biome check' : 'eslint';
+    const lintCmd = linter === 'biome' ? 'biome check --write' : 'eslint --fix';
     command = `git diff --cached --name-only --diff-filter=ACMR -- ${exts} | xargs npx ${lintCmd}`;
   }
 

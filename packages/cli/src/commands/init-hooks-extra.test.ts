@@ -154,7 +154,7 @@ describe('setupLintHook', () => {
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
     expect(content).toContain('git diff --cached');
-    expect(content).toContain('xargs npx biome check');
+    expect(content).toContain('xargs npx biome check --write');
   });
 
   it('adds eslint scoped to staged files for bare git hooks', () => {
@@ -163,7 +163,7 @@ describe('setupLintHook', () => {
     expect(target).toBe('.git/hooks/pre-commit');
     const content = fs.readFileSync(path.join(tmpDir, '.git', 'hooks', 'pre-commit'), 'utf-8');
     expect(content).toContain('git diff --cached');
-    expect(content).toContain('xargs npx eslint');
+    expect(content).toContain('xargs npx eslint --fix');
   });
 
   it('uses lefthook staged_files and glob when lefthook.yml exists', () => {
@@ -174,9 +174,10 @@ describe('setupLintHook', () => {
     const target = setupLintHook(tmpDir, 'eslint');
     expect(target).toBe('lefthook.yml');
     const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
-    expect(content).toContain('{staged_files}');
+    expect(content).toContain('eslint --fix {staged_files}');
     expect(content).toContain('glob');
     expect(content).toContain('*.{js,ts,jsx,tsx}');
+    expect(content).toContain('stage_fixed');
   });
 
   it('uses broader glob for biome in lefthook', () => {
@@ -186,8 +187,9 @@ describe('setupLintHook', () => {
     );
     setupLintHook(tmpDir, 'biome');
     const content = fs.readFileSync(path.join(tmpDir, 'lefthook.yml'), 'utf-8');
-    expect(content).toContain('npx biome check {staged_files}');
+    expect(content).toContain('npx biome check --write {staged_files}');
     expect(content).toContain('*.{js,ts,jsx,tsx,json,css}');
+    expect(content).toContain('stage_fixed');
   });
 });
 
