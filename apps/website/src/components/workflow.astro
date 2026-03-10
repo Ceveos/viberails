@@ -53,15 +53,23 @@ const commands = [
       </div>
 
       <div class="space-y-5">
-        <Terminal title="pre-commit / ci">
-          <div>
-            <span class="text-text-dim">$</span>
-            <span class="text-text-primary"> viberails check --staged</span>
+        <Terminal title="claude code">
+          <div class="text-text-muted">⏺ Refactoring display module into smaller files:</div>
+          <div class="mt-2 text-text-muted">⏺ <span class="text-text-primary">Update</span>(src/display.ts)</div>
+          <div class="text-text-dim">&nbsp;&nbsp;⎿&nbsp;&nbsp;Removed 14 lines</div>
+
+          <div class="mt-2">
+            <span class="text-text-dim">&nbsp;&nbsp;⎿&nbsp;&nbsp;</span><span class="text-red">PostToolUse hook returned error</span>
           </div>
-          <div class="mt-2 text-text-muted">Checking file rules... done</div>
-          <div class="text-text-muted">Checking missing tests... done</div>
-          <div class="text-text-muted">Checking boundaries... done</div>
-          <div class="mt-3 text-green">✓ 127 files checked · no violations</div>
+          <div class="text-text-dim">&nbsp;&nbsp;⎿&nbsp;&nbsp;<span class="text-amber">src/display.ts: 312 lines (max 300).</span></div>
+          <div class="text-text-dim">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber">Split into focused modules.</span></div>
+
+          <div class="mt-3 text-text-muted">⏺ The file is still over the 300-line limit.</div>
+          <div class="text-text-muted">&nbsp;&nbsp;Let me extract more code to fix this.</div>
+
+          <div class="mt-2 text-text-muted">⏺ <span class="text-text-primary">Update</span>(src/display.ts)</div>
+          <div class="text-text-dim">&nbsp;&nbsp;⎿&nbsp;&nbsp;Removed 28 lines, added 2 lines</div>
+          <div class="mt-2 text-green">&nbsp;&nbsp;✓ No violations</div>
         </Terminal>
 
         <div class="grid gap-3 sm:grid-cols-3">
