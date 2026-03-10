@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RuleOverrides } from './prompt-rules.js';
 import {
+  COMPONENT_NAMING_OPTIONS,
   FILE_NAMING_OPTIONS,
+  HOOK_NAMING_OPTIONS,
   promptFileLimitsMenu,
   promptNamingMenu,
   promptTestingMenu,
@@ -39,6 +41,20 @@ describe('FILE_NAMING_OPTIONS', () => {
   it('contains the four standard naming conventions', () => {
     const values = FILE_NAMING_OPTIONS.map((o) => o.value);
     expect(values).toEqual(['kebab-case', 'camelCase', 'PascalCase', 'snake_case']);
+  });
+});
+
+describe('COMPONENT_NAMING_OPTIONS', () => {
+  it('contains PascalCase and camelCase', () => {
+    const values = COMPONENT_NAMING_OPTIONS.map((o) => o.value);
+    expect(values).toEqual(['PascalCase', 'camelCase']);
+  });
+});
+
+describe('HOOK_NAMING_OPTIONS', () => {
+  it('contains useXxx and use-*', () => {
+    const values = HOOK_NAMING_OPTIONS.map((o) => o.value);
+    expect(values).toEqual(['useXxx', 'use-*']);
   });
 });
 
@@ -126,36 +142,75 @@ describe('promptNamingMenu', () => {
     expect(state.fileNamingValue).toBe('PascalCase');
   });
 
-  it('sets componentNaming via text input', async () => {
-    selectMock.mockResolvedValueOnce('componentNaming').mockResolvedValueOnce('back');
-    textMock.mockResolvedValueOnce('PascalCase');
+  it('selects PascalCase for componentNaming', async () => {
+    selectMock
+      .mockResolvedValueOnce('componentNaming')
+      .mockResolvedValueOnce('PascalCase')
+      .mockResolvedValueOnce('back');
     const state = makeState();
     await promptNamingMenu(state);
     expect(state.componentNaming).toBe('PascalCase');
   });
 
-  it('clears componentNaming when blank input', async () => {
-    selectMock.mockResolvedValueOnce('componentNaming').mockResolvedValueOnce('back');
-    textMock.mockResolvedValueOnce('  ');
+  it('clears componentNaming via Clear option', async () => {
+    selectMock
+      .mockResolvedValueOnce('componentNaming')
+      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce('back');
     const state = makeState({ componentNaming: 'PascalCase' });
     await promptNamingMenu(state);
     expect(state.componentNaming).toBeUndefined();
   });
 
-  it('sets hookNaming via text input', async () => {
-    selectMock.mockResolvedValueOnce('hookNaming').mockResolvedValueOnce('back');
-    textMock.mockResolvedValueOnce('useXxx');
+  it('selects useXxx for hookNaming', async () => {
+    selectMock
+      .mockResolvedValueOnce('hookNaming')
+      .mockResolvedValueOnce('useXxx')
+      .mockResolvedValueOnce('back');
     const state = makeState();
     await promptNamingMenu(state);
     expect(state.hookNaming).toBe('useXxx');
   });
 
-  it('sets importAlias via text input', async () => {
-    selectMock.mockResolvedValueOnce('importAlias').mockResolvedValueOnce('back');
-    textMock.mockResolvedValueOnce('@/*');
+  it('clears hookNaming via Clear option', async () => {
+    selectMock
+      .mockResolvedValueOnce('hookNaming')
+      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce('back');
+    const state = makeState({ hookNaming: 'useXxx' });
+    await promptNamingMenu(state);
+    expect(state.hookNaming).toBeUndefined();
+  });
+
+  it('selects @/* for importAlias', async () => {
+    selectMock
+      .mockResolvedValueOnce('importAlias')
+      .mockResolvedValueOnce('@/*')
+      .mockResolvedValueOnce('back');
     const state = makeState();
     await promptNamingMenu(state);
     expect(state.importAlias).toBe('@/*');
+  });
+
+  it('selects Custom and enters validated importAlias', async () => {
+    selectMock
+      .mockResolvedValueOnce('importAlias')
+      .mockResolvedValueOnce('__custom__')
+      .mockResolvedValueOnce('back');
+    textMock.mockResolvedValueOnce('#src/*');
+    const state = makeState();
+    await promptNamingMenu(state);
+    expect(state.importAlias).toBe('#src/*');
+  });
+
+  it('clears importAlias via Clear option', async () => {
+    selectMock
+      .mockResolvedValueOnce('importAlias')
+      .mockResolvedValueOnce('__clear__')
+      .mockResolvedValueOnce('back');
+    const state = makeState({ importAlias: '@/*' });
+    await promptNamingMenu(state);
+    expect(state.importAlias).toBeUndefined();
   });
 });
 

@@ -9,6 +9,16 @@ export const FILE_NAMING_OPTIONS = [
   { value: 'snake_case', label: 'snake_case' },
 ] as const;
 
+export const COMPONENT_NAMING_OPTIONS = [
+  { value: 'PascalCase', label: 'PascalCase', hint: 'MyComponent.tsx' },
+  { value: 'camelCase', label: 'camelCase', hint: 'myComponent.tsx' },
+] as const;
+
+export const HOOK_NAMING_OPTIONS = [
+  { value: 'useXxx', label: 'useXxx', hint: 'useAuth, useFormData' },
+  { value: 'use-*', label: 'use-*', hint: 'use-auth, use-form-data' },
+] as const;
+
 /** Sub-menu for file limit settings. */
 export async function promptFileLimitsMenu(state: RuleOverrides): Promise<void> {
   while (true) {
@@ -131,33 +141,58 @@ export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
     }
 
     if (choice === 'componentNaming') {
-      const result = await clack.text({
-        message: 'Component naming convention (blank to clear)?',
-        initialValue: state.componentNaming ?? '',
-        placeholder: 'e.g. PascalCase',
+      const selected = await clack.select({
+        message: 'Component naming convention',
+        options: [
+          ...COMPONENT_NAMING_OPTIONS,
+          { value: '__clear__', label: 'Clear (no convention)' },
+        ],
+        initialValue: state.componentNaming ?? '__clear__',
       });
-      assertNotCancelled(result);
-      state.componentNaming = result.trim() || undefined;
+      assertNotCancelled(selected);
+      state.componentNaming = selected === '__clear__' ? undefined : selected;
     }
 
     if (choice === 'hookNaming') {
-      const result = await clack.text({
-        message: 'Hook naming convention (blank to clear)?',
-        initialValue: state.hookNaming ?? '',
-        placeholder: 'e.g. useXxx or use-*',
+      const selected = await clack.select({
+        message: 'Hook naming convention',
+        options: [...HOOK_NAMING_OPTIONS, { value: '__clear__', label: 'Clear (no convention)' }],
+        initialValue: state.hookNaming ?? '__clear__',
       });
-      assertNotCancelled(result);
-      state.hookNaming = result.trim() || undefined;
+      assertNotCancelled(selected);
+      state.hookNaming = selected === '__clear__' ? undefined : selected;
     }
 
     if (choice === 'importAlias') {
-      const result = await clack.text({
-        message: 'Import alias pattern (blank to clear)?',
-        initialValue: state.importAlias ?? '',
-        placeholder: 'e.g. @/* or ~/*',
+      const selected = await clack.select({
+        message: 'Import alias pattern',
+        options: [
+          { value: '@/*', label: '@/*', hint: "import { x } from '@/utils'" },
+          { value: '~/*', label: '~/*', hint: "import { x } from '~/utils'" },
+          { value: '__custom__', label: 'Custom...' },
+          { value: '__clear__', label: 'Clear (no alias)' },
+        ],
+        initialValue: state.importAlias ?? '__clear__',
       });
-      assertNotCancelled(result);
-      state.importAlias = result.trim() || undefined;
+      assertNotCancelled(selected);
+      if (selected === '__clear__') {
+        state.importAlias = undefined;
+      } else if (selected === '__custom__') {
+        const result = await clack.text({
+          message: 'Import alias pattern?',
+          initialValue: state.importAlias ?? '',
+          placeholder: 'e.g. #/*',
+          validate: (v) => {
+            if (typeof v !== 'string' || !v.trim()) return 'Alias cannot be empty';
+            if (!/^[a-zA-Z@~#$][a-zA-Z0-9@~#$_-]*\/\*$/.test(v.trim()))
+              return 'Must match pattern like @/*, ~/*, or #src/*';
+          },
+        });
+        assertNotCancelled(result);
+        state.importAlias = result.trim();
+      } else {
+        state.importAlias = selected;
+      }
     }
   }
 }

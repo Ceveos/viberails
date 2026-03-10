@@ -3,7 +3,8 @@ import type { PackageConfig } from '@viberails/types';
 import { assertNotCancelled } from './prompt.js';
 import { FILE_NAMING_OPTIONS } from './prompt-submenus.js';
 
-function normalizePackageOverrides(packages: PackageConfig[]): PackageConfig[] {
+/** @internal Exported for testing. */
+export function normalizePackageOverrides(packages: PackageConfig[]): PackageConfig[] {
   for (const pkg of packages) {
     if (pkg.rules && Object.keys(pkg.rules).length === 0) {
       delete pkg.rules;
@@ -26,7 +27,8 @@ interface PackageOverrideDefaults {
   coverageCommand?: string;
 }
 
-function packageOverrideHint(pkg: PackageConfig, defaults: PackageOverrideDefaults): string {
+/** @internal Exported for testing. */
+export function packageOverrideHint(pkg: PackageConfig, defaults: PackageOverrideDefaults): string {
   const tags: string[] = [];
 
   // Naming override
@@ -136,7 +138,7 @@ async function promptSinglePackageOverrides(
       ? String(effectiveMaxLines)
       : `(inherits: ${effectiveMaxLines})`;
 
-    const choice: string | symbol = await clack.select({
+    const choice = await clack.select({
       message: `Edit overrides for ${target.path}`,
       options: [
         { value: 'fileNaming', label: 'File naming', hint: namingHint },

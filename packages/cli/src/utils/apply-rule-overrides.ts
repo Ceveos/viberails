@@ -10,6 +10,8 @@ import type { RuleOverrides } from './prompt-rules.js';
  */
 export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverrides): void {
   if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
+  const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
+
   config.rules.maxFileLines = overrides.maxFileLines;
   config.rules.maxTestFileLines = overrides.maxTestFileLines;
   config.rules.testCoverage = overrides.testCoverage;
@@ -27,7 +29,6 @@ export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverr
   }
 
   if (overrides.fileNamingValue) {
-    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
     const oldNaming = rootPkg.conventions?.fileNaming;
     rootPkg.conventions = rootPkg.conventions ?? {};
     rootPkg.conventions.fileNaming = overrides.fileNamingValue;
@@ -41,7 +42,6 @@ export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverr
   }
 
   // Apply convention overrides to root package
-  const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
   if (rootPkg) {
     rootPkg.conventions = rootPkg.conventions ?? {};
     if (overrides.componentNaming !== undefined) {

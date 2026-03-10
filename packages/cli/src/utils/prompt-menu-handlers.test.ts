@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildMenuOptions, clonePackages, handleMenuChoice } from './prompt-menu-handlers.js';
+import {
+  buildMenuOptions,
+  clonePackages,
+  getPackageDiffs,
+  handleMenuChoice,
+} from './prompt-menu-handlers.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 const { logMock } = vi.hoisted(() => ({
@@ -150,6 +155,68 @@ describe('handleMenuChoice', () => {
     const root = packages[0];
     await handleMenuChoice('packageOverrides', state, makeState(), root);
     expect(promptPackageOverrides).toHaveBeenCalled();
+  });
+});
+
+describe('getPackageDiffs', () => {
+  it('returns empty array when packages are identical', () => {
+    const root = { name: 'root', path: '.', conventions: { fileNaming: 'kebab-case' } };
+    const pkg = { name: 'web', path: 'apps/web', conventions: { fileNaming: 'kebab-case' } };
+    expect(getPackageDiffs(pkg, root)).toEqual([]);
+  });
+
+  it('detects convention differences', () => {
+    const root = { name: 'root', path: '.', conventions: { fileNaming: 'kebab-case' } };
+    const pkg = { name: 'web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } };
+    expect(getPackageDiffs(pkg, root)).toContain('fileNaming: PascalCase');
+  });
+
+  it('detects stack differences', () => {
+    const root = {
+      name: 'root',
+      path: '.',
+      stack: { framework: 'nextjs', language: 'typescript', packageManager: 'pnpm' },
+    };
+    const pkg = {
+      name: 'api',
+      path: 'apps/api',
+      stack: { framework: 'express', language: 'typescript', packageManager: 'pnpm' },
+    };
+    expect(getPackageDiffs(pkg, root)).toContain('framework: express');
+  });
+
+  it('detects rule differences', () => {
+    const root = { name: 'root', path: '.', rules: { maxFileLines: 300 } };
+    const pkg = { name: 'web', path: 'apps/web', rules: { maxFileLines: 500 } };
+    expect(getPackageDiffs(pkg, root)).toContain('maxFileLines: 500');
+  });
+
+  it('detects coverage differences', () => {
+    const root = { name: 'root', path: '.', coverage: { summaryPath: 'coverage/summary.json' } };
+    const pkg = {
+      name: 'web',
+      path: 'apps/web',
+      coverage: { summaryPath: 'custom/path.json', command: 'vitest run --coverage' },
+    };
+    const diffs = getPackageDiffs(pkg, root);
+    expect(diffs).toContain('coverage.summaryPath: custom/path.json');
+    expect(diffs).toContain('coverage.command: (override)');
+  });
+
+  it('ignores matching values', () => {
+    const root = {
+      name: 'root',
+      path: '.',
+      conventions: { fileNaming: 'kebab-case' },
+      rules: { maxFileLines: 300, testCoverage: 80 },
+    };
+    const pkg = {
+      name: 'web',
+      path: 'apps/web',
+      conventions: { fileNaming: 'kebab-case' },
+      rules: { maxFileLines: 300, testCoverage: 80 },
+    };
+    expect(getPackageDiffs(pkg, root)).toEqual([]);
   });
 });
 

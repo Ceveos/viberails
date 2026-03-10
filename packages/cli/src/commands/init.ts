@@ -4,7 +4,7 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayInitOverview, displaySetupPlan } from '../display.js';
+import { displayInitOverview, displaySetupPlan } from '../display-init.js';
 import { formatScanResultsText } from '../display-text.js';
 import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
 import { checkCoveragePrereqs, promptMissingPrereqs } from '../utils/check-prerequisites.js';

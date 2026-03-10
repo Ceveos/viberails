@@ -1,6 +1,10 @@
 import type { PackageConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { promptPackageOverrides } from './prompt-package-overrides.js';
+import {
+  normalizePackageOverrides,
+  packageOverrideHint,
+  promptPackageOverrides,
+} from './prompt-package-overrides.js';
 
 const { selectMock, textMock, isCancelMock } = vi.hoisted(() => ({
   selectMock: vi.fn(),
@@ -21,6 +25,103 @@ const defaults = {
   testCoverage: 80,
   coverageSummaryPath: 'coverage/coverage-summary.json',
 };
+
+describe('packageOverrideHint', () => {
+  it('returns "(no overrides)" for package with no differences', () => {
+    const pkg: PackageConfig = { name: '@scope/web', path: 'apps/web' };
+    expect(packageOverrideHint(pkg, defaults)).toBe('(no overrides)');
+  });
+
+  it('shows naming override', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/web',
+      path: 'apps/web',
+      conventions: { fileNaming: 'PascalCase' },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('PascalCase');
+  });
+
+  it('shows maxFileLines override', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/web',
+      path: 'apps/web',
+      rules: { maxFileLines: 500 },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('500 lines');
+  });
+
+  it('shows "exempt" for testCoverage === 0', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/web',
+      path: 'apps/web',
+      rules: { testCoverage: 0 },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('exempt');
+  });
+
+  it('shows "exempt (types-only)" for types packages with coverage 0', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/types',
+      path: 'packages/types',
+      rules: { testCoverage: 0 },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('exempt (types-only)');
+  });
+
+  it('shows coverage percentage when different from default', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/web',
+      path: 'apps/web',
+      rules: { testCoverage: 60 },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('60%');
+  });
+
+  it('shows "summary override" and "command override"', () => {
+    const pkg: PackageConfig = {
+      name: '@scope/web',
+      path: 'apps/web',
+      coverage: { summaryPath: 'custom.json', command: 'vitest run' },
+    };
+    expect(packageOverrideHint(pkg, defaults)).toBe('summary override, command override');
+  });
+});
+
+describe('normalizePackageOverrides', () => {
+  it('removes empty rules object', () => {
+    const packages: PackageConfig[] = [{ name: 'web', path: 'apps/web', rules: {} }];
+    normalizePackageOverrides(packages);
+    expect(packages[0].rules).toBeUndefined();
+  });
+
+  it('removes empty coverage object', () => {
+    const packages: PackageConfig[] = [{ name: 'web', path: 'apps/web', coverage: {} }];
+    normalizePackageOverrides(packages);
+    expect(packages[0].coverage).toBeUndefined();
+  });
+
+  it('removes empty conventions object', () => {
+    const packages: PackageConfig[] = [{ name: 'web', path: 'apps/web', conventions: {} }];
+    normalizePackageOverrides(packages);
+    expect(packages[0].conventions).toBeUndefined();
+  });
+
+  it('preserves non-empty objects', () => {
+    const packages: PackageConfig[] = [
+      {
+        name: 'web',
+        path: 'apps/web',
+        rules: { maxFileLines: 500 },
+        conventions: { fileNaming: 'camelCase' },
+        coverage: { summaryPath: 'custom.json' },
+      },
+    ];
+    normalizePackageOverrides(packages);
+    expect(packages[0].rules).toEqual({ maxFileLines: 500 });
+    expect(packages[0].conventions).toEqual({ fileNaming: 'camelCase' });
+    expect(packages[0].coverage).toEqual({ summaryPath: 'custom.json' });
+  });
+});
 
 describe('promptPackageOverrides', () => {
   beforeEach(() => {

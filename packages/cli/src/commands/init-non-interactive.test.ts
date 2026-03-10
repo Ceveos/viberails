@@ -118,4 +118,49 @@ describe('initNonInteractive', () => {
     expect(setupClaudeCodeHook).toHaveBeenCalledWith('/tmp/test');
     expect(setupClaudeMdReference).toHaveBeenCalledWith('/tmp/test');
   });
+
+  it('skips pre-commit hook when no hook manager detected', async () => {
+    const { setupPreCommitHook } = await import('./init-hooks.js');
+    await initNonInteractive('/tmp/test', '/tmp/test/viberails.config.json');
+    expect(setupPreCommitHook).not.toHaveBeenCalled();
+  });
+
+  it('displays missing prerequisites when found', async () => {
+    const { checkCoveragePrereqs, displayMissingPrereqs } = await import(
+      '../utils/check-prerequisites.js'
+    );
+    const prereq = { label: 'vitest', installed: false, reason: 'vitest not found' };
+    vi.mocked(checkCoveragePrereqs).mockReturnValueOnce([prereq]);
+    await initNonInteractive('/tmp/test', '/tmp/test/viberails.config.json');
+    expect(displayMissingPrereqs).toHaveBeenCalledWith([prereq]);
+  });
+
+  it('exempts types-only packages from coverage', async () => {
+    const { generateConfig } = await import('@viberails/config');
+    vi.mocked(generateConfig).mockReturnValueOnce({
+      version: 1,
+      name: 'test',
+      rules: {
+        maxFileLines: 300,
+        maxTestFileLines: 0,
+        testCoverage: 80,
+        enforceNaming: true,
+        enforceBoundaries: false,
+        enforceMissingTests: true,
+      },
+      packages: [
+        { name: '@scope/root', path: '.', conventions: { fileNaming: 'kebab-case' } },
+        { name: '@scope/types', path: 'packages/types', rules: { testCoverage: 0 } },
+      ],
+    } as ReturnType<typeof generateConfig>);
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await initNonInteractive('/tmp/test', '/tmp/test/viberails.config.json');
+
+    const exemptedCall = consoleSpy.mock.calls.find(
+      (call) => typeof call[0] === 'string' && call[0].includes('Auto-exempted'),
+    );
+    expect(exemptedCall).toBeDefined();
+    consoleSpy.mockRestore();
+  });
 });
