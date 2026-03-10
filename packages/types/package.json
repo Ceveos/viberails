@@ -1,6 +1,6 @@
 {
   "name": "@viberails/types",
-  "version": "0.6.11",
+  "version": "0.6.12",
   "description": "Shared type definitions for viberails",
   "type": "module",
   "main": "./dist/index.cjs",
