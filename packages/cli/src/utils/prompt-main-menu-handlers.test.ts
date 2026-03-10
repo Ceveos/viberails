@@ -125,6 +125,51 @@ describe('handleFileNaming', () => {
     expect(config.packages[0].conventions?.fileNaming).toBe('PascalCase');
     expect(config.rules.enforceNaming).toBe(true);
   });
+
+  it('pre-selects consensus naming from monorepo packages', async () => {
+    selectMock.mockResolvedValueOnce('kebab-case');
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    await handleFileNaming(config, makeScanResult());
+    // Should have used consensus as initialValue
+    const selectCall = selectMock.mock.calls[0][0];
+    expect(selectCall.initialValue).toBe('kebab-case');
+  });
+
+  it('falls back to skip when monorepo packages disagree', async () => {
+    selectMock.mockResolvedValueOnce('__skip__');
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'PascalCase' },
+        } as PackageConfig,
+      ],
+    });
+    await handleFileNaming(config, makeScanResult());
+    const selectCall = selectMock.mock.calls[0][0];
+    expect(selectCall.initialValue).toBe('__skip__');
+  });
 });
 
 describe('handleMissingTests', () => {

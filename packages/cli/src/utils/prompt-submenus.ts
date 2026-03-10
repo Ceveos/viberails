@@ -12,8 +12,8 @@ export const FILE_NAMING_OPTIONS = [
 ] as const;
 
 export const COMPONENT_NAMING_OPTIONS = [
-  { value: 'PascalCase', label: 'PascalCase', hint: 'MyComponent.tsx' },
-  { value: 'camelCase', label: 'camelCase', hint: 'myComponent.tsx' },
+  { value: 'PascalCase', label: 'PascalCase', hint: 'e.g. MyComponent, UserProfile' },
+  { value: 'camelCase', label: 'camelCase', hint: 'e.g. myComponent, userProfile' },
 ] as const;
 
 export const HOOK_NAMING_OPTIONS = [

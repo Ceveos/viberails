@@ -8,6 +8,7 @@ import {
   fileLimitsHint,
   fileNamingHint,
   fileNamingStatus,
+  getEffectiveFileNaming,
   missingTestsHint,
   packageOverridesHint,
 } from './prompt-main-menu-hints.js';
@@ -71,6 +72,144 @@ describe('fileLimitsHint', () => {
   });
 });
 
+describe('getEffectiveFileNaming', () => {
+  it('returns root naming when set on root package', () => {
+    const result = getEffectiveFileNaming(makeConfig());
+    expect(result).toEqual({ naming: 'kebab-case', source: 'root' });
+  });
+
+  it('returns undefined for single package with no naming', () => {
+    const config = makeConfig();
+    config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
+    expect(getEffectiveFileNaming(config)).toBeUndefined();
+  });
+
+  it('returns consensus when all monorepo packages agree and root has no naming', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    const result = getEffectiveFileNaming(config);
+    expect(result).toEqual({ naming: 'kebab-case', source: 'consensus' });
+  });
+
+  it('returns root when first package has naming in monorepo without root path', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    // getRootPackage falls back to packages[0] which has naming
+    const result = getEffectiveFileNaming(config);
+    expect(result).toEqual({ naming: 'kebab-case', source: 'root' });
+  });
+
+  it('returns consensus with single package in monorepo', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/mobile',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    const result = getEffectiveFileNaming(config);
+    expect(result).toEqual({ naming: 'kebab-case', source: 'consensus' });
+  });
+
+  it('returns root naming when monorepo packages disagree', () => {
+    const config = makeConfig({
+      packages: [
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'PascalCase' },
+        } as PackageConfig,
+      ],
+    });
+    // First package is the root fallback, so its naming is used
+    expect(getEffectiveFileNaming(config)).toEqual({ naming: 'kebab-case', source: 'root' });
+  });
+
+  it('returns undefined when monorepo packages disagree and root has no naming', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'PascalCase' },
+        } as PackageConfig,
+      ],
+    });
+    expect(getEffectiveFileNaming(config)).toBeUndefined();
+  });
+
+  it('returns undefined when no packages have naming in monorepo', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'app', path: 'apps/web' } as PackageConfig,
+        { name: 'lib', path: 'packages/lib' } as PackageConfig,
+      ],
+    });
+    expect(getEffectiveFileNaming(config)).toBeUndefined();
+  });
+
+  it('prefers root naming over consensus', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.', conventions: { fileNaming: 'camelCase' } } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    const result = getEffectiveFileNaming(config);
+    expect(result).toEqual({ naming: 'camelCase', source: 'root' });
+  });
+
+  it('returns undefined for single-package project with no naming', () => {
+    const config = makeConfig({
+      packages: [{ name: 'root', path: '.' } as PackageConfig],
+    });
+    expect(getEffectiveFileNaming(config)).toBeUndefined();
+  });
+});
+
 describe('fileNamingHint', () => {
   it('returns detected naming with high confidence', () => {
     const scan = makeScanResult([
@@ -84,7 +223,7 @@ describe('fileNamingHint', () => {
     expect(fileNamingHint(makeConfig(), scan)).toBe('kebab-case (detected)');
   });
 
-  it('returns not set when no naming on root', () => {
+  it('returns not set when no naming on root or packages', () => {
     const config = makeConfig();
     config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
     expect(fileNamingHint(config, makeScanResult())).toBe('not set \u2014 select to configure');
@@ -95,16 +234,80 @@ describe('fileNamingHint', () => {
     config.rules.enforceNaming = false;
     expect(fileNamingHint(config, makeScanResult())).toBe('not enforced');
   });
+
+  it('returns detected from consensus in monorepo', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/mobile',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    const scan = makeScanResult([
+      {
+        relativePath: 'apps/mobile',
+        conventions: {
+          fileNaming: {
+            value: 'kebab-case',
+            confidence: 'medium',
+            consistency: 79,
+            sampleSize: 30,
+          },
+        },
+      } as unknown as ScanResult['packages'][0],
+    ]);
+    expect(fileNamingHint(config, scan)).toBe('kebab-case (detected)');
+  });
+
+  it('returns naming without detected tag when not in scan', () => {
+    expect(fileNamingHint(makeConfig(), makeScanResult())).toBe('kebab-case');
+  });
 });
 
 describe('fileNamingStatus', () => {
-  it('returns ok when naming is set', () => {
+  it('returns ok when naming is set on root', () => {
     expect(fileNamingStatus(makeConfig())).toBe('ok');
   });
 
-  it('returns needs-input when no naming on root', () => {
+  it('returns ok from consensus in monorepo', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/mobile',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+      ],
+    });
+    expect(fileNamingStatus(config)).toBe('ok');
+  });
+
+  it('returns needs-input when no naming on root and no consensus', () => {
     const config = makeConfig();
     config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
+    expect(fileNamingStatus(config)).toBe('needs-input');
+  });
+
+  it('returns needs-input when monorepo packages disagree and root has no naming', () => {
+    const config = makeConfig({
+      packages: [
+        { name: 'root', path: '.' } as PackageConfig,
+        {
+          name: 'app',
+          path: 'apps/web',
+          conventions: { fileNaming: 'kebab-case' },
+        } as PackageConfig,
+        {
+          name: 'lib',
+          path: 'packages/lib',
+          conventions: { fileNaming: 'PascalCase' },
+        } as PackageConfig,
+      ],
+    });
     expect(fileNamingStatus(config)).toBe('needs-input');
   });
 

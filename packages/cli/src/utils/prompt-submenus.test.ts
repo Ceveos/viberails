@@ -50,6 +50,13 @@ describe('COMPONENT_NAMING_OPTIONS', () => {
     const values = COMPONENT_NAMING_OPTIONS.map((o) => o.value);
     expect(values).toEqual(['PascalCase', 'camelCase']);
   });
+
+  it('hints show export names, not file names', () => {
+    for (const opt of COMPONENT_NAMING_OPTIONS) {
+      expect(opt.hint).not.toContain('.tsx');
+      expect(opt.hint).not.toContain('.ts');
+    }
+  });
 });
 
 describe('HOOK_NAMING_OPTIONS', () => {

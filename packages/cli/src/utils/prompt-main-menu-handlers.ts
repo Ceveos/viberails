@@ -5,6 +5,7 @@ import { planCoverageInstall } from './check-prerequisites.js';
 import { getRootPackage } from './get-root-package.js';
 import { isCancelled } from './prompt.js';
 import { SENTINEL_CLEAR, SENTINEL_CUSTOM, SENTINEL_SKIP } from './prompt-constants.js';
+import { getEffectiveFileNaming } from './prompt-main-menu-hints.js';
 import type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 import { normalizePackageOverrides, promptPackageOverrides } from './prompt-package-overrides.js';
 import {
@@ -45,10 +46,11 @@ export async function handleFileNaming(
   });
 
   const rootPkg = getRootPackage(config.packages);
+  const effective = getEffectiveFileNaming(config);
   const selected = await clack.select({
     message: isMonorepo ? 'Default file naming convention' : 'File naming convention',
     options: [...namingOptions, { value: SENTINEL_SKIP, label: "Don't enforce" }],
-    initialValue: rootPkg.conventions?.fileNaming ?? SENTINEL_SKIP,
+    initialValue: effective?.naming ?? SENTINEL_SKIP,
   });
   if (isCancelled(selected)) return;
 

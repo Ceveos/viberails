@@ -10,18 +10,41 @@ export function fileLimitsHint(config: ViberailsConfig): string {
   return test > 0 ? `${max} lines, tests ${test}` : `${max} lines`;
 }
 
+/**
+ * Find the effective file naming for the project.
+ * Checks the root package first, then looks for consensus across all packages.
+ * @internal Exported for testing.
+ */
+export function getEffectiveFileNaming(
+  config: ViberailsConfig,
+): { naming: string; source: 'root' | 'consensus' } | undefined {
+  const rootPkg = getRootPackage(config.packages);
+  if (rootPkg.conventions?.fileNaming) {
+    return { naming: rootPkg.conventions.fileNaming, source: 'root' };
+  }
+  // In monorepos, check if all packages with file naming agree
+  if (config.packages.length > 1) {
+    const namingValues = config.packages
+      .map((p) => p.conventions?.fileNaming)
+      .filter((n): n is string => !!n);
+    if (namingValues.length > 0 && new Set(namingValues).size === 1) {
+      return { naming: namingValues[0], source: 'consensus' };
+    }
+  }
+  return undefined;
+}
+
 /** @internal Exported for testing. */
 export function fileNamingHint(config: ViberailsConfig, scanResult: ScanResult): string {
-  const rootPkg = getRootPackage(config.packages);
-  const naming = rootPkg.conventions?.fileNaming;
   if (!config.rules.enforceNaming) return 'not enforced';
-  if (naming) {
+  const effective = getEffectiveFileNaming(config);
+  if (effective) {
     const detected = scanResult.packages.some(
       (p) =>
-        p.conventions.fileNaming?.value === naming &&
-        p.conventions.fileNaming.confidence === 'high',
+        p.conventions.fileNaming?.value === effective.naming &&
+        p.conventions.fileNaming.confidence !== 'low',
     );
-    return detected ? `${naming} (detected)` : naming;
+    return detected ? `${effective.naming} (detected)` : effective.naming;
   }
   return 'not set \u2014 select to configure';
 }
@@ -29,8 +52,7 @@ export function fileNamingHint(config: ViberailsConfig, scanResult: ScanResult):
 /** @internal Exported for testing. */
 export function fileNamingStatus(config: ViberailsConfig): 'ok' | 'needs-input' | 'unconfigured' {
   if (!config.rules.enforceNaming) return 'unconfigured';
-  const rootPkg = getRootPackage(config.packages);
-  return rootPkg.conventions?.fileNaming ? 'ok' : 'needs-input';
+  return getEffectiveFileNaming(config) ? 'ok' : 'needs-input';
 }
 
 /** @internal Exported for testing. */
