@@ -2,7 +2,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as clack from '@clack/prompts';
 import type { ScanResult } from '@viberails/types';
+import chalk from 'chalk';
 import { detectHookManager } from '../commands/init-hooks.js';
+import { resolveTypecheckCommand } from '../commands/resolve-typecheck.js';
 import { assertNotCancelled } from './prompt.js';
 import { buildLefthookInstallCommand } from './prompt-integrations.js';
 import { spawnAsync } from './spawn-async.js';
@@ -12,6 +14,7 @@ export interface PrereqResolution {
   hookManager: string | undefined;
   skipCoverage: boolean;
   skipHooks: boolean;
+  typecheckLabel: string | undefined;
 }
 
 function buildVitestInstallCommand(pm: string, isWorkspace: boolean): string {
@@ -20,9 +23,59 @@ function buildVitestInstallCommand(pm: string, isWorkspace: boolean): string {
   return isWorkspace ? 'pnpm add -D -w vitest' : 'pnpm add -D vitest';
 }
 
+/** Build the readiness note lines. Returns empty array if everything is detected. */
+export function buildReadinessLines(
+  hasTestRunner: boolean,
+  testRunnerName: string | undefined,
+  hookManager: string | undefined,
+  linterName: string | undefined,
+  typecheckResolved: { label?: string; reason?: string },
+): string[] {
+  const ok = chalk.green('\u2713');
+  const warn = chalk.yellow('!');
+  const dim = chalk.dim('-');
+
+  const lines: string[] = [];
+  let hasMissing = false;
+
+  // Test runner
+  if (hasTestRunner) {
+    lines.push(`${ok} Test runner     ${testRunnerName ?? 'detected'}`);
+  } else {
+    lines.push(`${warn} Test runner     not detected`);
+    hasMissing = true;
+  }
+
+  // Hook manager
+  if (hookManager) {
+    lines.push(`${ok} Hook manager    ${hookManager}`);
+  } else {
+    lines.push(`${warn} Hook manager    not detected`);
+    hasMissing = true;
+  }
+
+  // Linter (informational only)
+  if (linterName) {
+    const name = linterName === 'biome' ? 'Biome' : linterName === 'eslint' ? 'ESLint' : linterName;
+    lines.push(`${ok} Linter          ${name}`);
+  } else {
+    lines.push(`${dim} Linter          none`);
+  }
+
+  // Typecheck (informational only)
+  if (typecheckResolved.label) {
+    lines.push(`${ok} Typecheck       ${typecheckResolved.label}`);
+  } else {
+    lines.push(`${warn} Typecheck       needs root tsconfig.json, typecheck script, or turbo task`);
+    hasMissing = true;
+  }
+
+  return hasMissing ? lines : [];
+}
+
 /**
- * Check prerequisites (test runner, hook manager) before entering the main menu.
- * Prompts the user to install missing tools or skip related features.
+ * Check prerequisites before entering the main menu.
+ * Shows a readiness summary, then prompts to install missing tools.
  */
 export async function promptPrereqs(
   projectRoot: string,
@@ -36,6 +89,22 @@ export async function promptPrereqs(
   let skipCoverage = false;
   let skipHooks = false;
 
+  const linterName = scanResult.stack.linter?.name;
+  const typecheckResolved = resolveTypecheckCommand(projectRoot, packageManager);
+
+  // Show readiness note if anything is missing
+  const lines = buildReadinessLines(
+    hasTestRunner,
+    scanResult.stack.testRunner?.name,
+    currentHookManager,
+    linterName,
+    typecheckResolved,
+  );
+  if (lines.length > 0) {
+    clack.note(lines.join('\n'), 'Project readiness');
+  }
+
+  // Prompt for installable items
   if (!hasTestRunner) {
     const cmd = buildVitestInstallCommand(packageManager, isWorkspace);
     const choice = await clack.select({
@@ -104,5 +173,11 @@ export async function promptPrereqs(
     }
   }
 
-  return { hasTestRunner, hookManager: currentHookManager, skipCoverage, skipHooks };
+  return {
+    hasTestRunner,
+    hookManager: currentHookManager,
+    skipCoverage,
+    skipHooks,
+    typecheckLabel: typecheckResolved.label,
+  };
 }

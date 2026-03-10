@@ -83,11 +83,23 @@ describe('promptIntegrationsDeferred', () => {
     expect(tc?.label).toBe('Typecheck (turbo typecheck)');
   });
 
-  it('omits typecheck option when no label provided', async () => {
+  it('shows typecheck unchecked with hint when TS but no label', async () => {
     multiselectMock.mockResolvedValueOnce([]);
     await promptIntegrationsDeferred('Lefthook', { isTypeScript: true });
     const opts = multiselectMock.mock.calls[0][0].options;
-    expect(opts.find((o: { value: string }) => o.value === 'typecheck')).toBeUndefined();
+    const tc = opts.find((o: { value: string }) => o.value === 'typecheck');
+    expect(tc).toBeDefined();
+    expect(tc?.label).toBe('Typecheck');
+    expect(tc?.hint).toContain('needs root tsconfig');
+    const initialValues = multiselectMock.mock.calls[0][0].initialValues;
+    expect(initialValues).not.toContain('typecheck');
+  });
+
+  it('default-checks typecheck when label is resolved', async () => {
+    multiselectMock.mockResolvedValueOnce(['typecheck']);
+    await promptIntegrationsDeferred('Lefthook', { typecheckLabel: 'tsc --noEmit' });
+    const initialValues = multiselectMock.mock.calls[0][0].initialValues;
+    expect(initialValues).toContain('typecheck');
   });
 
   it('includes lint option when linter detected', async () => {

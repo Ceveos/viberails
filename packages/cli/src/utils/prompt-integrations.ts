@@ -53,6 +53,12 @@ export async function promptIntegrationsDeferred(
       label: `Typecheck (${tools.typecheckLabel})`,
       hint: 'pre-commit hook + CI check',
     });
+  } else if (tools?.isTypeScript) {
+    options.push({
+      value: 'typecheck',
+      label: 'Typecheck',
+      hint: 'needs root tsconfig.json, typecheck script, or turbo task',
+    });
   }
 
   if (tools?.linter) {
@@ -82,9 +88,14 @@ export async function promptIntegrationsDeferred(
     },
   );
 
-  // Default-check everything except pre-commit when no hook manager
+  // Default-check everything except: pre-commit when no hook manager, typecheck when unresolvable
+  const hasTypecheck = !!tools?.typecheckLabel;
   const initialValues = options
-    .filter((o) => hasHookManager || o.value !== 'preCommit')
+    .filter((o) => {
+      if (o.value === 'preCommit' && !hasHookManager) return false;
+      if (o.value === 'typecheck' && !hasTypecheck) return false;
+      return true;
+    })
     .map((o) => o.value);
 
   const result = await clack.multiselect({
