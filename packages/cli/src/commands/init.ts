@@ -4,20 +4,11 @@ import * as clack from '@clack/prompts';
 import { compactConfig, generateConfig } from '@viberails/config';
 import { scan } from '@viberails/scanner';
 import chalk from 'chalk';
-import { displayInitOverview, displaySetupPlan } from '../display-init.js';
-import { formatScanResultsText } from '../display-text.js';
-import { applyRuleOverrides } from '../utils/apply-rule-overrides.js';
-import { checkCoveragePrereqs, promptMissingPrereqs } from '../utils/check-prerequisites.js';
+import { checkCoveragePrereqs } from '../utils/check-prerequisites.js';
+import { executeDeferredInstalls } from '../utils/deferred-install.js';
 import { findProjectRoot } from '../utils/find-project-root.js';
-import {
-  confirm,
-  confirmDangerous,
-  promptExistingConfigAction,
-  promptInitDecision,
-  promptIntegrations,
-  promptRuleMenu,
-} from '../utils/prompt.js';
-import { resolveWorkspacePackages } from '../utils/resolve-workspace-packages.js';
+import { confirm, confirmDangerous, promptExistingConfigAction } from '../utils/prompt.js';
+import { promptMainMenu } from '../utils/prompt-main-menu.js';
 import { updateGitignore } from '../utils/update-gitignore.js';
 import { writeGeneratedFiles } from '../utils/write-generated-files.js';
 import { configCommand } from './config.js';
@@ -26,12 +17,6 @@ import { setupSelectedIntegrations } from './init-hooks-extra.js';
 import { initNonInteractive } from './init-non-interactive.js';
 
 const CONFIG_FILE = 'viberails.config.json';
-
-function getExemptedPackages(config: import('@viberails/types').ViberailsConfig): string[] {
-  return config.packages
-    .filter((pkg) => pkg.rules?.testCoverage === 0 && pkg.path !== '.')
-    .map((pkg) => pkg.path);
-}
 
 /** Run the viberails init flow. */
 export async function initCommand(
@@ -66,7 +51,6 @@ async function initInteractive(
   options: { force?: boolean },
 ): Promise<void> {
   clack.intro('viberails');
-  const replacingExistingConfig = fs.existsSync(configPath);
 
   if (fs.existsSync(configPath) && !options.force) {
     const action = await promptExistingConfigAction(path.basename(configPath));
@@ -91,6 +75,7 @@ async function initInteractive(
     }
   }
 
+  // Scan
   const s = clack.spinner();
   s.start('Scanning project...');
   const scanResult = await scan(projectRoot);
@@ -104,109 +89,53 @@ async function initInteractive(
     );
   }
 
-  const exemptedPkgs = getExemptedPackages(config);
-  let decision: 'accept' | 'customize';
-  while (true) {
-    displayInitOverview(scanResult, config, exemptedPkgs);
-    const nextDecision = await promptInitDecision();
-    if (nextDecision === 'review') {
-      clack.note(formatScanResultsText(scanResult), 'Detected details');
-      continue;
-    }
-    decision = nextDecision;
-    break;
-  }
-
-  if (decision === 'customize') {
-    const { resolveNamingDefault } = await import('../utils/prompt-naming-default.js');
-    await resolveNamingDefault(config, scanResult);
-
-    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
-    const overrides = await promptRuleMenu({
-      maxFileLines: config.rules.maxFileLines,
-      maxTestFileLines: config.rules.maxTestFileLines,
-      testCoverage: config.rules.testCoverage,
-      enforceMissingTests: config.rules.enforceMissingTests,
-      enforceNaming: config.rules.enforceNaming,
-      fileNamingValue: rootPkg.conventions?.fileNaming,
-      componentNaming: rootPkg.conventions?.componentNaming,
-      hookNaming: rootPkg.conventions?.hookNaming,
-      importAlias: rootPkg.conventions?.importAlias,
-      coverageSummaryPath: 'coverage/coverage-summary.json',
-      coverageCommand: config.defaults?.coverage?.command,
-      packageOverrides: config.packages,
-    });
-
-    applyRuleOverrides(config, overrides);
-  }
-
-  if (config.packages.length > 1) {
-    clack.note(
-      'Optional for monorepos. viberails can infer package boundaries\n' +
-        'from imports that already work today, so you start with rules\n' +
-        'that match the current codebase.',
-      'Boundaries',
+  // Pre-menu: informational notes
+  const hasTestRunner = !!scanResult.stack.testRunner;
+  if (!hasTestRunner) {
+    clack.log.info(
+      'No test runner detected. Coverage checks are inactive until a test runner is installed.\n' +
+        'Install a test runner (e.g. vitest) and re-run viberails init.',
     );
-    const shouldInfer = await confirm('Infer boundary rules from current import patterns?');
-
-    if (shouldInfer) {
-      const bs = clack.spinner();
-      bs.start('Building import graph...');
-      const { buildImportGraph, inferBoundaries } = await import('@viberails/graph');
-      const packages = resolveWorkspacePackages(projectRoot, config.packages);
-      const graph = await buildImportGraph(projectRoot, { packages, ignore: config.ignore });
-      const inferred = inferBoundaries(graph);
-      const denyCount = Object.values(inferred.deny).reduce((sum, arr) => sum + arr.length, 0);
-      if (denyCount > 0) {
-        config.boundaries = inferred;
-        config.rules.enforceBoundaries = true;
-        const pkgCount = Object.keys(inferred.deny).length;
-        bs.stop(`Inferred ${denyCount} boundary rules across ${pkgCount} packages`);
-      } else {
-        bs.stop('No boundary rules inferred');
-      }
-    }
   }
 
-  // Prerequisites: coverage provider + hook manager
+  // Prerequisites detection (no prompts yet — handled in menu)
   const hookManager = detectHookManager(projectRoot);
   const coveragePrereqs = checkCoveragePrereqs(projectRoot, scanResult);
-  const hasMissingPrereqs = coveragePrereqs.some((p) => !p.installed) || !hookManager;
-  if (hasMissingPrereqs) {
-    clack.log.info('Some dependencies are needed for full functionality.');
-  }
-  const prereqResult = await promptMissingPrereqs(projectRoot, coveragePrereqs);
-  if (prereqResult.disableCoverage) {
-    config.rules.testCoverage = 0;
-  }
-
   const rootPkgStack = (config.packages.find((p) => p.path === '.') ?? config.packages[0])?.stack;
-  const integrations = await promptIntegrations(projectRoot, hookManager, {
-    isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
-    linter: rootPkgStack?.linter?.split('@')[0],
-    packageManager: rootPkgStack?.packageManager?.split('@')[0],
-    isWorkspace: config.packages.length > 1,
+
+  // Main menu loop
+  const state = await promptMainMenu(config, scanResult, {
+    hasTestRunner,
+    hookManager,
+    coveragePrereqs,
+    projectRoot,
+    tools: {
+      isTypeScript: rootPkgStack?.language?.split('@')[0] === 'typescript',
+      linter: rootPkgStack?.linter?.split('@')[0],
+      packageManager: rootPkgStack?.packageManager?.split('@')[0],
+      isWorkspace: config.packages.length > 1,
+    },
   });
 
-  displaySetupPlan(config, integrations, {
-    replacingExistingConfig,
-    configFile: path.basename(configPath),
-  });
-
+  // Final confirmation
   const shouldWrite = await confirm('Apply this setup?');
   if (!shouldWrite) {
     clack.outro('Aborted. No files were written.');
     return;
   }
 
+  // Execute deferred installs
+  if (state.deferredInstalls.length > 0) {
+    await executeDeferredInstalls(projectRoot, state.deferredInstalls);
+  }
+
+  // Write config files
   const ws = clack.spinner();
   ws.start('Writing configuration...');
-
   const compacted = compactConfig(config);
   fs.writeFileSync(configPath, `${JSON.stringify(compacted, null, 2)}\n`);
   writeGeneratedFiles(projectRoot, config, scanResult);
   updateGitignore(projectRoot);
-
   ws.stop('Configuration written');
 
   const ok = chalk.green('\u2713');
@@ -214,10 +143,13 @@ async function initInteractive(
   clack.log.step(`${ok} .viberails/context.md`);
   clack.log.step(`${ok} .viberails/scan-result.json`);
 
-  setupSelectedIntegrations(projectRoot, integrations, {
-    linter: rootPkgStack?.linter?.split('@')[0],
-    packageManager: rootPkgStack?.packageManager?.split('@')[0],
-  });
+  // Setup integrations (only if user visited the integrations menu)
+  if (state.visited.integrations && state.integrations) {
+    setupSelectedIntegrations(projectRoot, state.integrations, {
+      linter: rootPkgStack?.linter?.split('@')[0],
+      packageManager: rootPkgStack?.packageManager?.split('@')[0],
+    });
+  }
 
   clack.outro(
     `Done! Next: review viberails.config.json, then run viberails check\n` +

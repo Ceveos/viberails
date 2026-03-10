@@ -1,4 +1,5 @@
 import * as clack from '@clack/prompts';
+import type { DeferredInstall } from './deferred-install.js';
 import { assertNotCancelled } from './prompt.js';
 import { spawnAsync } from './spawn-async.js';
 
@@ -47,12 +48,7 @@ async function promptHookManagerInstall(
   if (choice !== 'install') return undefined;
 
   const pm = packageManager || 'npm';
-  const installCmd =
-    pm === 'yarn'
-      ? 'yarn add -D lefthook'
-      : pm === 'pnpm'
-        ? `pnpm add -D${isWorkspace ? ' -w' : ''} lefthook`
-        : 'npm install -D lefthook';
+  const installCmd = buildLefthookInstallCommand(pm, isWorkspace);
 
   const s = clack.spinner();
   s.start('Installing Lefthook...');
@@ -172,5 +168,122 @@ export async function promptIntegrations(
     githubAction: result.includes('githubAction'),
     typecheckHook: result.includes('typecheck'),
     lintHook: result.includes('lint'),
+  };
+}
+
+/** Build the shell command to install Lefthook for the given package manager. */
+export function buildLefthookInstallCommand(pm: string, isWorkspace?: boolean): string {
+  if (pm === 'yarn') return 'yarn add -D lefthook';
+  if (pm === 'pnpm') return `pnpm add -D${isWorkspace ? ' -w' : ''} lefthook`;
+  if (pm === 'npm') return 'npm install -D lefthook';
+  return `${pm} add -D lefthook`;
+}
+
+export interface IntegrationResult {
+  choice: IntegrationChoice;
+  /** If user opted to install Lefthook, includes the deferred install */
+  lefthookInstall?: DeferredInstall;
+}
+
+/** Prompt integrations with Lefthook install as a deferred multiselect option. */
+export async function promptIntegrationsDeferred(
+  hookManager: string | undefined,
+  tools?: DetectedTools,
+  packageManager?: string,
+  isWorkspace?: boolean,
+): Promise<IntegrationResult> {
+  type OptionValue =
+    | 'installLefthook'
+    | 'preCommit'
+    | 'claude'
+    | 'claudeMd'
+    | 'githubAction'
+    | 'typecheck'
+    | 'lint';
+
+  const options: { value: OptionValue; label: string; hint: string }[] = [];
+
+  // Offer Lefthook install as a deferred option when no hook manager exists
+  const needsLefthook = !hookManager;
+  if (needsLefthook) {
+    const pm = packageManager ?? 'npm';
+    options.push({
+      value: 'installLefthook',
+      label: 'Install Lefthook',
+      hint: `after final confirmation — ${buildLefthookInstallCommand(pm, isWorkspace)}`,
+    });
+  }
+
+  const hookLabel = hookManager ? `Pre-commit hook (${hookManager})` : 'Pre-commit hook (Lefthook)';
+  const hookHint = needsLefthook
+    ? 'requires Lefthook install above'
+    : 'runs viberails checks when you commit';
+
+  options.push({ value: 'preCommit', label: hookLabel, hint: hookHint });
+
+  if (tools?.isTypeScript) {
+    options.push({
+      value: 'typecheck',
+      label: 'Typecheck (tsc --noEmit)',
+      hint: 'pre-commit hook + CI check',
+    });
+  }
+
+  if (tools?.linter) {
+    const linterName = tools.linter === 'biome' ? 'Biome' : 'ESLint';
+    options.push({
+      value: 'lint',
+      label: `Lint check (${linterName})`,
+      hint: 'pre-commit hook + CI check',
+    });
+  }
+
+  options.push(
+    {
+      value: 'claude',
+      label: 'Claude Code hook',
+      hint: 'checks files when Claude edits them',
+    },
+    {
+      value: 'claudeMd',
+      label: 'CLAUDE.md reference',
+      hint: 'appends @.viberails/context.md so Claude loads rules automatically',
+    },
+    {
+      value: 'githubAction',
+      label: 'GitHub Actions workflow',
+      hint: 'blocks PRs that fail viberails check',
+    },
+  );
+
+  const initialValues = options.map((o) => o.value);
+
+  const result = await clack.multiselect({
+    message: 'Integrations',
+    options,
+    initialValues,
+    required: false,
+  });
+  assertNotCancelled(result);
+
+  let lefthookInstall: DeferredInstall | undefined;
+  if (needsLefthook && result.includes('installLefthook')) {
+    const pm = packageManager ?? 'npm';
+    lefthookInstall = {
+      label: 'Lefthook',
+      command: buildLefthookInstallCommand(pm, isWorkspace),
+    };
+  }
+
+  return {
+    choice: {
+      preCommitHook: result.includes('preCommit'),
+      claudeCodeHook: result.includes('claude'),
+      claudeMdRef: result.includes('claudeMd'),
+      githubAction: result.includes('githubAction'),
+      typecheckHook: result.includes('typecheck'),
+      lintHook: result.includes('lint'),
+    },
+    lefthookInstall,
   };
 }

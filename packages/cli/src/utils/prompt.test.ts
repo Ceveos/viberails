@@ -4,7 +4,6 @@ import {
   confirm,
   confirmDangerous,
   promptExistingConfigAction,
-  promptInitDecision,
   promptIntegrations,
   promptRuleMenu,
 } from './prompt.js';
@@ -40,19 +39,6 @@ describe('prompt utils', () => {
     noteMock.mockReset();
     logMock.info.mockReset();
     isCancelMock.mockClear();
-  });
-
-  it('promptInitDecision returns the selected choice', async () => {
-    selectMock.mockResolvedValueOnce('customize');
-    await expect(promptInitDecision()).resolves.toBe('customize');
-  });
-
-  it('promptInitDecision shows review and customize options', async () => {
-    selectMock.mockResolvedValueOnce('accept');
-    await promptInitDecision();
-    const options = selectMock.mock.calls[0][0].options;
-    expect(options[1].label).toBe('Customize rules');
-    expect(options[2].label).toBe('Review detected details');
   });
 
   it('confirm and confirmDangerous use different default values', async () => {

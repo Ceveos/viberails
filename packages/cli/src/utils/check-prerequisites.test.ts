@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { PackageScanResult, ScanResult } from '@viberails/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkCoveragePrereqs } from './check-prerequisites.js';
+import { checkCoveragePrereqs, planCoverageInstall } from './check-prerequisites.js';
 
 let tmpDir: string;
 
@@ -243,5 +243,32 @@ describe('checkCoveragePrereqs — monorepo', () => {
 
     const result = checkCoveragePrereqs(tmpDir, scan);
     expect(result[0].installCommand).toBe('pnpm add -D @vitest/coverage-v8');
+  });
+});
+
+describe('planCoverageInstall', () => {
+  it('returns undefined when all prereqs are installed', () => {
+    const prereqs = [{ label: '@vitest/coverage-v8', installed: true, reason: 'coverage' }];
+    expect(planCoverageInstall(prereqs)).toBeUndefined();
+  });
+
+  it('returns undefined for empty prereqs', () => {
+    expect(planCoverageInstall([])).toBeUndefined();
+  });
+
+  it('returns a DeferredInstall when provider is missing', () => {
+    const prereqs = [
+      {
+        label: '@vitest/coverage-v8',
+        installed: false,
+        installCommand: 'pnpm add -D @vitest/coverage-v8',
+        reason: 'coverage',
+      },
+    ];
+    const result = planCoverageInstall(prereqs);
+    expect(result).toEqual({
+      label: '@vitest/coverage-v8',
+      command: 'pnpm add -D @vitest/coverage-v8',
+    });
   });
 });
