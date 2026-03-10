@@ -12,6 +12,14 @@ export function assertNotCancelled<T>(value: T | symbol): asserts value is T {
 }
 
 /**
+ * Check whether a clack prompt result was cancelled (Escape / Ctrl+C).
+ * Use in sub-menus where cancel should return to the parent menu instead of exiting.
+ */
+export function isCancelled<T>(value: T | symbol): value is symbol {
+  return clack.isCancel(value);
+}
+
+/**
  * Prompt the user for a yes/no confirmation.
  *
  * @param message - The question to display
@@ -69,38 +77,6 @@ export async function promptExistingConfigAction(
   return result;
 }
 
-/**
- * Prompt the user to choose how to proceed after the initial scan.
- *
- * @returns 'accept', 'customize', or 'review'
- */
-export async function promptInitDecision(): Promise<'accept' | 'customize' | 'review'> {
-  const result = await clack.select({
-    message: 'How do you want to proceed?',
-    options: [
-      {
-        value: 'accept' as const,
-        label: 'Accept defaults',
-        hint: 'writes the config with these defaults; use --enforce in CI to block',
-      },
-      {
-        value: 'customize' as const,
-        label: 'Customize rules',
-        hint: 'edit limits, naming, test coverage, and package overrides',
-      },
-      {
-        value: 'review' as const,
-        label: 'Review detected details',
-        hint: 'show the full scan report with package and structure details',
-      },
-    ],
-  });
-  assertNotCancelled(result);
-  return result;
-}
-
 export type { IntegrationChoice } from './prompt-integrations.js';
-// Re-export from split modules so existing imports continue to work
-export { promptIntegrations } from './prompt-integrations.js';
 export type { RuleOverrides } from './prompt-rules.js';
 export { promptRuleMenu } from './prompt-rules.js';

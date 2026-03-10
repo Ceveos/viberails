@@ -8,21 +8,9 @@ const features = [
   },
   {
     label: '02',
-    title: 'Catches drift where drift starts',
+    title: 'Generates rules AI tools actually follow',
     description:
-      'PostToolUse hooks catch drift during AI edits. Pre-commit hooks and CI enforce the rest.',
-  },
-  {
-    label: '03',
-    title: 'Handles monorepos like a first-class case',
-    description:
-      'Workspace packages get scanned independently. Boundaries can be inferred from current imports, not guessed from ideology.',
-  },
-  {
-    label: '04',
-    title: 'Turns setup into team infrastructure',
-    description:
-      'The same init flow can wire hooks, AI context, and PR checks so the rules live in the repo, not in one person\'s memory.',
+      'Scan results become .viberails/context.md — natural-language directives wired into Claude Code hooks, pre-commit checks, and CI. Not a template. Derived from your code.',
   },
 ];
 ---
@@ -51,7 +39,6 @@ const features = [
   </div>
 
   <div class="mt-6 rounded border border-dashed border-blueprint-line bg-terminal-bg/40 px-5 py-4 text-sm leading-7 text-text-muted">
-    <span class="text-text-primary">Monorepo-native.</span> Detects workspaces, scans packages independently,
-    infers import boundaries, and supports per-package config.
+    <span class="text-text-primary">Monorepo-native.</span> Workspace detection, per-package scanning, and boundary inference included.
   </div>
 </section>

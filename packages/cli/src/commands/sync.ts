@@ -117,10 +117,14 @@ export async function syncCommand(
       const rootPkg = merged.packages.find((p) => p.path === '.') ?? merged.packages[0];
       const overrides = await promptRuleMenu({
         maxFileLines: merged.rules.maxFileLines,
+        maxTestFileLines: merged.rules.maxTestFileLines,
         testCoverage: merged.rules.testCoverage,
         enforceMissingTests: merged.rules.enforceMissingTests,
         enforceNaming: merged.rules.enforceNaming,
         fileNamingValue: rootPkg.conventions?.fileNaming,
+        componentNaming: rootPkg.conventions?.componentNaming,
+        hookNaming: rootPkg.conventions?.hookNaming,
+        importAlias: rootPkg.conventions?.importAlias,
         coverageSummaryPath: rootPkg.coverage?.summaryPath ?? 'coverage/coverage-summary.json',
         coverageCommand: merged.defaults?.coverage?.command,
         packageOverrides: merged.packages,

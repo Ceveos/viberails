@@ -12,14 +12,14 @@ const surfaces = ['AI edits', 'pre-commit', 'PR checks'];
       </div>
 
       <h1 class="mt-5 max-w-2xl text-3xl font-bold leading-[1.05] tracking-tight text-text-primary md:text-5xl lg:text-[3.75rem]">
-        Your codebase has conventions.
+        Scan your codebase.
         <br />
-        Now enforce them.
+        Generate AI guardrails.
       </h1>
 
       <p class="mt-5 max-w-xl text-sm leading-7 text-text-muted md:text-[15px]">
-        One scan, real defaults, no config to start. viberails reads your existing project,
-        generates AI context files, and enforces the rules it finds.
+        viberails reads your existing project &mdash; framework, structure, naming, tests &mdash;
+        and generates rules that AI tools, hooks, and CI actually follow.
       </p>
 
       <div class="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -56,23 +56,22 @@ const surfaces = ['AI edits', 'pre-commit', 'PR checks'];
           <span class="text-text-dim">$</span>
           <span class="text-text-primary"> npx viberails</span>
         </div>
-        <div class="mt-2 text-text-muted">Scan complete</div>
 
-        <div class="mt-3 text-text-dim text-[11px] uppercase tracking-[0.24em]">Ready to initialize</div>
-        <div class="ml-2 text-text-primary">
-          monorepo <span class="text-text-dim">&middot;</span> 10 packages <span class="text-text-dim">&middot;</span> TypeScript 5
-        </div>
-        <div class="ml-2 text-text-muted">pnpm &middot; ESLint 9 &middot; Prettier 3 &middot; Jest 29</div>
-
-        <div class="mt-3 text-text-dim text-[11px] uppercase tracking-[0.24em]">Rules</div>
-        <div class="ml-2 text-text-muted"><span class="text-green">✓</span> 300-line file cap</div>
-        <div class="ml-2 text-text-muted"><span class="text-green">✓</span> kebab-case naming</div>
-        <div class="ml-2 text-text-muted"><span class="text-green">✓</span> missing tests enforced</div>
-
-        <div class="mt-3 text-text-dim text-[11px] uppercase tracking-[0.24em]">Next step</div>
-        <div class="ml-2 text-accent">› Accept defaults</div>
-        <div class="ml-2 text-text-dim">Customize rules</div>
-        <div class="ml-2 text-text-dim cursor">Review detected details</div>
+        <div class="mt-3"><span class="text-accent">┌</span>  <span class="text-text-primary">viberails</span></div>
+        <div><span class="text-accent">│</span></div>
+        <div><span class="text-green">◇</span>  <span class="text-text-muted">Scan complete</span></div>
+        <div><span class="text-accent">│</span></div>
+        <div><span class="text-accent">◆</span>  <span class="text-text-primary">Configure viberails</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-accent">●</span> <span class="text-green">✓</span> <span class="text-text-primary">Max file size</span> <span class="text-text-dim">(300 lines)</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span> <span class="text-amber">?</span> <span class="text-text-muted">Default file naming</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span> <span class="text-green">✓</span> <span class="text-text-muted">Missing tests</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span> <span class="text-green">✓</span> <span class="text-text-muted">Coverage</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span> <span class="text-text-dim">-</span> <span class="text-text-muted">Advanced naming</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span> <span class="text-text-dim">-</span> <span class="text-text-muted">Integrations</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span>   <span class="text-text-dim">Reset all to defaults</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span>   <span class="text-text-dim">Review scan details</span></div>
+        <div><span class="text-accent">│</span>  <span class="text-text-dim">○</span>   <span class="text-text-dim cursor">Done — write config</span></div>
+        <div><span class="text-accent">└</span></div>
       </Terminal>
     </div>
   </div>

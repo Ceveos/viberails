@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import * as clack from '@clack/prompts';
 import type { ScanResult } from '@viberails/types';
 import chalk from 'chalk';
+import type { DeferredInstall } from './deferred-install.js';
 import { assertNotCancelled } from './prompt.js';
 import { spawnAsync } from './spawn-async.js';
 
@@ -171,6 +172,20 @@ export async function promptMissingPrereqs(
   }
 
   return { disableCoverage };
+}
+
+/**
+ * Build a deferred install plan for the coverage provider.
+ * Returns a DeferredInstall if a coverage provider is missing but needed,
+ * or undefined if already installed or no test runner requires it.
+ */
+export function planCoverageInstall(prereqs: PrereqResult[]): DeferredInstall | undefined {
+  const missing = prereqs.find((p) => !p.installed && p.installCommand);
+  if (!missing?.installCommand) return undefined;
+  return {
+    label: missing.label,
+    command: missing.installCommand,
+  };
 }
 
 function hasDependency(projectRoot: string, name: string): boolean {

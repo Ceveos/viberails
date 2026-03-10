@@ -1,57 +1,222 @@
-import { describe, expect, it } from 'vitest';
-import { buildMenuOptions, clonePackages } from './prompt-menu-handlers.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildMenuOptions,
+  clonePackages,
+  getPackageDiffs,
+  handleMenuChoice,
+} from './prompt-menu-handlers.js';
+import type { RuleOverrides } from './prompt-rules.js';
 
-describe('buildMenuOptions', () => {
-  const baseState = {
+const { logMock } = vi.hoisted(() => ({
+  logMock: { info: vi.fn() },
+}));
+
+vi.mock('@clack/prompts', () => ({
+  log: logMock,
+  note: vi.fn(),
+}));
+
+vi.mock('./prompt-submenus.js', () => ({
+  promptFileLimitsMenu: vi.fn(),
+  promptNamingMenu: vi.fn(),
+  promptTestingMenu: vi.fn(),
+  FILE_NAMING_OPTIONS: [
+    { value: 'kebab-case', label: 'kebab-case' },
+    { value: 'camelCase', label: 'camelCase' },
+    { value: 'PascalCase', label: 'PascalCase' },
+    { value: 'snake_case', label: 'snake_case' },
+  ],
+}));
+
+vi.mock('./prompt-package-overrides.js', () => ({
+  promptPackageOverrides: vi.fn(async (packages: unknown) => packages),
+}));
+
+function makeState(overrides: Partial<RuleOverrides> = {}): RuleOverrides {
+  return {
     maxFileLines: 300,
+    maxTestFileLines: 0,
     testCoverage: 80,
     enforceMissingTests: true,
     enforceNaming: true,
     fileNamingValue: 'kebab-case',
     coverageSummaryPath: 'coverage/coverage-summary.json',
-    coverageCommand: undefined,
+    ...overrides,
   };
+}
 
-  it('includes all basic options', () => {
+describe('buildMenuOptions', () => {
+  const baseState = makeState();
+
+  it('includes grouped menu options', () => {
     const options = buildMenuOptions(baseState, 0);
     const values = options.map((o) => o.value);
-    expect(values).toContain('maxFileLines');
-    expect(values).toContain('enforceNaming');
-    expect(values).toContain('testCoverage');
+    expect(values).toContain('fileLimits');
+    expect(values).toContain('naming');
+    expect(values).toContain('testing');
     expect(values).toContain('done');
   });
 
-  it('includes coverage options when testCoverage > 0', () => {
-    const options = buildMenuOptions(baseState, 0);
-    const values = options.map((o) => o.value);
-    expect(values).toContain('coverageSummaryPath');
-    expect(values).toContain('coverageCommand');
-  });
-
-  it('hides coverage options when testCoverage is 0', () => {
-    const options = buildMenuOptions({ ...baseState, testCoverage: 0 }, 0);
-    const values = options.map((o) => o.value);
-    expect(values).not.toContain('coverageSummaryPath');
-    expect(values).not.toContain('coverageCommand');
-    expect(values).not.toContain('packageOverrides');
-  });
-
-  it('includes packageOverrides when packages exist and coverage enabled', () => {
+  it('includes per-package overrides for monorepos', () => {
     const options = buildMenuOptions(baseState, 3);
     const values = options.map((o) => o.value);
     expect(values).toContain('packageOverrides');
   });
 
-  it('includes file naming option when fileNamingValue is set', () => {
+  it('hides per-package overrides for single projects', () => {
     const options = buildMenuOptions(baseState, 0);
     const values = options.map((o) => o.value);
-    expect(values).toContain('fileNaming');
+    expect(values).not.toContain('packageOverrides');
   });
 
-  it('excludes file naming option when no value detected', () => {
-    const options = buildMenuOptions({ ...baseState, fileNamingValue: undefined }, 0);
+  it('shows per-package overrides even when coverage is disabled', () => {
+    const options = buildMenuOptions({ ...baseState, testCoverage: 0 }, 3);
     const values = options.map((o) => o.value);
-    expect(values).not.toContain('fileNaming');
+    expect(values).toContain('packageOverrides');
+  });
+
+  it('shows naming hint as enforced with convention', () => {
+    const options = buildMenuOptions(baseState, 0);
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('kebab-case (enforced)');
+  });
+
+  it('shows naming hint as not enforced', () => {
+    const options = buildMenuOptions({ ...baseState, enforceNaming: false }, 0);
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('not enforced');
+  });
+
+  it('shows naming hint as not set when enforced without value', () => {
+    const options = buildMenuOptions(
+      { ...baseState, enforceNaming: true, fileNamingValue: undefined },
+      0,
+    );
+    const naming = options.find((o) => o.value === 'naming');
+    expect(naming?.hint).toBe('not set (enforced)');
+  });
+
+  it('shows file limits hint with test file limit', () => {
+    const options = buildMenuOptions({ ...baseState, maxTestFileLines: 500 }, 0);
+    const fileLimits = options.find((o) => o.value === 'fileLimits');
+    expect(fileLimits?.hint).toBe('max 300 lines, tests 500');
+  });
+
+  it('shows file limits hint as unlimited when test limit is 0', () => {
+    const options = buildMenuOptions(baseState, 0);
+    const fileLimits = options.find((o) => o.value === 'fileLimits');
+    expect(fileLimits?.hint).toBe('max 300 lines, test files unlimited');
+  });
+});
+
+describe('handleMenuChoice', () => {
+  beforeEach(() => {
+    logMock.info.mockReset();
+  });
+
+  it('resets all fields to defaults', async () => {
+    const state = makeState({ maxFileLines: 100, testCoverage: 50, fileNamingValue: 'camelCase' });
+    const defaults = makeState();
+    await handleMenuChoice('reset', state, defaults, undefined);
+    expect(state.maxFileLines).toBe(300);
+    expect(state.testCoverage).toBe(80);
+    expect(state.fileNamingValue).toBe('kebab-case');
+    expect(logMock.info).toHaveBeenCalledWith('Reset all rules to detected defaults.');
+  });
+
+  it('dispatches to file limits sub-menu', async () => {
+    const { promptFileLimitsMenu } = await import('./prompt-submenus.js');
+    const state = makeState();
+    await handleMenuChoice('fileLimits', state, makeState(), undefined);
+    expect(promptFileLimitsMenu).toHaveBeenCalledWith(state);
+  });
+
+  it('dispatches to naming sub-menu', async () => {
+    const { promptNamingMenu } = await import('./prompt-submenus.js');
+    const state = makeState();
+    await handleMenuChoice('naming', state, makeState(), undefined);
+    expect(promptNamingMenu).toHaveBeenCalledWith(state);
+  });
+
+  it('dispatches to testing sub-menu', async () => {
+    const { promptTestingMenu } = await import('./prompt-submenus.js');
+    const state = makeState();
+    await handleMenuChoice('testing', state, makeState(), undefined);
+    expect(promptTestingMenu).toHaveBeenCalledWith(state);
+  });
+
+  it('dispatches to package overrides', async () => {
+    const { promptPackageOverrides } = await import('./prompt-package-overrides.js');
+    const packages = [
+      { name: 'root', path: '.' },
+      { name: 'web', path: 'apps/web' },
+    ];
+    const state = makeState({ packageOverrides: packages });
+    const root = packages[0];
+    await handleMenuChoice('packageOverrides', state, makeState(), root);
+    expect(promptPackageOverrides).toHaveBeenCalled();
+  });
+});
+
+describe('getPackageDiffs', () => {
+  it('returns empty array when packages are identical', () => {
+    const root = { name: 'root', path: '.', conventions: { fileNaming: 'kebab-case' } };
+    const pkg = { name: 'web', path: 'apps/web', conventions: { fileNaming: 'kebab-case' } };
+    expect(getPackageDiffs(pkg, root)).toEqual([]);
+  });
+
+  it('detects convention differences', () => {
+    const root = { name: 'root', path: '.', conventions: { fileNaming: 'kebab-case' } };
+    const pkg = { name: 'web', path: 'apps/web', conventions: { fileNaming: 'PascalCase' } };
+    expect(getPackageDiffs(pkg, root)).toContain('fileNaming: PascalCase');
+  });
+
+  it('detects stack differences', () => {
+    const root = {
+      name: 'root',
+      path: '.',
+      stack: { framework: 'nextjs', language: 'typescript', packageManager: 'pnpm' },
+    };
+    const pkg = {
+      name: 'api',
+      path: 'apps/api',
+      stack: { framework: 'express', language: 'typescript', packageManager: 'pnpm' },
+    };
+    expect(getPackageDiffs(pkg, root)).toContain('framework: express');
+  });
+
+  it('detects rule differences', () => {
+    const root = { name: 'root', path: '.', rules: { maxFileLines: 300 } };
+    const pkg = { name: 'web', path: 'apps/web', rules: { maxFileLines: 500 } };
+    expect(getPackageDiffs(pkg, root)).toContain('maxFileLines: 500');
+  });
+
+  it('detects coverage differences', () => {
+    const root = { name: 'root', path: '.', coverage: { summaryPath: 'coverage/summary.json' } };
+    const pkg = {
+      name: 'web',
+      path: 'apps/web',
+      coverage: { summaryPath: 'custom/path.json', command: 'vitest run --coverage' },
+    };
+    const diffs = getPackageDiffs(pkg, root);
+    expect(diffs).toContain('coverage.summaryPath: custom/path.json');
+    expect(diffs).toContain('coverage.command: (override)');
+  });
+
+  it('ignores matching values', () => {
+    const root = {
+      name: 'root',
+      path: '.',
+      conventions: { fileNaming: 'kebab-case' },
+      rules: { maxFileLines: 300, testCoverage: 80 },
+    };
+    const pkg = {
+      name: 'web',
+      path: 'apps/web',
+      conventions: { fileNaming: 'kebab-case' },
+      rules: { maxFileLines: 300, testCoverage: 80 },
+    };
+    expect(getPackageDiffs(pkg, root)).toEqual([]);
   });
 });
 

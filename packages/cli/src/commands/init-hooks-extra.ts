@@ -117,11 +117,14 @@ export function setupLintHook(projectRoot: string, linter: string): string | und
 export function setupSelectedIntegrations(
   projectRoot: string,
   integrations: IntegrationChoice,
-  opts: { linter?: string; packageManager?: string },
+  opts: { linter?: string; packageManager?: string; lefthookExpected?: boolean },
 ): string[] {
   const created: string[] = [];
   if (integrations.preCommitHook) {
     const t = setupPreCommitHook(projectRoot);
+    if (t && opts.lefthookExpected && !t.includes('lefthook')) {
+      console.log(`  ${chalk.yellow('!')} Lefthook install failed — fell back to ${t}`);
+    }
     created.push(t ? `${t} — added viberails pre-commit` : 'pre-commit hook skipped');
   }
   if (integrations.typecheckHook) {

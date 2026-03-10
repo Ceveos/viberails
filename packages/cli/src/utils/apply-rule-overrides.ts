@@ -1,4 +1,5 @@
 import type { ViberailsConfig } from '@viberails/types';
+import { getRootPackage } from './get-root-package.js';
 import type { RuleOverrides } from './prompt-rules.js';
 
 /**
@@ -10,7 +11,10 @@ import type { RuleOverrides } from './prompt-rules.js';
  */
 export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverrides): void {
   if (overrides.packageOverrides) config.packages = overrides.packageOverrides;
+  const rootPkg = getRootPackage(config.packages);
+
   config.rules.maxFileLines = overrides.maxFileLines;
+  config.rules.maxTestFileLines = overrides.maxTestFileLines;
   config.rules.testCoverage = overrides.testCoverage;
   config.rules.enforceMissingTests = overrides.enforceMissingTests;
   config.rules.enforceNaming = overrides.enforceNaming;
@@ -26,7 +30,6 @@ export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverr
   }
 
   if (overrides.fileNamingValue) {
-    const rootPkg = config.packages.find((p) => p.path === '.') ?? config.packages[0];
     const oldNaming = rootPkg.conventions?.fileNaming;
     rootPkg.conventions = rootPkg.conventions ?? {};
     rootPkg.conventions.fileNaming = overrides.fileNamingValue;
@@ -36,6 +39,20 @@ export function applyRuleOverrides(config: ViberailsConfig, overrides: RuleOverr
           pkg.conventions.fileNaming = overrides.fileNamingValue;
         }
       }
+    }
+  }
+
+  // Apply convention overrides to root package
+  if (rootPkg) {
+    rootPkg.conventions = rootPkg.conventions ?? {};
+    if (overrides.componentNaming !== undefined) {
+      rootPkg.conventions.componentNaming = overrides.componentNaming || undefined;
+    }
+    if (overrides.hookNaming !== undefined) {
+      rootPkg.conventions.hookNaming = overrides.hookNaming || undefined;
+    }
+    if (overrides.importAlias !== undefined) {
+      rootPkg.conventions.importAlias = overrides.importAlias || undefined;
     }
   }
 }
