@@ -168,26 +168,37 @@ describe('advancedNamingHint', () => {
     expect(advancedNamingHint(config)).toBe('not enforced');
   });
 
-  it('includes file naming when set', () => {
+  it('shows check/cross labels when some conventions set', () => {
     const hint = advancedNamingHint(makeConfig());
-    expect(hint).toContain('kebab-case');
-    expect(hint).toContain('components');
-    expect(hint).toContain('hooks');
-    expect(hint).toContain('alias');
+    expect(hint).toContain('\u2713 file naming');
+    expect(hint).toContain('\u2717 components');
+    expect(hint).toContain('\u2717 hooks');
+    expect(hint).toContain('\u2717 alias');
   });
 
-  it('lists configured conventions', () => {
+  it('shows all crosses when no conventions set', () => {
+    const config = makeConfig();
+    config.packages[0] = { name: 'root', path: '.', conventions: {} } as PackageConfig;
+    const hint = advancedNamingHint(config);
+    expect(hint).toContain('\u2717 file naming');
+    expect(hint).toContain('\u2717 components');
+    expect(hint).toContain('\u2717 hooks');
+    expect(hint).toContain('\u2717 alias');
+  });
+
+  it('shows all checks when all conventions set', () => {
     const config = makeConfig();
     config.packages[0].conventions = {
       ...config.packages[0].conventions,
       componentNaming: 'PascalCase',
       hookNaming: 'useXxx',
+      importAlias: '@/*',
     };
     const hint = advancedNamingHint(config);
-    expect(hint).toContain('kebab-case');
-    expect(hint).toContain('PascalCase components');
-    expect(hint).toContain('useXxx hooks');
-    expect(hint).toContain('alias');
+    expect(hint).toContain('\u2713 file naming');
+    expect(hint).toContain('\u2713 components');
+    expect(hint).toContain('\u2713 hooks');
+    expect(hint).toContain('\u2713 alias');
   });
 });
 
@@ -343,10 +354,19 @@ describe('buildMainMenuOptions', () => {
     expect(item?.label).toContain('-');
   });
 
-  it('uses ~ icon for advanced naming when enforced but not all conventions set', () => {
+  it('uses - icon for advanced naming when enforced but no conventions set', () => {
     const config = makeConfig();
     config.packages[0] = { name: 'root', path: '.' } as PackageConfig;
     config.rules.enforceNaming = true;
+    const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
+    const item = opts.find((o) => o.value === 'advancedNaming');
+    expect(item?.label).toContain('-');
+  });
+
+  it('uses ~ icon for advanced naming when some conventions set', () => {
+    const config = makeConfig();
+    config.rules.enforceNaming = true;
+    // makeConfig() sets fileNaming: 'kebab-case' but not the others
     const opts = buildMainMenuOptions(config, makeScanResult(), makeState());
     const item = opts.find((o) => o.value === 'advancedNaming');
     expect(item?.label).toContain('~');

@@ -1,5 +1,6 @@
 import * as clack from '@clack/prompts';
 import type { PackageConfig } from '@viberails/types';
+import chalk from 'chalk';
 import { isCancelled } from './prompt.js';
 import {
   HINT_AUTO_DETECT,
@@ -79,6 +80,23 @@ export function packageOverrideHint(pkg: PackageConfig, defaults: PackageOverrid
   return tags.length > 0 ? tags.join(', ') : HINT_NO_OVERRIDES;
 }
 
+/** @internal Exported for testing. */
+export function packageOverrideIcon(pkg: PackageConfig, defaults: PackageOverrideDefaults): string {
+  const dc = defaults.coverageCommand ?? '';
+  const count = [
+    pkg.conventions?.fileNaming !== undefined &&
+      pkg.conventions.fileNaming !== defaults.fileNamingValue,
+    pkg.rules?.maxFileLines !== undefined && pkg.rules.maxFileLines !== defaults.maxFileLines,
+    pkg.rules?.testCoverage !== undefined && pkg.rules.testCoverage !== defaults.testCoverage,
+    pkg.coverage?.summaryPath !== undefined &&
+      pkg.coverage.summaryPath !== defaults.coverageSummaryPath,
+    pkg.coverage?.command !== undefined && pkg.coverage.command !== dc,
+  ].filter(Boolean).length;
+  if (count === 5) return chalk.green('\u2713');
+  if (count > 0) return chalk.yellow('~');
+  return chalk.dim('-');
+}
+
 /**
  * Prompt the user to edit per-package overrides in a monorepo.
  * Covers naming, file limits, and coverage settings.
@@ -98,12 +116,15 @@ export async function promptPackageOverrides(
     const selectedPath = await clack.select({
       message: 'Select package to edit overrides',
       options: [
-        ...editablePackages.map((pkg) => ({
-          value: pkg.path,
-          label: `${pkg.path} (${pkg.name})`,
-          hint: packageOverrideHint(pkg, defaults),
-        })),
-        { value: SENTINEL_DONE, label: 'Done' },
+        ...editablePackages.map((pkg) => {
+          const icon = packageOverrideIcon(pkg, defaults);
+          return {
+            value: pkg.path,
+            label: `${icon} ${pkg.path} (${pkg.name})`,
+            hint: packageOverrideHint(pkg, defaults),
+          };
+        }),
+        { value: SENTINEL_DONE, label: '  Done' },
       ],
     });
     if (isCancelled(selectedPath) || selectedPath === SENTINEL_DONE) break;
@@ -136,6 +157,18 @@ async function promptSinglePackageOverrides(
     const hasMaxLinesOverride =
       target.rules?.maxFileLines !== undefined &&
       target.rules.maxFileLines !== defaults.maxFileLines;
+    const hasCoverageOverride =
+      target.rules?.testCoverage !== undefined &&
+      target.rules.testCoverage !== defaults.testCoverage;
+    const hasSummaryOverride =
+      target.coverage?.summaryPath !== undefined &&
+      target.coverage.summaryPath !== defaults.coverageSummaryPath;
+    const defaultCommand = defaults.coverageCommand ?? '';
+    const hasCommandOverride =
+      target.coverage?.command !== undefined && target.coverage.command !== defaultCommand;
+
+    const ok = chalk.green('\u2713');
+    const unset = chalk.dim('-');
 
     const namingHint = hasNamingOverride
       ? String(effectiveNaming)
@@ -143,17 +176,42 @@ async function promptSinglePackageOverrides(
     const maxLinesHint = hasMaxLinesOverride
       ? String(effectiveMaxLines)
       : `inherits: ${effectiveMaxLines}`;
+    const coverageHint = hasCoverageOverride
+      ? String(effectiveCoverage)
+      : `inherits: ${effectiveCoverage}`;
+    const summaryHint = hasSummaryOverride ? effectiveSummary : `inherits: ${effectiveSummary}`;
+    const commandHint = hasCommandOverride ? effectiveCommand : `inherits: ${effectiveCommand}`;
 
     const choice = await clack.select({
       message: `Edit overrides for ${target.path}`,
       options: [
-        { value: 'fileNaming', label: 'File naming', hint: namingHint },
-        { value: 'maxFileLines', label: 'Max file lines', hint: maxLinesHint },
-        { value: 'testCoverage', label: 'Test coverage', hint: String(effectiveCoverage) },
-        { value: 'summaryPath', label: 'Coverage summary path', hint: effectiveSummary },
-        { value: 'command', label: 'Coverage command', hint: effectiveCommand },
-        { value: 'reset', label: 'Reset all overrides for this package' },
-        { value: 'back', label: 'Back to package list' },
+        {
+          value: 'fileNaming',
+          label: `${hasNamingOverride ? ok : unset} File naming`,
+          hint: namingHint,
+        },
+        {
+          value: 'maxFileLines',
+          label: `${hasMaxLinesOverride ? ok : unset} Max file lines`,
+          hint: maxLinesHint,
+        },
+        {
+          value: 'testCoverage',
+          label: `${hasCoverageOverride ? ok : unset} Test coverage`,
+          hint: coverageHint,
+        },
+        {
+          value: 'summaryPath',
+          label: `${hasSummaryOverride ? ok : unset} Coverage summary path`,
+          hint: summaryHint,
+        },
+        {
+          value: 'command',
+          label: `${hasCommandOverride ? ok : unset} Coverage command`,
+          hint: commandHint,
+        },
+        { value: 'reset', label: '  Reset all overrides for this package' },
+        { value: 'back', label: '  Back to package list' },
       ],
     });
     if (isCancelled(choice) || choice === 'back') break;

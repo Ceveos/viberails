@@ -104,32 +104,18 @@ describe('promptNamingMenu', () => {
   });
 
   it('toggles enforceNaming off', async () => {
-    selectMock.mockResolvedValueOnce('enforceNaming').mockResolvedValueOnce('back');
-    confirmMock.mockResolvedValueOnce(false);
+    selectMock.mockResolvedValueOnce('toggleEnforcement').mockResolvedValueOnce('back');
     const state = makeState();
     await promptNamingMenu(state);
     expect(state.enforceNaming).toBe(false);
   });
 
-  it('toggles enforceNaming on and auto-prompts for convention when none set', async () => {
-    selectMock
-      .mockResolvedValueOnce('enforceNaming')
-      .mockResolvedValueOnce('camelCase') // auto-prompted naming select
-      .mockResolvedValueOnce('back');
-    confirmMock.mockResolvedValueOnce(true);
+  it('toggles enforceNaming on without auto-prompting', async () => {
+    selectMock.mockResolvedValueOnce('toggleEnforcement').mockResolvedValueOnce('back');
     const state = makeState({ enforceNaming: false, fileNamingValue: undefined });
     await promptNamingMenu(state);
     expect(state.enforceNaming).toBe(true);
-    expect(state.fileNamingValue).toBe('camelCase');
-  });
-
-  it('does not auto-prompt when fileNamingValue already set', async () => {
-    selectMock.mockResolvedValueOnce('enforceNaming').mockResolvedValueOnce('back');
-    confirmMock.mockResolvedValueOnce(true);
-    const state = makeState({ enforceNaming: false, fileNamingValue: 'kebab-case' });
-    await promptNamingMenu(state);
-    expect(state.enforceNaming).toBe(true);
-    // select should only be called twice (enforceNaming choice + back), not 3 times
+    expect(state.fileNamingValue).toBeUndefined();
     expect(selectMock).toHaveBeenCalledTimes(2);
   });
 

@@ -73,73 +73,62 @@ export async function promptFileLimitsMenu(
 /** Sub-menu for naming and convention settings. */
 export async function promptNamingMenu(state: RuleOverrides): Promise<void> {
   while (true) {
+    const ok = chalk.green('\u2713');
+    const unset = chalk.dim('-');
+
+    const enforcementLabel = state.enforceNaming
+      ? `enforced ${chalk.green('\u2713')}`
+      : `not enforced ${chalk.dim('\u2717')}`;
     const options: { value: string; label: string; hint?: string }[] = [
       {
-        value: 'enforceNaming',
-        label: 'Enforce file naming',
-        hint: state.enforceNaming ? chalk.green('\u2713') : chalk.dim('\u2717'),
-      },
-    ];
-
-    if (state.enforceNaming) {
-      options.push({
         value: 'fileNaming',
-        label: 'File naming convention',
+        label: `${state.fileNamingValue ? ok : unset} File naming convention`,
         hint: state.fileNamingValue ?? HINT_NOT_SET,
-      });
-    }
-
-    options.push(
+      },
       {
         value: 'componentNaming',
-        label: 'Component naming',
+        label: `${state.componentNaming ? ok : unset} Component naming`,
         hint: state.componentNaming ?? HINT_NOT_SET,
       },
       {
         value: 'hookNaming',
-        label: 'Hook naming',
+        label: `${state.hookNaming ? ok : unset} Hook naming`,
         hint: state.hookNaming ?? HINT_NOT_SET,
       },
       {
         value: 'importAlias',
-        label: 'Import alias',
+        label: `${state.importAlias ? ok : unset} Import alias`,
         hint: state.importAlias ?? HINT_NOT_SET,
       },
-      { value: 'back', label: 'Back' },
-    );
+      {
+        value: 'toggleEnforcement',
+        label: state.enforceNaming ? '  Turn off enforcement' : '  Turn on enforcement',
+      },
+      { value: 'back', label: '  Back' },
+    ];
 
-    const choice = await clack.select({ message: 'Naming & conventions', options });
+    const choice = await clack.select({
+      message: `Naming conventions (${enforcementLabel})`,
+      options,
+    });
     if (isCancelled(choice) || choice === 'back') return;
 
-    if (choice === 'enforceNaming') {
-      const result = await clack.confirm({
-        message: state.fileNamingValue
-          ? `Enforce file naming? (detected: ${state.fileNamingValue})`
-          : 'Enforce file naming?',
-        initialValue: state.enforceNaming,
-      });
-      if (isCancelled(result)) continue;
-
-      if (result && !state.fileNamingValue) {
-        // Must pick a convention before enabling enforcement
-        const selected = await clack.select({
-          message: 'Which file naming convention should be enforced?',
-          options: [...FILE_NAMING_OPTIONS],
-        });
-        if (isCancelled(selected)) continue;
-        state.fileNamingValue = selected;
-      }
-      state.enforceNaming = result;
+    if (choice === 'toggleEnforcement') {
+      state.enforceNaming = !state.enforceNaming;
+      continue;
     }
 
     if (choice === 'fileNaming') {
       const selected = await clack.select({
-        message: 'Which file naming convention should be enforced?',
-        options: [...FILE_NAMING_OPTIONS],
-        initialValue: state.fileNamingValue,
+        message: 'File naming convention',
+        options: [
+          ...FILE_NAMING_OPTIONS,
+          { value: SENTINEL_CLEAR, label: 'Clear (no convention)' },
+        ],
+        initialValue: state.fileNamingValue ?? SENTINEL_CLEAR,
       });
       if (isCancelled(selected)) continue;
-      state.fileNamingValue = selected;
+      state.fileNamingValue = selected === SENTINEL_CLEAR ? undefined : selected;
     }
 
     if (choice === 'componentNaming') {
