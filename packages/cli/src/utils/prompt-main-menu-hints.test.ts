@@ -1,6 +1,5 @@
 import type { PackageConfig, ScanResult, ViberailsConfig } from '@viberails/types';
 import { describe, expect, it } from 'vitest';
-import type { InitMenuState } from './prompt-main-menu.js';
 import {
   advancedNamingHint,
   boundariesHint,
@@ -13,6 +12,7 @@ import {
   missingTestsHint,
   packageOverridesHint,
 } from './prompt-main-menu-hints.js';
+import type { InitMenuState } from './prompt-main-menu-types.js';
 
 function makeConfig(overrides: Partial<ViberailsConfig> = {}): ViberailsConfig {
   return {

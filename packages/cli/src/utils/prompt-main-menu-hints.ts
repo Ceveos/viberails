@@ -1,7 +1,7 @@
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
 import chalk from 'chalk';
 import { getRootPackage } from './get-root-package.js';
-import type { InitMenuState } from './prompt-main-menu.js';
+import type { InitMenuState } from './prompt-main-menu-types.js';
 
 /** @internal Exported for testing. */
 export function fileLimitsHint(config: ViberailsConfig): string {

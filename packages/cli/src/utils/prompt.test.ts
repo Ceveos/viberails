@@ -1,6 +1,12 @@
 import type { PackageConfig } from '@viberails/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { confirm, confirmDangerous, promptExistingConfigAction, promptRuleMenu } from './prompt.js';
+import {
+  confirm,
+  confirmDangerous,
+  isCancelled,
+  promptExistingConfigAction,
+  promptRuleMenu,
+} from './prompt.js';
 
 const { selectMock, textMock, confirmMock, multiselectMock, noteMock, logMock, isCancelMock } =
   vi.hoisted(() => ({
@@ -33,6 +39,13 @@ describe('prompt utils', () => {
     noteMock.mockReset();
     logMock.info.mockReset();
     isCancelMock.mockClear();
+  });
+
+  it('isCancelled returns true for cancel symbols and false for values', () => {
+    expect(isCancelled('__cancel__')).toBe(true);
+    expect(isCancelled('some value')).toBe(false);
+    expect(isCancelled(42)).toBe(false);
+    expect(isCancelled(true)).toBe(false);
   });
 
   it('confirm and confirmDangerous use different default values', async () => {

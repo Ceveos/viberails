@@ -1,25 +1,15 @@
 import * as clack from '@clack/prompts';
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
-import type { PrereqResult } from './check-prerequisites.js';
 import { planCoverageInstall } from './check-prerequisites.js';
 import { getRootPackage } from './get-root-package.js';
 import { isCancelled } from './prompt.js';
 import { SENTINEL_SKIP } from './prompt-constants.js';
-import type { DetectedTools } from './prompt-integrations.js';
 import { promptIntegrationsDeferred } from './prompt-integrations.js';
-import type { InitMenuState } from './prompt-main-menu.js';
+import type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 import { normalizePackageOverrides, promptPackageOverrides } from './prompt-package-overrides.js';
 import type { RuleOverrides } from './prompt-rules.js';
 import { FILE_NAMING_OPTIONS, promptNamingMenu } from './prompt-submenus.js';
 import { resolveWorkspacePackages } from './resolve-workspace-packages.js';
-
-interface MainMenuOpts {
-  hasTestRunner: boolean;
-  hookManager: string | undefined;
-  coveragePrereqs: PrereqResult[];
-  projectRoot: string;
-  tools: DetectedTools;
-}
 
 export async function handleAdvancedNaming(config: ViberailsConfig): Promise<void> {
   const rootPkg = getRootPackage(config.packages);

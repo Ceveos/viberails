@@ -1,11 +1,8 @@
 import * as clack from '@clack/prompts';
 import type { ScanResult, ViberailsConfig } from '@viberails/types';
 import { formatScanResultsText } from '../display-text.js';
-import type { PrereqResult } from './check-prerequisites.js';
-import type { DeferredInstall } from './deferred-install.js';
 import { getRootPackage } from './get-root-package.js';
 import { assertNotCancelled } from './prompt.js';
-import type { DetectedTools, IntegrationChoice } from './prompt-integrations.js';
 import {
   handleAdvancedNaming,
   handleBoundaries,
@@ -16,23 +13,10 @@ import {
   handlePackageOverrides,
 } from './prompt-main-menu-handlers.js';
 import { buildMainMenuOptions } from './prompt-main-menu-hints.js';
+import type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 import { promptFileLimitsMenu } from './prompt-submenus.js';
 
-export interface InitMenuState {
-  visited: { integrations: boolean; boundaries: boolean };
-  deferredInstalls: DeferredInstall[];
-  integrations?: IntegrationChoice;
-  hasTestRunner: boolean;
-  hookManager: string | undefined;
-}
-
-interface MainMenuOpts {
-  hasTestRunner: boolean;
-  hookManager: string | undefined;
-  coveragePrereqs: PrereqResult[];
-  projectRoot: string;
-  tools: DetectedTools;
-}
+export type { InitMenuState, MainMenuOpts } from './prompt-main-menu-types.js';
 
 /**
  * Run the interactive main menu loop for init.
