@@ -1,6 +1,6 @@
 {
   "name": "@viberails/config",
-  "version": "0.6.13",
+  "version": "0.6.14",
   "description": "Config generation and loading for viberails",
   "license": "MIT",
   "type": "module",

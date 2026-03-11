@@ -1,6 +1,6 @@
 {
   "name": "viberails",
-  "version": "0.6.13",
+  "version": "0.6.14",
   "description": "Guardrails for vibe coding. Scan your codebase, detect conventions, and enforce them during AI edits, commits, and CI.",
   "license": "MIT",
   "type": "module",
