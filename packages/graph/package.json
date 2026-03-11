@@ -2,6 +2,7 @@
   "name": "@viberails/graph",
   "version": "0.6.13",
   "description": "Import graph analysis and boundary checking for viberails",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

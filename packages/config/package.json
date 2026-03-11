@@ -2,6 +2,7 @@
   "name": "@viberails/config",
   "version": "0.6.13",
   "description": "Config generation and loading for viberails",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
