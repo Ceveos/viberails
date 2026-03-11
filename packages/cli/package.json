@@ -1,7 +1,7 @@
 {
   "name": "viberails",
   "version": "0.6.12",
-  "description": "CLI tool for scanning JS/TS projects and generating AI context",
+  "description": "Guardrails for vibe coding. Scan your codebase, detect conventions, and enforce them during AI edits, commits, and CI.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -22,7 +22,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsup",
